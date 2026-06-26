@@ -4,8 +4,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "sync": "node scripts/sync-notion.mjs",
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "node scripts/sync-notion.mjs && astro build",
     "preview": "astro preview"
   },
   "dependencies": {

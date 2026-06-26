@@ -13,3 +13,7 @@ Thumbs.db
 node_modules/
 dist/
 .astro/
+
+# Notion sync (빌드 때 생성)
+public/notion/
+src/data/posts.json
