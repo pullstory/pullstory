@@ -1,0 +1,29 @@
+---
+const { title = 'PULLSTORY', description = 'PULLSTORY — 자기 인생을 책처럼 써내려가는 환경.' } = Astro.props;
+---
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <!-- 메뉴 (앞으로 항목 추가 예정) -->
+    <nav>
+      <a href="/">PULLSTORY</a>
+      |
+      <a href="/">About</a>
+      |
+      <a href="/blog/">콘텐츠</a>
+    </nav>
+
+    <hr />
+
+    <main>
+      <slot />
+    </main>
+  </body>
+</html>

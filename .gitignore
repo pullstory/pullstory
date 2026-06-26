@@ -8,3 +8,8 @@ Thumbs.db
 
 # Vercel
 .vercel
+
+# Node / Astro
+node_modules/
+dist/
+.astro/

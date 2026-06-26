@@ -1,0 +1,25 @@
+---
+import { marked } from 'marked';
+import Base from '../../layouts/Base.astro';
+import { getPublishedPosts, getPostBySlug } from '../../lib/notion.js';
+
+export async function getStaticPaths() {
+  const posts = await getPublishedPosts();
+  return posts.map((post) => ({ params: { slug: post.slug } }));
+}
+
+const { slug } = Astro.params;
+const post = await getPostBySlug(slug);
+if (!post) {
+  return Astro.redirect('/blog/');
+}
+const html = marked.parse(post.markdown || '');
+---
+<Base title={`${post.title} · PULLSTORY`}>
+  <article>
+    <h1>{post.title}</h1>
+    {post.date && <p><time datetime={post.date}>{post.date}</time></p>}
+    <div set:html={html} />
+  </article>
+  <p><a href="/blog/">← 콘텐츠 목록</a></p>
+</Base>
