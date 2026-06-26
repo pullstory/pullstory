@@ -7,6 +7,7 @@
 
 import { Client } from '@notionhq/client';
 import { NotionToMarkdown } from 'notion-to-md';
+import sharp from 'sharp';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -72,23 +73,48 @@ function iframeFor(url) {
   return null;
 }
 
-// 이미지 다운로드 → public/notion/<blockId>.<ext> → 로컬 경로 반환
+async function fetchBuffer(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return Buffer.from(await res.arrayBuffer());
+}
+
+// 본문 이미지: 가로 최대 1600px webp로 최적화 저장 → 로컬 경로 반환
 async function downloadImage(url, blockId) {
+  const id = blockId.replace(/-/g, '');
+  await fs.mkdir(IMG_DIR, { recursive: true });
   try {
-    const clean = url.split('?')[0];
-    let ext = path.extname(clean).toLowerCase().replace('.', '') || 'png';
-    if (ext.length > 5) ext = 'png';
-    const filename = `${blockId.replace(/-/g, '')}.${ext}`;
-    await fs.mkdir(IMG_DIR, { recursive: true });
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const buf = Buffer.from(await res.arrayBuffer());
-    await fs.writeFile(path.join(IMG_DIR, filename), buf);
-    return `${IMG_PUBLIC_BASE}/${filename}`;
+    const buf = await fetchBuffer(url);
+    const out = `${id}.webp`;
+    await sharp(buf)
+      .rotate() // EXIF 회전 보정
+      .resize({ width: 1600, withoutEnlargement: true })
+      .webp({ quality: 82 })
+      .toFile(path.join(IMG_DIR, out));
+    return `${IMG_PUBLIC_BASE}/${out}`;
   } catch (e) {
-    console.warn(`[sync-notion] 이미지 다운로드 실패 (${blockId}): ${e.message}`);
-    return url; // 실패 시 원본 URL 유지
+    console.warn(`[sync-notion] 이미지 최적화 실패 (${blockId}): ${e.message}`);
+    try {
+      const buf = await fetchBuffer(url);
+      const out = `${id}.img`;
+      await fs.writeFile(path.join(IMG_DIR, out), buf);
+      return `${IMG_PUBLIC_BASE}/${out}`;
+    } catch {
+      return url;
+    }
   }
+}
+
+// 썸네일: 280x280 cover webp 생성 → 로컬 경로 반환
+async function saveThumb(buf, name) {
+  await fs.mkdir(IMG_DIR, { recursive: true });
+  const out = `${name}-thumb.webp`;
+  await sharp(buf)
+    .rotate()
+    .resize(280, 280, { fit: 'cover' })
+    .webp({ quality: 72 })
+    .toFile(path.join(IMG_DIR, out));
+  return `${IMG_PUBLIC_BASE}/${out}`;
 }
 
 // ── 커스텀 변환기 (사진 / 동영상 / 임베드) ───────────────
@@ -155,13 +181,24 @@ const posts = [];
 for (const m of metas) {
   const mdBlocks = await n2m.pageToMarkdown(m.id);
   const { parent: markdown } = n2m.toMarkdownString(mdBlocks);
-  // 썸네일: 페이지 커버 > 본문 첫 이미지 > 없음
+  // 썸네일(280x280 webp): 페이지 커버 > 본문 첫 이미지 > 없음
   let thumb = null;
-  if (m.coverUrl) {
-    thumb = await downloadImage(m.coverUrl, `${m.id}-cover`);
-  } else {
-    const firstImg = (markdown || '').match(/!\[[^\]]*\]\((\/notion\/[^)]+)\)/);
-    thumb = firstImg ? firstImg[1] : null;
+  try {
+    if (m.coverUrl) {
+      const buf = await fetchBuffer(m.coverUrl);
+      thumb = await saveThumb(buf, `${m.id.replace(/-/g, '')}-cover`);
+    } else {
+      const firstImg = (markdown || '').match(/!\[[^\]]*\]\((\/notion\/[^)]+)\)/);
+      if (firstImg) {
+        const localPath = path.join(ROOT, 'public', firstImg[1]);
+        const buf = await fs.readFile(localPath);
+        const baseName = path.basename(firstImg[1]).replace(/\.[a-z0-9]+$/i, '');
+        thumb = await saveThumb(buf, baseName);
+      }
+    }
+  } catch (e) {
+    console.warn(`[sync-notion] 썸네일 생성 실패 (${m.title}): ${e.message}`);
+    thumb = null;
   }
   const { coverUrl, ...meta } = m;
   posts.push({ ...meta, thumb, markdown: markdown || '' });
