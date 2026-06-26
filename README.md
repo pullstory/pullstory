@@ -1,4 +1,4 @@
-# 끌당북스 · PULL STORY — Website
+# PULLSTORY — Website
 
 `pullstory.net` 공식 사이트. **Build in public** — 매주 한 페이지씩 자라는 정적 사이트.
 
