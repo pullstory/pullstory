@@ -21,5 +21,5 @@ const html = marked.parse(post.markdown || '');
     {post.date && <p><time datetime={post.date}>{post.date}</time></p>}
     <div set:html={html} />
   </article>
-  <p><a href="/blog/">← 콘텐츠 목록</a></p>
+  <p><a href="/">← 목록으로</a></p>
 </Base>
