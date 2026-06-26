@@ -137,7 +137,8 @@ const metas = pages
     const published = Boolean(findPropByType(props, 'checkbox')?.checkbox);
     const base = slugify(title);
     const slug = base || page.id.replace(/-/g, '').slice(0, 12);
-    return { id: page.id, title, date, published, slug };
+    const coverUrl = page.cover?.external?.url || page.cover?.file?.url || null;
+    return { id: page.id, title, date, published, slug, coverUrl };
   })
   .filter((p) => p.published)
   .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
@@ -154,8 +155,17 @@ const posts = [];
 for (const m of metas) {
   const mdBlocks = await n2m.pageToMarkdown(m.id);
   const { parent: markdown } = n2m.toMarkdownString(mdBlocks);
-  posts.push({ ...m, markdown: markdown || '' });
-  console.log(`[sync-notion] · ${m.title} (${m.slug})`);
+  // 썸네일: 페이지 커버 > 본문 첫 이미지 > 없음
+  let thumb = null;
+  if (m.coverUrl) {
+    thumb = await downloadImage(m.coverUrl, `${m.id}-cover`);
+  } else {
+    const firstImg = (markdown || '').match(/!\[[^\]]*\]\((\/notion\/[^)]+)\)/);
+    thumb = firstImg ? firstImg[1] : null;
+  }
+  const { coverUrl, ...meta } = m;
+  posts.push({ ...meta, thumb, markdown: markdown || '' });
+  console.log(`[sync-notion] · ${m.title} (${m.slug})${thumb ? ' [썸네일]' : ''}`);
 }
 
 await writeCache(posts);

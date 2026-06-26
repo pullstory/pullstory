@@ -37,11 +37,32 @@ const { title = 'PULLSTORY', description = 'PULLSTORY — 자기 인생을 책�
       /* 유튜브/임베드: 반응형 16:9 */
       .embed { position: relative; padding-top: 56.25%; margin: 1.75rem 0; }
       .embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; border-radius: 4px; }
-      /* 콘텐츠 목록 */
-      .content ul { list-style: none; padding: 0; }
-      .content li { padding: .55rem 0; border-bottom: 1px solid #f0f0f0; }
-      .content time { color: #999; font-size: .85rem; margin-right: .5rem; }
-      .content a { color: #222; }
+      /* 콘텐츠 목록 (제목 + 썸네일) */
+      .post-list { list-style: none; padding: 0; margin: 0; }
+      .post-list li { border-bottom: 1px solid #f0f0f0; }
+      .post-item {
+        display: flex;
+        align-items: center;
+        gap: .9rem;
+        padding: .8rem 0;
+        color: #222;
+        text-decoration: none;
+      }
+      .post-item:hover .post-title { text-decoration: underline; }
+      /* 썸네일: 작은 고정 크기 (전역 img 규칙 덮어씀) */
+      .thumb {
+        width: 72px;
+        height: 72px;
+        object-fit: cover;
+        border-radius: 6px;
+        margin: 0;
+        flex-shrink: 0;
+        display: block;
+      }
+      .thumb--empty { background: #f0f0f0; }
+      .post-meta { display: flex; flex-direction: column; gap: .15rem; }
+      .post-title { font-weight: 500; }
+      .post-meta time { color: #999; font-size: .82rem; }
     </style>
   </head>
   <body>

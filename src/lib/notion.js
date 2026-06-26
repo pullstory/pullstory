@@ -20,7 +20,7 @@ try {
 
 /** 발행된 글 목록(최신순) — 본문 제외한 메타 */
 export async function getPublishedPosts() {
-  return cache.map(({ id, title, date, slug }) => ({ id, title, date, slug }));
+  return cache.map(({ id, title, date, slug, thumb }) => ({ id, title, date, slug, thumb }));
 }
 
 /** slug에 해당하는 글의 메타 + 마크다운 본문 */

@@ -21,11 +21,18 @@ const posts = await getPublishedPosts();
     {posts.length === 0 ? (
       <p>아직 글이 없습니다. 곧 첫 페이지가 올라옵니다.</p>
     ) : (
-      <ul>
+      <ul class="post-list">
         {posts.map((post) => (
           <li>
-            {post.date && <time datetime={post.date}>{post.date}</time>}{' '}
-            <a href={`/blog/${post.slug}/`}>{post.title}</a>
+            <a class="post-item" href={`/blog/${post.slug}/`}>
+              {post.thumb
+                ? <img class="thumb" src={post.thumb} alt="" />
+                : <span class="thumb thumb--empty"></span>}
+              <span class="post-meta">
+                <span class="post-title">{post.title}</span>
+                {post.date && <time datetime={post.date}>{post.date}</time>}
+              </span>
+            </a>
           </li>
         ))}
       </ul>
