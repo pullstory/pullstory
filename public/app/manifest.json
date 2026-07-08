@@ -1,0 +1,14 @@
+{
+  "name": "Scash Book — Story CASH Book",
+  "short_name": "Scash Book",
+  "description": "끌어당김의 핵심은 반복. 매일 한 페이지씩 나의 인생 스토리를 써내려가는 책.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#3a2c1e",
+  "theme_color": "#d4a851",
+  "orientation": "portrait",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"}
+  ]
+}

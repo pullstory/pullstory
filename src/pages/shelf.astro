@@ -16,6 +16,15 @@ const posts = await getPublishedPosts();
 
   <hr />
 
+  <!-- 작업실: Cash book 앱 입구 -->
+  <section class="app-entry">
+    <h2>작업실 · Cash book</h2>
+    <p class="app-desc">에피소드를 수집·스크랩·저장하는 나만의 앱. 여기서 모은 기록으로 새 책을 써서 아래에 연재합니다.</p>
+    <a class="app-open" href="/app/">Cash book 열기 →</a>
+  </section>
+
+  <hr />
+
   <section class="content">
     <h2>연재</h2>
     <PostList posts={posts} empty="아직 연재한 스토리가 없습니다." />
