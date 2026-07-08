@@ -1,41 +1,12 @@
 ---
-import { marked } from 'marked';
+// 메인 = 서점: 들어오면 바로 보이는 스토리 피드
 import Base from '../layouts/Base.astro';
-import { getAbout, getPublishedPosts } from '../lib/notion.js';
+import PostList from '../components/PostList.astro';
+import { getPublishedPosts } from '../lib/notion.js';
 
-const about = await getAbout();
-const aboutHtml = about.markdown ? marked.parse(about.markdown) : '';
 const posts = await getPublishedPosts();
 ---
 <Base title="PULLSTORY">
-  <!-- 위: About 소개 (Notion 'About' 페이지에서 가져옴) -->
-  {aboutHtml
-    ? <section class="about" set:html={aboutHtml} />
-    : <section class="about"><h1>About</h1><p>준비 중입니다.</p></section>}
-
-  <hr />
-
-  <!-- 아래: 콘텐츠 목록 (Notion 발행 글 자동) -->
-  <section class="content">
-    <h2>콘텐츠</h2>
-    {posts.length === 0 ? (
-      <p>아직 글이 없습니다. 곧 첫 페이지가 올라옵니다.</p>
-    ) : (
-      <ul class="post-list">
-        {posts.map((post) => (
-          <li>
-            <a class="post-item" href={`/blog/${post.slug}/`}>
-              {post.thumb
-                ? <img class="thumb" src={post.thumb} alt="" />
-                : <span class="thumb thumb--empty"></span>}
-              <span class="post-meta">
-                <span class="post-title">{post.title}</span>
-                {post.date && <time datetime={post.date}>{post.date}</time>}
-              </span>
-            </a>
-          </li>
-        ))}
-      </ul>
-    )}
-  </section>
+  <p class="lede">사람들의 성장 스토리를 만나는 공간.</p>
+  <PostList posts={posts} />
 </Base>

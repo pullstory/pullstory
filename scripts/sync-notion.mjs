@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CACHE_FILE = path.join(ROOT, 'src/data/posts.json');
-const ABOUT_FILE = path.join(ROOT, 'src/data/about.json');
+const PAGES_FILE = path.join(ROOT, 'src/data/pages.json');
 const IMG_DIR = path.join(ROOT, 'public/notion');
 const IMG_PUBLIC_BASE = '/notion';
 
@@ -26,16 +26,17 @@ async function writeCache(posts) {
   await fs.writeFile(CACHE_FILE, JSON.stringify(posts, null, 2));
   console.log(`[sync-notion] wrote ${posts.length} post(s) → src/data/posts.json`);
 }
-async function writeAbout(about) {
-  await fs.mkdir(path.dirname(ABOUT_FILE), { recursive: true });
-  await fs.writeFile(ABOUT_FILE, JSON.stringify(about, null, 2));
-  console.log(`[sync-notion] wrote about.json (${about?.markdown ? 'with content' : 'empty'})`);
+async function writePages(pages) {
+  await fs.mkdir(path.dirname(PAGES_FILE), { recursive: true });
+  await fs.writeFile(PAGES_FILE, JSON.stringify(pages, null, 2));
+  const filled = Object.entries(pages).filter(([, v]) => v).map(([k]) => k);
+  console.log(`[sync-notion] wrote pages.json (${filled.join(', ') || 'empty'})`);
 }
 
 if (!token || !databaseId) {
   console.log('[sync-notion] NOTION_TOKEN/NOTION_DATABASE_ID 없음 → 빈 캐시로 진행');
   await writeCache([]);
-  await writeAbout({ markdown: '' });
+  await writePages({ about: '', shelf: '' });
   process.exit(0);
 }
 
@@ -207,33 +208,37 @@ for (const m of metas) {
 
 await writeCache(posts);
 
-// ── About 페이지 ──────────────────────────────────────
-// NOTION_ABOUT_PAGE_ID 가 있으면 그걸 쓰고, 없으면 integration에 공유된
-// 페이지 중 제목이 'About'(또는 '소개')인 단독 페이지를 자동으로 찾는다.
-async function findAboutPageId() {
-  if (process.env.NOTION_ABOUT_PAGE_ID) return process.env.NOTION_ABOUT_PAGE_ID;
-  const res = await notion.search({ filter: { property: 'object', value: 'page' } });
-  for (const p of res.results) {
-    if (p.object !== 'page') continue;
-    if (p.parent?.type === 'database_id') continue; // DB 행 제외
-    const title = titleText(p.properties || {}).toLowerCase();
-    if (title === 'about' || title === '소개') return p.id;
+// ── 단일 페이지들 (About, 책장 프로필) ──────────────────
+// integration에 공유된 단독 페이지 중 제목이 아래 후보와 맞는 걸 자동으로 찾는다.
+const NAMED_PAGES = {
+  about: ['about', '소개'],
+  shelf: ['책장', '프로필', '서재'],
+};
+
+async function collectNamedPages() {
+  const out = { about: '', shelf: '' };
+  try {
+    const res = await notion.search({ filter: { property: 'object', value: 'page' } });
+    const candidates = res.results.filter(
+      (p) => p.object === 'page' && p.parent?.type !== 'database_id'
+    );
+    for (const [key, titles] of Object.entries(NAMED_PAGES)) {
+      const page = candidates.find((p) =>
+        titles.includes(titleText(p.properties || {}).toLowerCase().trim())
+      );
+      if (page) {
+        const blocks = await n2m.pageToMarkdown(page.id);
+        const { parent: md } = n2m.toMarkdownString(blocks);
+        out[key] = md || '';
+        console.log(`[sync-notion] · '${key}' 페이지 가져옴 (${page.id})`);
+      } else {
+        console.log(`[sync-notion] '${key}' 페이지 없음 (제목 후보: ${titles.join(' / ')})`);
+      }
+    }
+  } catch (e) {
+    console.warn('[sync-notion] 단일 페이지 가져오기 실패:', e.message);
   }
-  return null;
+  return out;
 }
 
-try {
-  const aboutId = await findAboutPageId();
-  if (aboutId) {
-    const blocks = await n2m.pageToMarkdown(aboutId);
-    const { parent: markdown } = n2m.toMarkdownString(blocks);
-    await writeAbout({ markdown: markdown || '' });
-    console.log(`[sync-notion] · About 페이지 가져옴 (${aboutId})`);
-  } else {
-    console.log("[sync-notion] About 페이지 못 찾음 (제목 'About'으로 만들고 공유하세요)");
-    await writeAbout({ markdown: '' });
-  }
-} catch (e) {
-  console.warn('[sync-notion] About 가져오기 실패:', e.message);
-  await writeAbout({ markdown: '' });
-}
+await writePages(await collectNamedPages());

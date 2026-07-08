@@ -1,0 +1,14 @@
+---
+// About = 브랜드/공간 소개, 이용법, 공지 (Notion 'About' 페이지)
+import { marked } from 'marked';
+import Base from '../layouts/Base.astro';
+import { getPage } from '../lib/notion.js';
+
+const md = await getPage('about');
+const html = md ? marked.parse(md) : '';
+---
+<Base title="About · PULLSTORY" description="PULLSTORY — 이 공간이 어떤 곳인지, 어떻게 이용하는지 안내합니다.">
+  {html
+    ? <article set:html={html} />
+    : <article><h1>About</h1><p>준비 중입니다.</p></article>}
+</Base>

@@ -16,4 +16,4 @@ dist/
 
 # Notion sync (빌드 때 생성)
 public/notion/
-src/data/posts.json
+src/data/

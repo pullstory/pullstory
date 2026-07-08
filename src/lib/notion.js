@@ -10,12 +10,12 @@ try {
   cache = [];
 }
 
-let about = { markdown: '' };
+let pages = {};
 try {
-  const mod = await import('../data/about.json', { with: { type: 'json' } });
-  about = mod.default || { markdown: '' };
+  const mod = await import('../data/pages.json', { with: { type: 'json' } });
+  pages = mod.default || {};
 } catch {
-  about = { markdown: '' };
+  pages = {};
 }
 
 /** 발행된 글 목록(최신순) — 본문 제외한 메타 */
@@ -28,7 +28,7 @@ export async function getPostBySlug(slug) {
   return cache.find((p) => p.slug === slug) || null;
 }
 
-/** About 페이지 마크다운 (Notion 'About' 페이지) */
-export async function getAbout() {
-  return about;
+/** 단일 페이지 마크다운 반환 (key: 'about' | 'shelf') */
+export async function getPage(key) {
+  return pages[key] || '';
 }

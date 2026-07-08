@@ -1,0 +1,23 @@
+---
+// 발행 스토리 목록 (썸네일 + 제목 + 날짜)
+const { posts = [], empty = '아직 발행된 스토리가 없습니다.' } = Astro.props;
+---
+{posts.length === 0 ? (
+  <p>{empty}</p>
+) : (
+  <ul class="post-list">
+    {posts.map((post) => (
+      <li>
+        <a class="post-item" href={`/blog/${post.slug}/`}>
+          {post.thumb
+            ? <img class="thumb" src={post.thumb} alt="" />
+            : <span class="thumb thumb--empty"></span>}
+          <span class="post-meta">
+            <span class="post-title">{post.title}</span>
+            {post.date && <time datetime={post.date}>{post.date}</time>}
+          </span>
+        </a>
+      </li>
+    ))}
+  </ul>
+)}

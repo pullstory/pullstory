@@ -1,0 +1,23 @@
+---
+// 책장 = 개인 책장(우선 운영자용): 프로필/링크 + 내가 연재한 스토리
+import { marked } from 'marked';
+import Base from '../layouts/Base.astro';
+import PostList from '../components/PostList.astro';
+import { getPage, getPublishedPosts } from '../lib/notion.js';
+
+const md = await getPage('shelf');
+const profileHtml = md ? marked.parse(md) : '';
+const posts = await getPublishedPosts();
+---
+<Base title="책장 · PULLSTORY" description="PULLSTORY의 개인 책장 — 스토리를 채워가는 공간.">
+  {profileHtml
+    ? <section class="profile" set:html={profileHtml} />
+    : <section class="profile"><h1>책장</h1><p>프로필 준비 중입니다.</p></section>}
+
+  <hr />
+
+  <section class="content">
+    <h2>연재</h2>
+    <PostList posts={posts} empty="아직 연재한 스토리가 없습니다." />
+  </section>
+</Base>
