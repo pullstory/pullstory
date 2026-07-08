@@ -2636,6 +2636,7 @@ function CoverPage({data, setData}) {
 // 위계: 현재(출발점) ⊂ 에피소드(일) ⊂ 챕터(월) ⊂ 클라이맥스(연) ⊂ 미래(인생 책)
 // ═════════════════════════════════════════════════════════════════════
 const PAGES = [
+  {key:"workshop", label:"작업실",   title:"작업실",          sub:"나의 노트"},
   {key:"now",      label:"현재",     title:"현재",            sub:"지금의 나"},
   {key:"writing",  label:"에피소드", title:"에피소드",         sub:"오늘의 한 페이지"},
   {key:"chapters", label:"챕터",     title:"챕터",            sub:"이번 달의 이야기"},
@@ -2644,8 +2645,127 @@ const PAGES = [
   {key:"cover",    label:"표지",     title:"책 표지",          sub:""}
 ];
 
+// ═════════════════════════════════════════════════════════════════════
+// 작업실(노트) 페이지 — 노트 작성/발행 (Firestore 'notes' 컬렉션)
+// 각 노트: {ownerUid, title, body, visibility:'public'|'private', createdAt}
+// ═════════════════════════════════════════════════════════════════════
+function WorkshopPage({user}) {
+  const uid = user && user.uid;
+  const cloud = FIREBASE_READY && fbDb && uid && uid !== "local-user";
+  const [notes, setNotes] = useState([]);
+  const [editing, setEditing] = useState(null); // {id?, title, body, visibility}
+  const [ready, setReady] = useState(false);
+  const linkBtn = {background:"none",border:"none",padding:0,cursor:"pointer",fontSize:"12px",color:"#9c7a2a",textDecoration:"underline"};
+
+  useEffect(() => {
+    if (!cloud) { setReady(true); return; }
+    const unsub = fbDb.collection("notes").where("ownerUid","==",uid)
+      .onSnapshot(snap => {
+        const arr = [];
+        snap.forEach(d => arr.push({id:d.id, ...d.data()}));
+        arr.sort((a,b) => (((b.createdAt&&b.createdAt.seconds)||9e15) - ((a.createdAt&&a.createdAt.seconds)||9e15)));
+        setNotes(arr); setReady(true);
+      }, err => { console.warn("notes load:", err); setReady(true); });
+    return () => unsub();
+  }, [cloud, uid]);
+
+  const startNew = () => setEditing({title:"", body:"", visibility:"private"});
+  const startEdit = (n) => setEditing({id:n.id, title:n.title||"", body:n.body||"", visibility:n.visibility||"private"});
+
+  const save = async () => {
+    const t = (editing.title||"").trim(), b = (editing.body||"").trim();
+    if (!t && !b) { setEditing(null); return; }
+    const now = firebase.firestore.FieldValue.serverTimestamp();
+    try {
+      if (editing.id) {
+        await fbDb.collection("notes").doc(editing.id).update({title:t, body:b, visibility:editing.visibility, updatedAt:now});
+      } else {
+        await fbDb.collection("notes").add({ownerUid:uid, title:t, body:b, visibility:editing.visibility, createdAt:now, updatedAt:now});
+      }
+      setEditing(null);
+    } catch(e) { alert("저장 실패: "+e.message); }
+  };
+  const remove = async (n) => {
+    if (!confirm("이 노트를 삭제할까요?")) return;
+    try { await fbDb.collection("notes").doc(n.id).delete(); } catch(e){ alert("삭제 실패: "+e.message); }
+  };
+  const toggleVis = async (n) => {
+    const v = n.visibility==="public" ? "private" : "public";
+    try { await fbDb.collection("notes").doc(n.id).update({visibility:v}); } catch(e){ alert("실패: "+e.message); }
+  };
+
+  if (!cloud) {
+    return (
+      <div style={{textAlign:"center",padding:"40px 10px",color:"#6b4f30"}}>
+        <div className="heading-serif" style={{fontSize:"18px",color:"#3a2818",fontWeight:700,marginBottom:"10px"}}>작업실</div>
+        <p style={{fontSize:"13px",lineHeight:1.7}}>노트를 쓰고 발행하려면<br/>Google 로그인이 필요해요.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
+        <div>
+          <div className="heading-serif" style={{fontSize:"20px",color:"#3a2818",fontWeight:700}}>작업실</div>
+          <div style={{fontSize:"11px",color:"#9c7a2a"}}>노트를 써서 나의 책을 채워요</div>
+        </div>
+        {!editing && <button className="btn-gold" onClick={startNew}>+ 새 노트</button>}
+      </div>
+
+      {editing && (
+        <div style={{background:"rgba(255,253,245,.6)",border:"1px solid #d8c79a",borderRadius:"8px",padding:"12px",marginBottom:"16px"}}>
+          <input className="input" style={{marginBottom:"8px",fontWeight:700}} placeholder="제목"
+            value={editing.title} onChange={e=>setEditing({...editing,title:e.target.value})}/>
+          <textarea className="input" rows={8} style={{marginBottom:"8px",resize:"vertical",fontFamily:"'Noto Serif KR',serif",lineHeight:1.7}} placeholder="본문을 써보세요…"
+            value={editing.body} onChange={e=>setEditing({...editing,body:e.target.value})}/>
+          <div style={{display:"flex",gap:"8px",marginBottom:"10px"}}>
+            {["private","public"].map(v=>(
+              <button key={v} onClick={()=>setEditing({...editing,visibility:v})} style={{
+                flex:1,padding:"8px",borderRadius:"6px",cursor:"pointer",fontSize:"12px",fontWeight:700,
+                border:"1px solid "+(editing.visibility===v?"#b8862f":"#d8c79a"),
+                background:editing.visibility===v?"rgba(212,168,81,.18)":"transparent",
+                color:editing.visibility===v?"#9c7a2a":"#b89066"
+              }}>{v==="private"?"🔒 나만 보기":"🌐 공개"}</button>
+            ))}
+          </div>
+          <div style={{display:"flex",gap:"8px"}}>
+            <button className="btn-gold" style={{flex:1}} onClick={save}>저장</button>
+            <button onClick={()=>setEditing(null)} style={{flex:1,padding:"10px",borderRadius:"8px",border:"1px solid #d8c79a",background:"transparent",color:"#9c7a2a",cursor:"pointer",fontWeight:700}}>취소</button>
+          </div>
+        </div>
+      )}
+
+      {!ready ? (
+        <div style={{textAlign:"center",color:"#b89066",fontSize:"12px",padding:"20px"}}>불러오는 중…</div>
+      ) : notes.length===0 && !editing ? (
+        <div style={{textAlign:"center",color:"#b89066",fontSize:"13px",padding:"30px 10px",lineHeight:1.7}}>아직 노트가 없어요.<br/>『+ 새 노트』로 첫 글을 써보세요.</div>
+      ) : (
+        <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
+          {notes.map(n=>(
+            <div key={n.id} style={{background:"rgba(255,253,245,.5)",border:"1px solid #e0d3ad",borderRadius:"8px",padding:"12px"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"4px",gap:"8px"}}>
+                <div className="heading-serif" style={{fontSize:"15px",color:"#3a2818",fontWeight:700}}>{n.title||"(제목 없음)"}</div>
+                <span style={{fontSize:"10px",fontWeight:700,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap",
+                  background:n.visibility==="public"?"rgba(90,140,74,.15)":"rgba(107,79,48,.12)",
+                  color:n.visibility==="public"?"#4a7a3a":"#8a6630"}}>{n.visibility==="public"?"공개":"나만"}</span>
+              </div>
+              {n.body && <div style={{fontSize:"12px",color:"#6b4f30",lineHeight:1.6,whiteSpace:"pre-wrap",maxHeight:"3.2em",overflow:"hidden"}}>{n.body}</div>}
+              <div style={{display:"flex",gap:"14px",marginTop:"8px"}}>
+                <button onClick={()=>toggleVis(n)} style={linkBtn}>{n.visibility==="public"?"비공개로":"공개로"}</button>
+                <button onClick={()=>startEdit(n)} style={linkBtn}>편집</button>
+                <button onClick={()=>remove(n)} style={{...linkBtn,color:"#b85450"}}>삭제</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PageBook({data, setData, onLogout, user}) {
-  const [pageIdx, setPageIdx] = useState(4);  // 시작: 미래
+  const [pageIdx, setPageIdx] = useState(() => PAGES.findIndex(p=>p.key==="future"));  // 시작: 미래
   const [menu, setMenu] = useState(false);
   const [dragDx, setDragDx] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -2725,6 +2845,7 @@ function PageBook({data, setData, onLogout, user}) {
       case "chapters": return <HomePage     data={data} setData={setData}/>;
       case "writing":  return <EpisodePage  data={data} setData={setData}/>;
       case "now":      return <HistoryPage  data={data} setData={setData}/>;
+      case "workshop": return <WorkshopPage user={user}/>;
       default: return null;
     }
   };
