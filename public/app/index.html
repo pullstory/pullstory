@@ -2852,6 +2852,8 @@ function PageBook({data, setData, onLogout, user}) {
               );
             })}
             <div style={{marginTop:"20px",paddingTop:"16px",borderTop:"1px solid #4a3520"}}>
+              <a href="/shelf/" style={{display:"block",width:"100%",boxSizing:"border-box",textAlign:"center",padding:"10px",marginBottom:"8px",background:"rgba(212,168,81,.12)",border:"1px solid #6a5538",color:"#d4a851",borderRadius:"6px",textDecoration:"none",fontSize:"12px"}}>← 내 책장</a>
+              <a href="/" style={{display:"block",width:"100%",boxSizing:"border-box",textAlign:"center",padding:"10px",marginBottom:"14px",background:"transparent",border:"1px solid #6a5538",color:"#b8924a",borderRadius:"6px",textDecoration:"none",fontSize:"12px"}}>PULLSTORY 홈</a>
               <button onClick={onLogout} style={{width:"100%",padding:"10px",background:"transparent",border:"1px solid #6a5538",color:"#9c7a2a",borderRadius:"6px",cursor:"pointer",fontSize:"12px"}}>로그아웃</button>
               <div style={{textAlign:"center",fontSize:"9px",color:"#6a5538",marginTop:"14px",letterSpacing:"1px"}}>끌당 출판사 · © 2026</div>
               {!FIREBASE_READY && <div style={{textAlign:"center",fontSize:"9px",color:"#8a6630",marginTop:"4px",opacity:.6}}>로컬 모드</div>}
