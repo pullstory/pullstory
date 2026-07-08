@@ -1,5 +1,5 @@
 ---
-// 책장 = 개인 책장(우선 운영자용): 프로필/링크 + 내가 연재한 스토리
+// 책장 = 개인 책장 (로그인 필요). 메인/About은 공개, 여기만 로그인 게이트.
 import { marked } from 'marked';
 import Base from '../layouts/Base.astro';
 import PostList from '../components/PostList.astro';
@@ -9,24 +9,68 @@ const md = await getPage('shelf');
 const profileHtml = md ? marked.parse(md) : '';
 const posts = await getPublishedPosts();
 ---
-<Base title="책장 · PULLSTORY" description="PULLSTORY의 개인 책장 — 스토리를 채워가는 공간.">
-  {profileHtml
-    ? <section class="profile" set:html={profileHtml} />
-    : <section class="profile"><h1>책장</h1><p>프로필 준비 중입니다.</p></section>}
+<Base title="책장 · PULLSTORY" description="PULLSTORY 개인 책장 (로그인 필요)">
+  <!-- 로그인 확인 중 -->
+  <section id="shelf-loading"><p class="lede">확인 중…</p></section>
 
-  <hr />
-
-  <!-- 작업실: Cash book 앱 입구 -->
-  <section class="app-entry">
-    <h2>작업실 · Cash book</h2>
-    <p class="app-desc">에피소드를 수집·스크랩·저장하는 나만의 앱. 여기서 모은 기록으로 새 책을 써서 아래에 연재합니다.</p>
-    <a class="app-open" href="/app/">Cash book 열기 →</a>
+  <!-- 로그인 게이트 (비로그인) -->
+  <section id="shelf-gate" hidden>
+    <h1>책장</h1>
+    <p class="lede">내 책장은 개인 공간이라, 로그인하면 열립니다.</p>
+    <button id="login-btn" class="app-open" type="button">Google로 로그인</button>
   </section>
 
-  <hr />
+  <!-- 로그인 후 내용 -->
+  <section id="shelf-content" hidden>
+    <p id="shelf-hello" class="lede"></p>
 
-  <section class="content">
-    <h2>연재</h2>
-    <PostList posts={posts} empty="아직 연재한 스토리가 없습니다." />
+    {profileHtml
+      ? <section class="profile" set:html={profileHtml} />
+      : <section class="profile"><h2>프로필</h2><p>프로필 준비 중입니다.</p></section>}
+
+    <hr />
+
+    <section class="app-entry">
+      <h2>작업실 · Cash book</h2>
+      <p class="app-desc">에피소드를 수집·스크랩·저장하는 나만의 앱. 여기서 모은 기록으로 새 책을 써서 아래에 연재합니다.</p>
+      <a class="app-open" href="/app/">Cash book 열기 →</a>
+    </section>
+
+    <hr />
+
+    <section class="content">
+      <h2>연재</h2>
+      <PostList posts={posts} empty="아직 연재한 스토리가 없습니다." />
+    </section>
+
+    <hr />
+    <p><button id="logout-btn" class="text-btn" type="button">로그아웃</button></p>
   </section>
+
+  <!-- Firebase Auth (사이트용 로그인 게이트) -->
+  <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+  <script is:inline>
+    firebase.initializeApp({
+      apiKey: "AIzaSyDd0g3kHwxQJ74z8UJc0sVCoGRNRvSY-b4",
+      authDomain: "pullstory.firebaseapp.com",
+      projectId: "pullstory",
+      storageBucket: "pullstory.firebasestorage.app",
+      messagingSenderId: "20024128938",
+      appId: "1:20024128938:web:67ca8a5a5ed6155cd427d3"
+    });
+    var auth = firebase.auth();
+    var provider = new firebase.auth.GoogleAuthProvider();
+    var $ = function (id) { return document.getElementById(id); };
+    $('login-btn').addEventListener('click', function () {
+      auth.signInWithPopup(provider).catch(function (e) { alert('로그인 실패: ' + e.message); });
+    });
+    $('logout-btn').addEventListener('click', function () { auth.signOut(); });
+    auth.onAuthStateChanged(function (u) {
+      $('shelf-loading').hidden = true;
+      $('shelf-gate').hidden = !!u;
+      $('shelf-content').hidden = !u;
+      if (u) $('shelf-hello').textContent = (u.displayName || '작가') + '님의 책장';
+    });
+  </script>
 </Base>
