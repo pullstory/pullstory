@@ -1,5 +1,6 @@
 ---
 // 책장 = 개인 책장 (로그인 필요). 메인/About은 공개, 여기만 로그인 게이트.
+// 로그인 후: 프로필(Notion) + Cash book 입구 + 내 노트(Firestore) + 연재(Notion)
 import { marked } from 'marked';
 import Base from '../layouts/Base.astro';
 import PostList from '../components/PostList.astro';
@@ -10,17 +11,14 @@ const profileHtml = md ? marked.parse(md) : '';
 const posts = await getPublishedPosts();
 ---
 <Base title="책장 · PULLSTORY" description="PULLSTORY 개인 책장 (로그인 필요)">
-  <!-- 로그인 확인 중 -->
   <section id="shelf-loading"><p class="lede">확인 중…</p></section>
 
-  <!-- 로그인 게이트 (비로그인) -->
   <section id="shelf-gate" hidden>
     <h1>책장</h1>
     <p class="lede">내 책장은 개인 공간이라, 로그인하면 열립니다.</p>
     <button id="login-btn" class="app-open" type="button">Google로 로그인</button>
   </section>
 
-  <!-- 로그인 후 내용 -->
   <section id="shelf-content" hidden>
     <p id="shelf-hello" class="lede"></p>
 
@@ -38,18 +36,30 @@ const posts = await getPublishedPosts();
 
     <hr />
 
+    <!-- 앱 작업실에서 쓴 노트 (Firestore) -->
     <section class="content">
-      <h2>연재</h2>
-      <PostList posts={posts} empty="아직 연재한 스토리가 없습니다." />
+      <h2>내 노트</h2>
+      <div id="my-notes"><p class="lede">불러오는 중…</p></div>
     </section>
+
+    {posts.length > 0 && (
+      <>
+        <hr />
+        <section class="content">
+          <h2>연재</h2>
+          <PostList posts={posts} />
+        </section>
+      </>
+    )}
 
     <hr />
     <p><button id="logout-btn" class="text-btn" type="button">로그아웃</button></p>
   </section>
 
-  <!-- Firebase Auth (사이트용 로그인 게이트) -->
+  <!-- Firebase Auth + Firestore (책장: 로그인 게이트 + 내 노트) -->
   <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
   <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+  <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
   <script is:inline>
     firebase.initializeApp({
       apiKey: "AIzaSyDd0g3kHwxQJ74z8UJc0sVCoGRNRvSY-b4",
@@ -60,17 +70,54 @@ const posts = await getPublishedPosts();
       appId: "1:20024128938:web:67ca8a5a5ed6155cd427d3"
     });
     var auth = firebase.auth();
+    var db = firebase.firestore();
     var provider = new firebase.auth.GoogleAuthProvider();
     var $ = function (id) { return document.getElementById(id); };
+    function esc(s) {
+      return (s || '').replace(/[&<>"]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      });
+    }
+
     $('login-btn').addEventListener('click', function () {
       auth.signInWithPopup(provider).catch(function (e) { alert('로그인 실패: ' + e.message); });
     });
     $('logout-btn').addEventListener('click', function () { auth.signOut(); });
+
+    function loadNotes(uid) {
+      db.collection('notes').where('ownerUid', '==', uid).get().then(function (snap) {
+        var items = [];
+        snap.forEach(function (d) { var x = d.data(); x.id = d.id; items.push(x); });
+        items.sort(function (a, b) {
+          return (((b.createdAt && b.createdAt.seconds) || 9e15) - ((a.createdAt && a.createdAt.seconds) || 9e15));
+        });
+        if (!items.length) {
+          $('my-notes').innerHTML = '<p class="lede">아직 노트가 없어요. 앱 작업실에서 써보세요.</p>';
+          return;
+        }
+        var html = '<ul class="note-list">';
+        items.forEach(function (n) {
+          var pub = n.visibility === 'public';
+          var badge = '<span class="note-badge ' + (pub ? 'pub' : 'priv') + '">' + (pub ? '공개' : '나만') + '</span>';
+          var body = n.body ? '<div class="note-body">' + esc(n.body) + '</div>' : '';
+          html += '<li class="note-item"><div class="note-head"><span class="note-title">' +
+            esc(n.title || '(제목 없음)') + '</span>' + badge + '</div>' + body + '</li>';
+        });
+        html += '</ul>';
+        $('my-notes').innerHTML = html;
+      }).catch(function (e) {
+        $('my-notes').innerHTML = '<p class="lede">노트를 불러오지 못했어요: ' + esc(e.message) + '</p>';
+      });
+    }
+
     auth.onAuthStateChanged(function (u) {
       $('shelf-loading').hidden = true;
       $('shelf-gate').hidden = !!u;
       $('shelf-content').hidden = !u;
-      if (u) $('shelf-hello').textContent = (u.displayName || '작가') + '님의 책장';
+      if (u) {
+        $('shelf-hello').textContent = (u.displayName || '작가') + '님의 책장';
+        loadNotes(u.uid);
+      }
     });
   </script>
 </Base>
