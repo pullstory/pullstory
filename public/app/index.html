@@ -2636,14 +2636,32 @@ function CoverPage({data, setData}) {
 // 위계: 현재(출발점) ⊂ 에피소드(일) ⊂ 챕터(월) ⊂ 클라이맥스(연) ⊂ 미래(인생 책)
 // ═════════════════════════════════════════════════════════════════════
 const PAGES = [
-  {key:"workshop", label:"작업실",   title:"작업실",          sub:"나의 노트"},
-  {key:"now",      label:"현재",     title:"현재",            sub:"지금의 나"},
-  {key:"writing",  label:"에피소드", title:"에피소드",         sub:"오늘의 한 페이지"},
-  {key:"chapters", label:"챕터",     title:"챕터",            sub:"이번 달의 이야기"},
-  {key:"climax",   label:"클라이맥스", title:"클라이맥스",       sub:"올해의 결말"},
-  {key:"future",   label:"미래",     title:"미래",            sub:"정체성"},
-  {key:"cover",    label:"표지",     title:"책 표지",          sub:""}
+  {key:"workshop", label:"Notes",     title:"Notes",     sub:"노트"},
+  {key:"now",      label:"Scrapbook", title:"Scrapbook", sub:"스크랩북"},
+  {key:"writing",  label:"Page",      title:"Page",      sub:"오늘의 페이지"},
+  {key:"chapters", label:"Books",     title:"Books",     sub:"이달의 책"},
+  {key:"climax",   label:"Shelf",     title:"Shelf",     sub:"올해의 책장"},
+  {key:"future",   label:"Vision",    title:"Vision",    sub:"비전보드"},
+  {key:"cover",    label:"Door",      title:"Door",      sub:"입구"}
 ];
+
+// 하단 네비 아이콘 (currentColor 상속 → 활성/비활성 색 자동)
+function NavIcon({k, size=23}) {
+  const paths = {
+    workshop: <g><path d="M3 21l3.6-1L20 6.6 17.4 4 4 17.4 3 21z"/><path d="M14.4 6.6l3 3"/></g>,
+    now:      <g><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="6.5" y="6.5" width="6" height="6" rx="1"/><path d="M14 16.5l-3-3-4.5 4.5"/></g>,
+    writing:  <g><path d="M7 3h6.5L18 7.5V21H7z"/><path d="M13.5 3v4.5H18"/><path d="M10 12.5h5M10 16h5"/></g>,
+    chapters: <g><rect x="5" y="5" width="14" height="3.6" rx="1"/><rect x="5" y="10.2" width="14" height="3.6" rx="1"/><rect x="5" y="15.4" width="14" height="3.6" rx="1"/></g>,
+    climax:   <g><path d="M4 20.5h16"/><rect x="6" y="8" width="3" height="12.5"/><rect x="10.5" y="5" width="3" height="15.5"/><rect x="15" y="10.5" width="3" height="10"/></g>,
+    future:   <path d="M12 3.5l2.5 5.3 5.8.8-4.2 4 1 5.9L12 17.7 6.9 20.5l1-5.9-4.2-4 5.8-.8L12 3.5z"/>,
+  };
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{display:"block",margin:"0 auto"}}>
+      {paths[k] || null}
+    </svg>
+  );
+}
 
 // ═════════════════════════════════════════════════════════════════════
 // 작업실(노트) 페이지 — 노트 작성/발행 (Firestore 'notes' 컬렉션)
@@ -2932,9 +2950,10 @@ function PageBook({data, setData, onLogout, user}) {
                 color:active?"#d4a851":"#8a7556",
                 cursor:"pointer",
                 transition:"all .2s",
-                fontFamily:"'Noto Sans KR',sans-serif"
-              }}>
-                <div style={{fontSize:"12px",fontWeight:active?700:500}}>{p.label}</div>
+                fontFamily:"'Noto Sans KR',sans-serif",
+                display:"flex",alignItems:"center",justifyContent:"center"
+              }} title={p.title}>
+                <NavIcon k={p.key}/>
               </button>
             );
           })}
