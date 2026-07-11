@@ -619,13 +619,13 @@ function FuturePage({data, setData}) {
 
   return (
     <div style={{animation:"fadeIn .4s"}}>
-      <PageHeader kanji="FUTURE · 미래" title="나의 인생 책 디자인" sub="내가 써내려갈 인생 책의 제목과 표지를 정해보세요"/>
+      <PageHeader kanji="VISION · 비전보드" title="방향과 정체성" sub="이 책장을 어떤 결로 채워갈지 — 나의 방향을 그려보는 곳"/>
 
-      <Section label="📖 제목(정체성)" sub="내 인생 책의 제목 — 미래의 나의 정체성을 한 문장으로. 표지에 그대로 표시됩니다">
+      <Section label="📖 제목(정체성)" sub="이 책장의 제목 — 되고 싶은 나를 한 문장으로. 입구(Door)에 그대로 걸립니다">
         <textarea className="input" rows={3} value={title} onChange={e=>setTitle(e.target.value)} onBlur={()=>setData({...data,bookTitle:title.trim()})} placeholder="예: 나는 좋아하는 일로 가치를 만들고, 매일 성장하는 사람이다."/>
       </Section>
 
-      <Section label="💰 정가(신뢰도)" sub="내 인생 책의 정가 — 1 C.A.S.H = 1만 원의 신뢰 가치 (다른 사람에게 줄 수 있는 가치)">
+      <Section label="💰 정가(신뢰도)" sub="내가 만들어갈 신뢰의 크기 — 1 C.A.S.H = 1만 원의 신뢰 가치 (남에게 줄 수 있는 가치)">
         <div style={{display:"flex",alignItems:"center",gap:"10px",padding:"4px 0"}}>
           <input
             type="text"
@@ -662,7 +662,7 @@ function FuturePage({data, setData}) {
         ))}
       </Section>
 
-      <Section label="🎨 표지 디자인" sub="내 인생 책의 표지 이미지 — 첫 이미지가 표지에 표시됩니다">
+      <Section label="🎨 입구 이미지" sub="이 책장의 대표 이미지 — 첫 장이 입구(Door)에 걸립니다">
         <div onClick={()=>setShowGallery(true)} style={{cursor:"pointer",borderRadius:"8px",overflow:"hidden",border:"1px solid #d8c79a",position:"relative"}}>
           {coverImg ? (
             <div style={{position:"relative",aspectRatio:"3/4",background:`url(${coverImg}) center/cover, #3a2818`}}>
