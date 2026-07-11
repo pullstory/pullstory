@@ -1,6 +1,6 @@
 ---
-// 책장 = 공개 진열장. 누구나 프로필 + 연재/공개 노트를 봄.
-// CASH Room 입구 + 비공개 노트는 "주인(로그인)"에게만 보임.
+// My shelf = 공개 진열장. 누구나 프로필 + 연재/공개 노트를 봄.
+// CASH Room 입구 + 비공개 노트는 "주인(로그인)"에게만. 로그인은 상단 nav 버튼(Base).
 import { marked } from 'marked';
 import Base from '../layouts/Base.astro';
 import PostList from '../components/PostList.astro';
@@ -10,16 +10,10 @@ const md = await getPage('shelf');
 const profileHtml = md ? marked.parse(md) : '';
 const posts = await getPublishedPosts();
 ---
-<Base title="책장 · PULLSTORY" description="PULLSTORY 책장 — 연재하고 출간한 이야기를 진열하는 곳.">
+<Base title="My shelf · PULLSTORY" description="PULLSTORY 책장 — 연재하고 출간한 이야기를 진열하는 곳.">
   {profileHtml
     ? <section class="profile" set:html={profileHtml} />
-    : <section class="profile"><h1>책장</h1></section>}
-
-  <!-- 로그인 상태 표시 (주인만 CASH Room 접근) -->
-  <p class="auth-bar">
-    <button id="login-btn" class="text-btn" type="button">작가 로그인</button>
-    <span id="owner-hello" hidden></span>
-  </p>
+    : <section class="profile"><h1>My shelf</h1></section>}
 
   <!-- CASH Room 입구 — 주인(로그인)에게만 -->
   <section id="owner-only" hidden>
@@ -49,84 +43,61 @@ const posts = await getPublishedPosts();
     </>
   )}
 
-  <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
-  <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+  <!-- Firestore (노트 로드). auth/init은 Base(nav)에서 이미 처리됨 -->
   <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
   <script is:inline>
-    firebase.initializeApp({
-      apiKey: "AIzaSyDd0g3kHwxQJ74z8UJc0sVCoGRNRvSY-b4",
-      authDomain: "pullstory.firebaseapp.com",
-      projectId: "pullstory",
-      storageBucket: "pullstory.firebasestorage.app",
-      messagingSenderId: "20024128938",
-      appId: "1:20024128938:web:67ca8a5a5ed6155cd427d3"
-    });
-    var auth = firebase.auth();
-    var db = firebase.firestore();
-    var provider = new firebase.auth.GoogleAuthProvider();
-    var $ = function (id) { return document.getElementById(id); };
-    function esc(s) {
-      return (s || '').replace(/[&<>"]/g, function (c) {
-        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-      });
-    }
-
-    $('login-btn').addEventListener('click', function () {
-      auth.signInWithPopup(provider).catch(function (e) { alert('로그인 실패: ' + e.message); });
-    });
-
-    function render(items, owner) {
-      items.sort(function (a, b) {
-        return (((b.createdAt && b.createdAt.seconds) || 9e15) - ((a.createdAt && a.createdAt.seconds) || 9e15));
-      });
-      if (!items.length) {
-        $('my-notes').innerHTML = owner
-          ? '<p class="lede">아직 노트가 없어요. CASH Room에서 써보세요.</p>'
-          : '<p class="lede">아직 공개된 글이 없어요.</p>';
-        return;
+    (function () {
+      var db = firebase.firestore();
+      var auth = firebase.auth();
+      var $ = function (id) { return document.getElementById(id); };
+      function esc(s) {
+        return (s || '').replace(/[&<>"]/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
       }
-      var html = '<ul class="note-list">';
-      items.forEach(function (n) {
-        var pub = n.visibility === 'public';
-        var badge = owner ? '<span class="note-badge ' + (pub ? 'pub' : 'priv') + '">' + (pub ? '공개' : '나만') + '</span>' : '';
-        var body = n.body ? '<div class="note-body">' + esc(n.body) + '</div>' : '';
-        html += '<li class="note-item"><div class="note-head"><span class="note-title">' +
-          esc(n.title || '(제목 없음)') + '</span>' + badge + '</div>' + body + '</li>';
-      });
-      html += '</ul>';
-      $('my-notes').innerHTML = html;
-    }
-    function collect(snap) { var a = []; snap.forEach(function (d) { var x = d.data(); x.id = d.id; a.push(x); }); return a; }
-
-    function loadOwner(uid) {
-      db.collection('notes').where('ownerUid', '==', uid).get()
-        .then(function (s) { render(collect(s), true); })
-        .catch(function (e) { $('my-notes').innerHTML = '<p class="lede">불러오기 실패: ' + esc(e.message) + '</p>'; });
-    }
-    function loadPublic() {
-      db.collection('notes').where('visibility', '==', 'public').get()
-        .then(function (s) { render(collect(s), false); })
-        .catch(function (e) { $('my-notes').innerHTML = '<p class="lede">불러오기 실패: ' + esc(e.message) + '</p>'; });
-    }
-
-    auth.onAuthStateChanged(function (u) {
-      if (u) {
-        // 주인 뷰
-        $('owner-only').hidden = false;
-        $('login-btn').hidden = true;
-        $('owner-hello').hidden = false;
-        $('owner-hello').innerHTML = (u.displayName || '작가') + '님 · <button id="logout-btn" class="text-btn" type="button">로그아웃</button>';
-        $('logout-btn').addEventListener('click', function () { auth.signOut(); });
-        $('notes-title').textContent = '내 노트';
-        loadOwner(u.uid);
-      } else {
-        // 방문자 뷰
-        $('owner-only').hidden = true;
-        $('login-btn').hidden = false;
-        $('owner-hello').hidden = true;
-        $('notes-title').textContent = '노트';
-        loadPublic();
+      function collect(snap) { var a = []; snap.forEach(function (d) { var x = d.data(); x.id = d.id; a.push(x); }); return a; }
+      function render(items, owner) {
+        items.sort(function (a, b) {
+          return (((b.createdAt && b.createdAt.seconds) || 9e15) - ((a.createdAt && a.createdAt.seconds) || 9e15));
+        });
+        if (!items.length) {
+          $('my-notes').innerHTML = owner
+            ? '<p class="lede">아직 노트가 없어요. CASH Room에서 써보세요.</p>'
+            : '<p class="lede">아직 공개된 글이 없어요.</p>';
+          return;
+        }
+        var html = '<ul class="note-list">';
+        items.forEach(function (n) {
+          var pub = n.visibility === 'public';
+          var badge = owner ? '<span class="note-badge ' + (pub ? 'pub' : 'priv') + '">' + (pub ? '공개' : '나만') + '</span>' : '';
+          var body = n.body ? '<div class="note-body">' + esc(n.body) + '</div>' : '';
+          html += '<li class="note-item"><div class="note-head"><span class="note-title">' +
+            esc(n.title || '(제목 없음)') + '</span>' + badge + '</div>' + body + '</li>';
+        });
+        html += '</ul>';
+        $('my-notes').innerHTML = html;
       }
-    });
+      function loadOwner(uid) {
+        db.collection('notes').where('ownerUid', '==', uid).get()
+          .then(function (s) { render(collect(s), true); })
+          .catch(function (e) { $('my-notes').innerHTML = '<p class="lede">불러오기 실패: ' + esc(e.message) + '</p>'; });
+      }
+      function loadPublic() {
+        db.collection('notes').where('visibility', '==', 'public').get()
+          .then(function (s) { render(collect(s), false); })
+          .catch(function (e) { $('my-notes').innerHTML = '<p class="lede">불러오기 실패: ' + esc(e.message) + '</p>'; });
+      }
+      auth.onAuthStateChanged(function (u) {
+        if (u) {
+          $('owner-only').hidden = false;
+          $('notes-title').textContent = '내 노트';
+          loadOwner(u.uid);
+        } else {
+          $('owner-only').hidden = true;
+          $('notes-title').textContent = '노트';
+          loadPublic();
+        }
+      });
+    })();
   </script>
 </Base>

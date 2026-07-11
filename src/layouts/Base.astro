@@ -23,8 +23,13 @@ const { title = 'PULLSTORY', description = 'PULLSTORY — 자기 인생을 책�
         margin: 0 auto;
         padding: 1.5rem 1.25rem 5rem;
       }
+      nav { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .6rem; }
+      .nav-left { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
       nav a { color: #222; text-decoration: none; }
       nav a:hover { text-decoration: underline; }
+      .brand { font-weight: 700; letter-spacing: .02em; }
+      .nav-login { background: none; border: 1px solid #ccc; border-radius: 6px; padding: .35rem .85rem; cursor: pointer; color: #222; font-size: .88rem; }
+      .nav-login:hover { background: #222; color: #fff; border-color: #222; }
       hr { border: none; border-top: 1px solid #e7e7e7; margin: 1.5rem 0; }
       /* 이미지: 칼럼 폭에 맞추고 가운데 */
       img {
@@ -93,12 +98,40 @@ const { title = 'PULLSTORY', description = 'PULLSTORY — 자기 인생을 책�
     <div class="wrap">
       <!-- 메뉴 (앞으로 항목 추가 예정) -->
       <nav>
-        <a href="/">PULLSTORY</a>
-        |
-        <a href="/shelf/">책장</a>
-        |
-        <a href="/about/">About</a>
+        <div class="nav-left">
+          <a href="/" class="brand">PULLSTORY</a>
+          <a href="/about/">About</a>
+          <a href="/shelf/">My shelf</a>
+          <a href="/item/">Item</a>
+        </div>
+        <button id="nav-login" class="nav-login" type="button">로그인</button>
       </nav>
+
+      <!-- Firebase 전역 로그인 (모든 페이지 nav) -->
+      <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+      <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+      <script is:inline>
+        if (!firebase.apps.length) {
+          firebase.initializeApp({
+            apiKey: "AIzaSyDd0g3kHwxQJ74z8UJc0sVCoGRNRvSY-b4",
+            authDomain: "pullstory.firebaseapp.com",
+            projectId: "pullstory",
+            storageBucket: "pullstory.firebasestorage.app",
+            messagingSenderId: "20024128938",
+            appId: "1:20024128938:web:67ca8a5a5ed6155cd427d3"
+          });
+        }
+        (function () {
+          var a = firebase.auth();
+          var p = new firebase.auth.GoogleAuthProvider();
+          var b = document.getElementById('nav-login');
+          b.addEventListener('click', function () {
+            if (a.currentUser) a.signOut();
+            else a.signInWithPopup(p).catch(function (e) { alert('로그인 실패: ' + e.message); });
+          });
+          a.onAuthStateChanged(function (u) { b.textContent = u ? '로그아웃' : '로그인'; });
+        })();
+      </script>
 
       <hr />
 
