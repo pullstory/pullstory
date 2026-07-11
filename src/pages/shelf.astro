@@ -1,6 +1,6 @@
 ---
-// 책장 = 개인 책장 (로그인 필요). 메인/About은 공개, 여기만 로그인 게이트.
-// 로그인 후: 프로필(Notion) + Cash book 입구 + 내 노트(Firestore) + 연재(Notion)
+// 책장 = 공개 진열장. 누구나 프로필 + 연재/공개 노트를 봄.
+// CASH Room 입구 + 비공개 노트는 "주인(로그인)"에게만 보임.
 import { marked } from 'marked';
 import Base from '../layouts/Base.astro';
 import PostList from '../components/PostList.astro';
@@ -10,53 +10,45 @@ const md = await getPage('shelf');
 const profileHtml = md ? marked.parse(md) : '';
 const posts = await getPublishedPosts();
 ---
-<Base title="책장 · PULLSTORY" description="PULLSTORY 개인 책장 (로그인 필요)">
-  <section id="shelf-loading"><p class="lede">확인 중…</p></section>
+<Base title="책장 · PULLSTORY" description="PULLSTORY 책장 — 연재하고 출간한 이야기를 진열하는 곳.">
+  {profileHtml
+    ? <section class="profile" set:html={profileHtml} />
+    : <section class="profile"><h1>책장</h1></section>}
 
-  <section id="shelf-gate" hidden>
-    <h1>책장</h1>
-    <p class="lede">내 책장은 개인 공간이라, 로그인하면 열립니다.</p>
-    <button id="login-btn" class="app-open" type="button">Google로 로그인</button>
-  </section>
+  <!-- 로그인 상태 표시 (주인만 CASH Room 접근) -->
+  <p class="auth-bar">
+    <button id="login-btn" class="text-btn" type="button">작가 로그인</button>
+    <span id="owner-hello" hidden></span>
+  </p>
 
-  <section id="shelf-content" hidden>
-    <p id="shelf-hello" class="lede"></p>
-
-    {profileHtml
-      ? <section class="profile" set:html={profileHtml} />
-      : <section class="profile"><h2>프로필</h2><p>프로필 준비 중입니다.</p></section>}
-
+  <!-- CASH Room 입구 — 주인(로그인)에게만 -->
+  <section id="owner-only" hidden>
     <hr />
-
     <section class="app-entry">
       <h2>CASH Room</h2>
       <p class="app-desc">내 이야기를 짓는 작업실 방. 매일의 기록으로 나만의 책을 만들어, 이 책장에 진열합니다.</p>
       <a class="app-open" href="/app/">CASH Room 들어가기 →</a>
     </section>
-
-    <hr />
-
-    <!-- 앱 작업실에서 쓴 노트 (Firestore) -->
-    <section class="content">
-      <h2>내 노트</h2>
-      <div id="my-notes"><p class="lede">불러오는 중…</p></div>
-    </section>
-
-    {posts.length > 0 && (
-      <>
-        <hr />
-        <section class="content">
-          <h2>연재</h2>
-          <PostList posts={posts} />
-        </section>
-      </>
-    )}
-
-    <hr />
-    <p><button id="logout-btn" class="text-btn" type="button">로그아웃</button></p>
   </section>
 
-  <!-- Firebase Auth + Firestore (책장: 로그인 게이트 + 내 노트) -->
+  <hr />
+
+  <!-- 노트 (방문자: 공개만 / 주인: 전체) -->
+  <section class="content">
+    <h2 id="notes-title">노트</h2>
+    <div id="my-notes"><p class="lede">불러오는 중…</p></div>
+  </section>
+
+  {posts.length > 0 && (
+    <>
+      <hr />
+      <section class="content">
+        <h2>연재</h2>
+        <PostList posts={posts} />
+      </section>
+    </>
+  )}
+
   <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
   <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
@@ -82,41 +74,58 @@ const posts = await getPublishedPosts();
     $('login-btn').addEventListener('click', function () {
       auth.signInWithPopup(provider).catch(function (e) { alert('로그인 실패: ' + e.message); });
     });
-    $('logout-btn').addEventListener('click', function () { auth.signOut(); });
 
-    function loadNotes(uid) {
-      db.collection('notes').where('ownerUid', '==', uid).get().then(function (snap) {
-        var items = [];
-        snap.forEach(function (d) { var x = d.data(); x.id = d.id; items.push(x); });
-        items.sort(function (a, b) {
-          return (((b.createdAt && b.createdAt.seconds) || 9e15) - ((a.createdAt && a.createdAt.seconds) || 9e15));
-        });
-        if (!items.length) {
-          $('my-notes').innerHTML = '<p class="lede">아직 노트가 없어요. 앱 작업실에서 써보세요.</p>';
-          return;
-        }
-        var html = '<ul class="note-list">';
-        items.forEach(function (n) {
-          var pub = n.visibility === 'public';
-          var badge = '<span class="note-badge ' + (pub ? 'pub' : 'priv') + '">' + (pub ? '공개' : '나만') + '</span>';
-          var body = n.body ? '<div class="note-body">' + esc(n.body) + '</div>' : '';
-          html += '<li class="note-item"><div class="note-head"><span class="note-title">' +
-            esc(n.title || '(제목 없음)') + '</span>' + badge + '</div>' + body + '</li>';
-        });
-        html += '</ul>';
-        $('my-notes').innerHTML = html;
-      }).catch(function (e) {
-        $('my-notes').innerHTML = '<p class="lede">노트를 불러오지 못했어요: ' + esc(e.message) + '</p>';
+    function render(items, owner) {
+      items.sort(function (a, b) {
+        return (((b.createdAt && b.createdAt.seconds) || 9e15) - ((a.createdAt && a.createdAt.seconds) || 9e15));
       });
+      if (!items.length) {
+        $('my-notes').innerHTML = owner
+          ? '<p class="lede">아직 노트가 없어요. CASH Room에서 써보세요.</p>'
+          : '<p class="lede">아직 공개된 글이 없어요.</p>';
+        return;
+      }
+      var html = '<ul class="note-list">';
+      items.forEach(function (n) {
+        var pub = n.visibility === 'public';
+        var badge = owner ? '<span class="note-badge ' + (pub ? 'pub' : 'priv') + '">' + (pub ? '공개' : '나만') + '</span>' : '';
+        var body = n.body ? '<div class="note-body">' + esc(n.body) + '</div>' : '';
+        html += '<li class="note-item"><div class="note-head"><span class="note-title">' +
+          esc(n.title || '(제목 없음)') + '</span>' + badge + '</div>' + body + '</li>';
+      });
+      html += '</ul>';
+      $('my-notes').innerHTML = html;
+    }
+    function collect(snap) { var a = []; snap.forEach(function (d) { var x = d.data(); x.id = d.id; a.push(x); }); return a; }
+
+    function loadOwner(uid) {
+      db.collection('notes').where('ownerUid', '==', uid).get()
+        .then(function (s) { render(collect(s), true); })
+        .catch(function (e) { $('my-notes').innerHTML = '<p class="lede">불러오기 실패: ' + esc(e.message) + '</p>'; });
+    }
+    function loadPublic() {
+      db.collection('notes').where('visibility', '==', 'public').get()
+        .then(function (s) { render(collect(s), false); })
+        .catch(function (e) { $('my-notes').innerHTML = '<p class="lede">불러오기 실패: ' + esc(e.message) + '</p>'; });
     }
 
     auth.onAuthStateChanged(function (u) {
-      $('shelf-loading').hidden = true;
-      $('shelf-gate').hidden = !!u;
-      $('shelf-content').hidden = !u;
       if (u) {
-        $('shelf-hello').textContent = (u.displayName || '작가') + '님의 책장';
-        loadNotes(u.uid);
+        // 주인 뷰
+        $('owner-only').hidden = false;
+        $('login-btn').hidden = true;
+        $('owner-hello').hidden = false;
+        $('owner-hello').innerHTML = (u.displayName || '작가') + '님 · <button id="logout-btn" class="text-btn" type="button">로그아웃</button>';
+        $('logout-btn').addEventListener('click', function () { auth.signOut(); });
+        $('notes-title').textContent = '내 노트';
+        loadOwner(u.uid);
+      } else {
+        // 방문자 뷰
+        $('owner-only').hidden = true;
+        $('login-btn').hidden = false;
+        $('owner-hello').hidden = true;
+        $('notes-title').textContent = '노트';
+        loadPublic();
       }
     });
   </script>
