@@ -81,9 +81,11 @@
   .page-wrap{padding:14px 12px;min-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
   /* ===== PULLSTORY 시작 화면 — 문(Door) ===== */
   .pd-scene{position:absolute;inset:0;border-radius:12px;overflow:hidden;perspective:1500px;background:radial-gradient(ellipse at 50% 42%,#3a2614,#180d05 82%)}
-  .pd-interior{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:10%}
-  .pd-halo{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 38%,rgba(245,222,150,.42),rgba(212,168,81,.12) 45%,transparent 68%)}
-  .pd-msg{position:relative;opacity:0;transition:opacity .5s ease .55s;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+  .pd-interior{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3%;text-align:center;padding:8%}
+  .pd-halo{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,rgba(245,222,150,.4),rgba(212,168,81,.1) 46%,transparent 70%)}
+  .pd-room{position:relative;width:88%;max-height:56%;object-fit:contain;opacity:0;transform:scale(.94);transition:opacity .55s ease .35s,transform .7s ease .35s;filter:drop-shadow(0 10px 26px rgba(0,0,0,.55))}
+  .pd-scene.pd-open .pd-room{opacity:1;transform:scale(1)}
+  .pd-msg{position:relative;opacity:0;transition:opacity .5s ease .6s;text-shadow:0 2px 12px rgba(0,0,0,.6)}
   .pd-scene.pd-open .pd-msg{opacity:1}
   .pd-casing{position:absolute;inset:0;padding:5% 5% 0;box-sizing:border-box}
   .pd-leaf{position:relative;width:100%;height:100%;transform-origin:right center;transform:rotateY(0);opacity:1;transition:transform 1.15s cubic-bezier(.5,.05,.35,1),opacity .35s ease .85s;border-radius:44% 44% 6% 6%/24% 24% 4% 4%;background:repeating-linear-gradient(92deg,rgba(0,0,0,.05) 0 2px,rgba(255,255,255,.015) 2px 3px,transparent 3px 11px),linear-gradient(96deg,#7c5930,#6a481f 45%,#5a3c1a);box-shadow:inset 0 0 0 3px #4a3115,inset 0 0 0 5px rgba(212,168,81,.3),0 14px 34px rgba(0,0,0,.55),-6px 0 18px rgba(0,0,0,.35);border:1px solid #33200e}
@@ -379,8 +381,9 @@ function BookCover({data, onStart}) {
           {/* 문 열리면 드러나는 방 + 문구 */}
           <div className="pd-interior">
             <div className="pd-halo"/>
-            <div className="pd-msg heading-script" style={{fontSize:"clamp(20px,6vw,30px)",color:"#f2e2b6",lineHeight:1.6}}>
-              나의 신용은<br/>매일 쌓아가는<br/>스토리에서<br/>시작된다
+            <img className="pd-room" src="img/room.webp" alt=""/>
+            <div className="pd-msg heading-script" style={{fontSize:"clamp(15px,4.6vw,22px)",color:"#f2e2b6",lineHeight:1.55}}>
+              나의 신용은 매일 쌓아가는<br/>스토리에서 시작된다
             </div>
           </div>
 
