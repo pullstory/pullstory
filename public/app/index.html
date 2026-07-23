@@ -79,6 +79,26 @@
   .heading-latin{font-family:'Cormorant Garamond',serif;font-style:italic}
 
   .page-wrap{padding:14px 12px;min-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  /* ===== PULLSTORY 시작 화면 — 문(Door) ===== */
+  .pd-scene{position:absolute;inset:0;border-radius:12px;overflow:hidden;perspective:1500px;background:radial-gradient(ellipse at 50% 42%,#3a2614,#180d05 82%)}
+  .pd-interior{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:10%}
+  .pd-halo{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 38%,rgba(245,222,150,.42),rgba(212,168,81,.12) 45%,transparent 68%)}
+  .pd-msg{position:relative;opacity:0;transition:opacity .5s ease .55s;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+  .pd-scene.pd-open .pd-msg{opacity:1}
+  .pd-casing{position:absolute;inset:0;padding:5% 5% 0;box-sizing:border-box}
+  .pd-leaf{position:relative;width:100%;height:100%;transform-origin:right center;transform:rotateY(0);opacity:1;transition:transform 1.15s cubic-bezier(.5,.05,.35,1),opacity .35s ease .85s;border-radius:44% 44% 6% 6%/24% 24% 4% 4%;background:repeating-linear-gradient(92deg,rgba(0,0,0,.05) 0 2px,rgba(255,255,255,.015) 2px 3px,transparent 3px 11px),linear-gradient(96deg,#7c5930,#6a481f 45%,#5a3c1a);box-shadow:inset 0 0 0 3px #4a3115,inset 0 0 0 5px rgba(212,168,81,.3),0 14px 34px rgba(0,0,0,.55),-6px 0 18px rgba(0,0,0,.35);border:1px solid #33200e}
+  .pd-scene.pd-open .pd-leaf{transform:rotateY(-116deg);opacity:0}
+  .pd-leaf::before{content:"";position:absolute;inset:5%;border:1px solid rgba(212,168,81,.22);border-radius:40% 40% 4% 4%/22% 22% 3% 3%;pointer-events:none}
+  .pd-window{position:absolute;top:8%;left:16%;width:68%;height:40%;border-radius:48% 48% 6% 6%/40% 40% 5% 5%;background:radial-gradient(ellipse at 50% 42%,#fbf2d8,#ecd399 48%,#cba25b 78%,#a67c3d);box-shadow:inset 0 0 22px rgba(120,80,30,.5),0 0 0 3px #4a3115,0 0 0 5px rgba(212,168,81,.4);overflow:hidden}
+  .pd-window img{width:100%;height:100%;object-fit:cover;display:block}
+  .pd-light{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.4),transparent 42%);pointer-events:none}
+  .pd-plaque{position:absolute;top:51%;left:50%;transform:translateX(-50%);background:radial-gradient(ellipse at 50% 35%,#2c1c0d,#1a1006);border:2px solid #b8862f;border-radius:50%/46%;padding:8px 20px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,.5),inset 0 0 14px rgba(0,0,0,.6)}
+  .pd-plaque b{display:block;font-family:'Cormorant Garamond',Georgia,serif;color:#e3b662;font-size:clamp(12px,3.6vw,15px);font-weight:700;letter-spacing:.1em;line-height:1.05}
+  .pd-plaque i{position:absolute;top:-10px;height:11px;width:1.5px;background:#8a6a34}
+  .pd-plaque i.l{left:30%;transform:rotate(14deg)}
+  .pd-plaque i.r{right:30%;transform:rotate(-14deg)}
+  .pd-knob{position:absolute;top:63%;left:9%;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 34% 30%,#f4dca0,#c79445 55%,#7f571f);box-shadow:0 2px 5px rgba(0,0,0,.55),inset 0 0 0 1px rgba(0,0,0,.25)}
+  .pd-plate{position:absolute;bottom:9%;left:18%;width:64%;height:15%;border-radius:5px;background:linear-gradient(180deg,rgba(0,0,0,.16),rgba(0,0,0,.28));box-shadow:inset 0 0 0 2px #4a3115,inset 0 0 14px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
 </style>
 </head>
 <body>
@@ -344,89 +364,43 @@ function BookCover({data, onStart}) {
       height:"100%",
       background:"radial-gradient(ellipse at 30% 20%, #4a3520, #1a0f08 80%)",
       display:"flex",alignItems:"center",justifyContent:"center",
-      padding:"16px",
-      perspective:"1600px",
+      padding:"14px",
       overflow:"hidden"
     }}>
-      {/* 책 프레임 — viewport에 항상 들어맞도록 사이즈 캡 */}
+      {/* 프레임 (2:3) — viewport에 들어맞게 캡 */}
       <div style={{
-        width:"min(340px, calc(100vw - 32px), calc((100vh - 32px) / 1.467))",
-        aspectRatio:"3/4.4",
-        maxHeight:"calc(100vh - 32px)",
+        width:"min(330px, calc(100vw - 28px), calc((100vh - 28px) * 0.667))",
+        aspectRatio:"2 / 3",
         position:"relative",
         animation:opening?"none":"slideUp .8s ease"
       }}>
+        <div className={"pd-scene"+(opening?" pd-open":"")}>
 
-        {/* 동기부여 문구 페이지 — 표지 뒤에 항상 자리잡고 있음 */}
-        <div className="paper paper-edge" style={{
-          position:"absolute", inset:0,
-          borderRadius:"10px",
-          padding:"6% 8%",
-          display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
-          boxShadow:"0 20px 60px rgba(0,0,0,.55), inset 0 0 80px rgba(139,90,43,.12)"
-        }}>
-          <div style={{position:"absolute",inset:"4%",border:"1px solid rgba(184,134,47,.4)",borderRadius:"6px",pointerEvents:"none"}}/>
-          <div style={{position:"absolute",inset:"5.5%",border:"1px solid rgba(184,134,47,.18)",borderRadius:"4px",pointerEvents:"none"}}/>
-
-          <div className="heading-latin" style={{fontSize:"clamp(9px,2.4vw,11px)",color:"#b8924a",letterSpacing:"5px",fontWeight:700,marginBottom:"4%"}}>— PROLOGUE —</div>
-          <div style={{width:"40px",height:"1px",background:"rgba(184,134,47,.55)",marginBottom:"6%"}}/>
-
-          <div className="heading-script" style={{fontSize:"clamp(22px,6.4vw,32px)",color:"#9c7a2a",textAlign:"center",lineHeight:1.65}}>
-            나의 신용은<br/>
-            매일 쌓아가는<br/>
-            스토리에서<br/>
-            시작된다
+          {/* 문 열리면 드러나는 방 + 문구 */}
+          <div className="pd-interior">
+            <div className="pd-halo"/>
+            <div className="pd-msg heading-script" style={{fontSize:"clamp(20px,6vw,30px)",color:"#f2e2b6",lineHeight:1.6}}>
+              나의 신용은<br/>매일 쌓아가는<br/>스토리에서<br/>시작된다
+            </div>
           </div>
 
-          <div style={{width:"40px",height:"1px",background:"rgba(184,134,47,.55)",marginTop:"6%"}}/>
-          <div className="heading-serif" style={{fontSize:"clamp(10px,2.6vw,12px)",color:"#b8924a",letterSpacing:"2px",fontWeight:500,marginTop:"3%",fontStyle:"italic",textAlign:"center"}}>오늘도 한 페이지를<br/>써내려갑니다</div>
-        </div>
-
-        {/* 표지 — 회전하며 0.5s 시점에 페이드 아웃 (backface bleed 차단) */}
-        <div style={{
-          position:"absolute", inset:0,
-          transformStyle:"preserve-3d",
-          transformOrigin:"right center",
-          transition: opening
-            ? "transform 1.1s cubic-bezier(.55,.05,.4,1), opacity .25s ease .55s"
-            : "transform .6s ease, opacity .3s ease",
-          transform: opening ? "rotateY(180deg)" : "rotateY(3deg)",
-          opacity: opening ? 0 : 1,
-          pointerEvents: opening ? "none" : "auto",
-          willChange: "transform, opacity"
-        }}>
-          <div style={{
-            position:"absolute", inset:0,
-            background:data.bookCover ? `url(${data.bookCover}) center/cover` : "linear-gradient(135deg,#8a6730 0%,#5a3f1c 50%,#3a2818 100%)",
-            borderRadius:"14px 4px 4px 14px",
-            boxShadow:"0 20px 60px rgba(0,0,0,.7), inset 0 0 60px rgba(0,0,0,.35), 2px 0 0 rgba(0,0,0,.4)",
-            padding:"7% 7%",
-            display:"flex", flexDirection:"column", justifyContent:"space-between",
-            border:"1px solid #6a5538",
-            overflow:"hidden"
-          }}>
-            <div style={{position:"absolute",inset:"3.5%",border:"1px solid rgba(212,168,81,.45)",borderRadius:"6px",pointerEvents:"none"}}/>
-            <div style={{position:"absolute",inset:"4.8%",border:"1px solid rgba(212,168,81,.18)",borderRadius:"4px",pointerEvents:"none"}}/>
-            {data.bookCover && <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg,rgba(0,0,0,.5) 0%,rgba(0,0,0,.2) 50%,rgba(0,0,0,.65) 100%)",pointerEvents:"none"}}/>}
-
-            <div style={{textAlign:"center",position:"relative",zIndex:1}}>
-              <div className="heading-latin" style={{fontSize:"clamp(9px,2.6vw,11px)",color:"rgba(212,168,81,.7)",letterSpacing:"4px",fontWeight:700}}>STORY · CASH · BOOK</div>
-              <div style={{margin:"4% auto",width:"40px",height:"1px",background:"rgba(212,168,81,.5)"}}/>
-              <div style={{minHeight:"60px"}}>
-                <div className="heading-serif" style={{fontSize:"clamp(16px,4.8vw,22px)",color:"#f5ecd9",lineHeight:1.4,fontWeight:700,textShadow:"0 2px 8px rgba(0,0,0,.5)"}}>
-                  {data.bookTitle || <span style={{color:"#d4a85188",fontStyle:"italic",fontSize:"clamp(11px,3vw,14px)",lineHeight:1.6,display:"block"}}>『미래』 페이지에서<br/>제목과 표지를 정하세요</span>}
-                </div>
+          {/* 문 — 오른쪽 경첩으로 회전하며 열림 */}
+          <div className="pd-casing">
+            <div className="pd-leaf">
+              {/* 창문 = Vision 이미지(data.bookCover), 없으면 따뜻한 빛 */}
+              <div className="pd-window">
+                {data.bookCover ? <img src={data.bookCover} alt=""/> : null}
+                <span className="pd-light"/>
               </div>
-              <div style={{margin:"4% auto 0",width:"24px",height:"1px",background:"rgba(212,168,81,.4)"}}/>
-            </div>
-
-            <div style={{textAlign:"center",position:"relative",zIndex:1}}>
-              <button onClick={handleStart} className="btn-gold" style={{display:"block",margin:"0 auto",minWidth:"180px",padding:"12px 24px",fontSize:"14px",letterSpacing:"4px",fontWeight:700,position:"relative",zIndex:5,pointerEvents:"auto"}}>S T A R T</button>
-              <div className="heading-latin" style={{marginTop:"4%",fontSize:"clamp(8px,2.4vw,10px)",color:"rgba(212,168,81,.6)",letterSpacing:"3px"}}>끌당 출판사</div>
+              <div className="pd-plaque"><i className="l"/><i className="r"/><b>STORY<br/>ROOM</b></div>
+              <div className="pd-knob"/>
+              <div className="pd-plate">
+                <button onClick={handleStart} className="btn-gold" style={{padding:"10px 26px",fontSize:"14px",letterSpacing:"4px",fontWeight:700}}>START</button>
+              </div>
             </div>
           </div>
-        </div>
 
+        </div>
       </div>
     </div>
   );
