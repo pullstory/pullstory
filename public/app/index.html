@@ -101,6 +101,34 @@
   .pd-plaque i.r{right:30%;transform:rotate(-14deg)}
   .pd-knob{position:absolute;top:63%;left:9%;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 34% 30%,#f4dca0,#c79445 55%,#7f571f);box-shadow:0 2px 5px rgba(0,0,0,.55),inset 0 0 0 1px rgba(0,0,0,.25)}
   .pd-plate{position:absolute;bottom:9%;left:18%;width:64%;height:15%;border-radius:5px;background:linear-gradient(180deg,rgba(0,0,0,.16),rgba(0,0,0,.28));box-shadow:inset 0 0 0 2px #4a3115,inset 0 0 14px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
+
+  /* ===== Vision 페이지 — 비전보드 ===== */
+  .vb-head{text-align:center;margin:2px 0 16px}
+  .vb-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:32px;color:#2f2109;font-weight:700;letter-spacing:.01em;line-height:1}
+  .vb-desc{font-family:'Noto Serif KR',serif;font-size:12px;color:#7a5e34;margin-top:8px}
+  .vb-board{border-radius:8px;padding:18px 13px 22px;border:8px solid #6a481f;background-color:#c6a373;background-image:radial-gradient(circle at 1px 1px,rgba(96,62,26,.24) 1px,transparent 0);background-size:7px 7px;box-shadow:inset 0 0 26px rgba(70,44,16,.4),0 6px 16px rgba(0,0,0,.3)}
+  .vb-pin{position:absolute;top:-7px;left:50%;transform:translateX(-50%);width:13px;height:13px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffd9d3,#c6403a 60%,#7e211c);box-shadow:0 2px 4px rgba(0,0,0,.4);pointer-events:none}
+  .vb-pin.g{background:radial-gradient(circle at 35% 30%,#f6e0a4,#c79445 60%,#7f571f)}
+  .vb-card{position:relative;background:#fffdf5;border-radius:3px;box-shadow:0 7px 16px rgba(40,25,10,.28)}
+  .vb-id{padding:16px 16px 13px;margin-bottom:20px;transform:rotate(-.6deg)}
+  .vb-lbl{font-size:10px;letter-spacing:.2em;color:#b58a3e;text-transform:uppercase;text-align:center;margin-bottom:8px}
+  .vb-hint{font-family:'Noto Serif KR',serif;font-size:10px;color:#a98b57;font-style:italic;text-align:center;margin-top:8px}
+  .vb-cashlbl{text-align:center;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:#5c3f1c;font-weight:700;margin:2px 0 4px}
+  .vb-cashsub{text-align:center;font-family:'Noto Serif KR',serif;font-size:11px;color:#6f5127;margin:0 0 13px}
+  .vb-cc{position:relative;background:#fffdf5;border-radius:3px;padding:12px 14px;box-shadow:0 6px 14px rgba(40,25,10,.25);margin-bottom:13px}
+  .vb-cc:nth-child(odd){transform:rotate(-.5deg)} .vb-cc:nth-child(even){transform:rotate(.5deg)}
+  .vb-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .vb-bdg{width:24px;height:24px;border-radius:5px;color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;flex-shrink:0}
+  .vb-nm{font-family:'Noto Serif KR',serif;font-size:13px;font-weight:700;color:#3a2818}
+  .vb-nm .en{font-size:9px;color:#a08048;font-weight:400;letter-spacing:.06em;margin-left:6px}
+  .vb-ta{width:100%;box-sizing:border-box;background:transparent;border:none;resize:none;outline:none;font-family:'Noto Serif KR',serif;font-size:13px;color:#3a2818;line-height:1.6;padding:2px 0}
+  .vb-ta::placeholder{color:#c9b389}
+  .vb-ta:focus{background:rgba(212,168,81,.09);border-radius:3px}
+  .vb-id .vb-ta{text-align:center;font-size:16px;font-weight:700;color:#2e2013;line-height:1.55}
+  .vb-gallery{display:flex;justify-content:center;margin-top:2px}
+  .vb-polaroid{position:relative;background:#fffef9;padding:9px 9px 20px;box-shadow:0 8px 18px rgba(40,25,10,.3);transform:rotate(1.6deg);cursor:pointer}
+  .vb-pic{width:150px;height:132px;border-radius:2px;background:linear-gradient(135deg,#8a6730,#5a3f1c);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;color:#e8cf95;font-size:26px}
+  .vb-capn{text-align:center;font-size:15px;color:#5c3f1c;margin-top:7px}
 </style>
 </head>
 <body>
@@ -596,71 +624,50 @@ function FuturePage({data, setData}) {
 
   return (
     <div style={{animation:"fadeIn .4s"}}>
-      <PageHeader kanji="VISION · 비전보드" title="방향과 정체성" sub="이 책장을 어떤 결로 채워갈지 — 나의 방향을 그려보는 곳"/>
+      <div className="vb-head">
+        <div className="vb-title">Life Concept</div>
+        <div className="vb-desc">인생의 모든 선택과 판단의 기준점</div>
+      </div>
 
-      <Section label="📖 제목(정체성)" sub="이 책장의 제목 — 되고 싶은 나를 한 문장으로. 입구(Door)에 그대로 걸립니다">
-        <textarea className="input" rows={3} value={title} onChange={e=>setTitle(e.target.value)} onBlur={()=>setData({...data,bookTitle:title.trim()})} placeholder="예: 나는 좋아하는 일로 가치를 만들고, 매일 성장하는 사람이다."/>
-      </Section>
-
-      <Section label="💰 정가(신뢰도)" sub="내가 만들어갈 신뢰의 크기 — 1 C.A.S.H = 1만 원의 신뢰 가치 (남에게 줄 수 있는 가치)">
-        <div style={{display:"flex",alignItems:"center",gap:"10px",padding:"4px 0"}}>
-          <input
-            type="text"
-            inputMode="numeric"
-            className="input"
-            value={price ? Number(price).toLocaleString() : ""}
-            onChange={e=>{
-              const digits = e.target.value.replace(/[^0-9]/g,"").slice(0,15);
-              setPrice(digits);
-            }}
-            onBlur={()=>setData({...data,bookPrice:price})}
-            placeholder="0"
-            style={{flex:"0 1 240px",textAlign:"right",fontSize:"18px",fontWeight:700,letterSpacing:"1px",fontFamily:"'Cormorant Garamond',serif",padding:"10px 14px"}}
-          />
-          <span className="heading-latin" style={{fontSize:"14px",color:"#9c7a2a",fontWeight:700,letterSpacing:"2px"}}>C.A.S.H</span>
+      <div className="vb-board">
+        {/* identity */}
+        <div className="vb-card vb-id">
+          <span className="vb-pin g"/>
+          <div className="vb-lbl">identity</div>
+          <textarea className="vb-ta" rows={3} value={title}
+            onChange={e=>setTitle(e.target.value)}
+            onBlur={()=>setData({...data,bookTitle:title.trim()})}
+            placeholder="나는 좋아하는 일로 가치를 만들고, 매일 성장하는 사람이다."/>
+          <div className="vb-hint">이 소개가 홈페이지 책장 프로필로 쓰여요</div>
         </div>
-        {price && (
-          <div style={{marginTop:"10px",padding:"10px 12px",background:"rgba(212,168,81,.08)",border:"1px solid rgba(212,168,81,.2)",borderRadius:"6px",fontSize:"11px",color:"#9c7a2a",fontStyle:"italic",fontFamily:"'Noto Serif KR',serif",lineHeight:1.7}}>
-            &ldquo;나의 인생 책의 정가는 <span className="heading-latin" style={{color:"#d4a851",fontWeight:700,fontStyle:"normal",letterSpacing:"1px"}}>{Number(price).toLocaleString()} C.A.S.H</span><br/>
-            — 다른 사람에게 <span style={{color:"#d4a851",fontWeight:700,fontStyle:"normal"}}>{(Number(price)*10000).toLocaleString()}원</span>의 신뢰 가치를 주는 스토리를 만들어가는 사람입니다.&rdquo;
-          </div>
-        )}
-      </Section>
 
-      <Section label="💎 CASH 정체성" sub="각 영역에서 어떤 사람이 되어 있을까?">
-        {CASH_KEYS.map(k=>(
-          <div key={k} style={{marginBottom:"10px"}}>
-            <div style={{fontSize:"11px",color:CC[k],fontWeight:700,marginBottom:"4px",display:"flex",alignItems:"center",gap:"6px"}}>
-              <span style={{width:"18px",height:"18px",background:CC[k],color:"#fff",borderRadius:"4px",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:"10px",fontWeight:700}}>{k}</span>
-              {CK[k]} · {CL[k]}
-            </div>
-            <textarea className="input" rows={2} value={vc[k]||""} onChange={e=>setVc({...vc,[k]:e.target.value})} onBlur={()=>setData({...data,visionCash:vc})} placeholder={`${CD[k]}`} style={{borderColor:CC[k]+"66"}}/>
-          </div>
-        ))}
-      </Section>
-
-      <Section label="🎨 입구 이미지" sub="이 책장의 대표 이미지 — 첫 장이 입구(Door)에 걸립니다">
-        <div onClick={()=>setShowGallery(true)} style={{cursor:"pointer",borderRadius:"8px",overflow:"hidden",border:"1px solid #d8c79a",position:"relative"}}>
-          {coverImg ? (
-            <div style={{position:"relative",aspectRatio:"3/4",background:`url(${coverImg}) center/cover, #3a2818`}}>
-              <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg,transparent 50%,rgba(0,0,0,.75))",display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"14px"}}>
-                <div style={{color:"#d4a851",fontSize:"10px",fontWeight:700,letterSpacing:"2px",marginBottom:"4px"}}>COVER · 대표 이미지</div>
-                <div style={{color:"#fff",fontSize:"13px",fontWeight:700,lineHeight:1.4,textShadow:"0 1px 4px rgba(0,0,0,.6)"}}>{data.bookTitle || "제목 미입력"}</div>
-                <div style={{color:"#f5ecd9aa",fontSize:"10px",marginTop:"6px"}}>총 {images.length}장 · 탭해서 갤러리 열기</div>
+        {/* C.A.S.H Identity */}
+        <div className="vb-cashlbl">C.A.S.H Identity</div>
+        <div className="vb-cashsub">각 영역에서 어떤 사람이 되어 있을까?</div>
+        <div className="vb-cashgrid">
+          {CASH_KEYS.map(k=>(
+            <div key={k} className="vb-cc">
+              <span className="vb-pin"/>
+              <div className="vb-top">
+                <span className="vb-bdg" style={{background:CC[k]}}>{k}</span>
+                <span className="vb-nm">{CK[k]}<span className="en">{CL[k]}</span></span>
               </div>
+              <textarea className="vb-ta" rows={2} value={vc[k]||""}
+                onChange={e=>setVc({...vc,[k]:e.target.value})}
+                onBlur={()=>setData({...data,visionCash:vc})}
+                placeholder={CD[k]}/>
             </div>
-          ) : (
-            <div style={{aspectRatio:"3/4",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",color:"#b8924a",gap:"10px",background:"rgba(255,253,245,.5)"}}>
-              <div style={{fontSize:"42px"}}>🖼️</div>
-              <div style={{fontSize:"13px",fontWeight:700}}>표지 이미지 추가하기</div>
-              <div style={{fontSize:"10px",color:"#b89066"}}>탭해서 갤러리 열기</div>
-            </div>
-          )}
+          ))}
         </div>
-        <button onClick={()=>setShowGallery(true)} className="btn-gold" style={{width:"100%",marginTop:"10px",padding:"11px",fontSize:"13px"}}>
-          {coverImg ? "🖼️  갤러리 열기 / 이미지 변경" : "🖼️  이미지 추가하기"}
-        </button>
-      </Section>
+
+        {/* Concept Gallery */}
+        <div className="vb-gallery">
+          <div className="vb-polaroid" onClick={()=>setShowGallery(true)}>
+            <div className="vb-pic" style={coverImg?{backgroundImage:`url(${coverImg})`}:undefined}>{coverImg?"":"＋"}</div>
+            <div className="vb-capn heading-latin">Concept Gallery</div>
+          </div>
+        </div>
+      </div>
 
       {showGallery && <CoverGallery data={data} setData={setData} onClose={()=>setShowGallery(false)}/>}
     </div>
@@ -2618,8 +2625,7 @@ const PAGES = [
   {key:"writing",  label:"Page",      title:"Page",      sub:"오늘의 페이지"},
   {key:"chapters", label:"Books",     title:"Books",     sub:"이달의 책"},
   {key:"climax",   label:"Shelf",     title:"Shelf",     sub:"올해의 책장"},
-  {key:"future",   label:"Vision",    title:"Vision",    sub:"비전보드"},
-  {key:"cover",    label:"Door",      title:"Door",      sub:"입구"}
+  {key:"future",   label:"Vision",    title:"Vision",    sub:"비전보드"}
 ];
 
 // 하단 네비 아이콘 (currentColor 상속 → 활성/비활성 색 자동)
@@ -2834,7 +2840,6 @@ function PageBook({data, setData, onLogout, user}) {
 
   const renderPage = (key) => {
     switch(key) {
-      case "cover":    return <CoverPage    data={data} setData={setData}/>;
       case "future":   return <FuturePage   data={data} setData={setData}/>;
       case "climax":   return <GoalsPage    data={data} setData={setData}/>;
       case "chapters": return <HomePage     data={data} setData={setData}/>;
@@ -2847,7 +2852,7 @@ function PageBook({data, setData, onLogout, user}) {
 
   const cur = PAGES[pageIdx];
   // 하단 네비: 표지(마지막 idx) 제외 → 현재 · 에피소드 · 챕터 · 클라이맥스 · 미래
-  const menuPages = PAGES.slice(0, PAGES.length-1);
+  const menuPages = PAGES;
   const isCover = cur.key === "cover";
   const isFirst = pageIdx === 0;
   const isLast = pageIdx === PAGES.length-1;
