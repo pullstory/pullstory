@@ -129,6 +129,27 @@
   .vb-polaroid{position:relative;background:#fffef9;padding:9px 9px 20px;box-shadow:0 8px 18px rgba(40,25,10,.3);transform:rotate(1.6deg);cursor:pointer}
   .vb-pic{width:150px;height:132px;border-radius:2px;background:linear-gradient(135deg,#8a6730,#5a3f1c);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;color:#e8cf95;font-size:26px}
   .vb-capn{text-align:center;font-size:15px;color:#5c3f1c;margin-top:7px}
+
+  /* ===== Shelf 페이지 — 책장 ===== */
+  .sf-head{text-align:center;margin-bottom:15px}
+  .sf-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;color:#2f2109;font-weight:700;line-height:1}
+  .sf-desc{font-family:'Noto Serif KR',serif;font-size:12px;color:#7a5e34;margin-top:7px}
+  .sf-case{border:9px solid #5c3d18;border-radius:6px;background:#2a1c0f;box-shadow:0 8px 22px rgba(0,0,0,.4),inset 0 0 0 2px rgba(0,0,0,.4)}
+  .sf-shelf{position:relative}
+  .sf-int{position:relative;background:#241a10;padding:11px 9px 12px;display:flex;align-items:flex-end;gap:7px;overflow:hidden}
+  .sf-plank{height:11px;background:linear-gradient(180deg,#9a6528,#6a441f);box-shadow:0 4px 7px rgba(0,0,0,.45)}
+  .sf-spark{position:absolute;color:#e8c877;font-size:8px;opacity:.55;pointer-events:none}
+  .sf-letter{width:42px;height:58px;border-radius:2px;color:#fff8e5;font-family:Georgia,serif;font-weight:700;font-size:29px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 8px rgba(0,0,0,.45);flex-shrink:0}
+  .sf-cblock{padding:0 12px;min-height:58px;border-radius:2px;background:linear-gradient(180deg,#d8a63f,#b8862f);color:#3a2610;font-family:'Cormorant Garamond',Georgia,serif;font-weight:700;font-size:22px;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 8px rgba(0,0,0,.45);flex-shrink:0}
+  .sf-spines{display:flex;align-items:flex-end;gap:3px;flex-shrink:0}
+  .sf-sp{border-radius:1px;box-shadow:0 3px 6px rgba(0,0,0,.35);position:relative}
+  .sf-sp .d{position:absolute;left:50%;top:9px;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:rgba(255,240,190,.55)}
+  .sf-sp .dm{position:absolute;left:50%;top:8px;transform:translate(-50%,0) rotate(45deg);width:5px;height:5px;background:rgba(255,240,190,.5)}
+  .sf-note{flex:1;min-width:0;align-self:stretch;background:#fffdf5;border-radius:2px;padding:9px 11px;box-shadow:0 4px 11px rgba(0,0,0,.45);display:flex;flex-direction:column;justify-content:center}
+  .sf-nl{font-family:'Noto Serif KR',serif;font-size:11px;font-weight:700;margin-bottom:4px}
+  .sf-nl .en{font-size:8px;color:#a08048;margin-left:5px;font-weight:400;letter-spacing:.05em}
+  .sf-ta{width:100%;box-sizing:border-box;background:transparent;border:none;resize:none;outline:none;overflow:hidden;font-family:'Noto Serif KR',serif;font-size:12.5px;color:#3a2818;line-height:1.55;padding:0;display:block}
+  .sf-ta::placeholder{color:#c9b389}
 </style>
 </head>
 <body>
@@ -679,58 +700,77 @@ function FuturePage({data, setData}) {
 // 정체성(제목)을 가지고 한 해를 살아갔을 때 도달할 클라이맥스 장면을
 // 미리 묘사·선언하는 페이지. 소설의 하이라이트를 미리 써보는 시간.
 // ═════════════════════════════════════════════════════════════════════
+// 자동 확장 textarea (작성한 만큼 늘어남 — 문장 안 잘림)
+function AutoTA({value, onChange, onBlur, placeholder, className}) {
+  const ref = useRef(null);
+  const resize = () => { const el = ref.current; if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; } };
+  useEffect(() => { resize(); }, [value]);
+  return <textarea ref={ref} className={className} rows={1} value={value} placeholder={placeholder}
+    onChange={e=>{ onChange(e); resize(); }} onInput={resize} onBlur={onBlur}/>;
+}
+
+function Spine({b}) {
+  return <div className="sf-sp" style={{width:b.w+"px",height:b.h+"px",background:b.c}}>{b.d ? <span className={b.d}/> : null}</div>;
+}
+
+// 책장 항목: C(노랑)·A(빨강)·S(파랑)·H(초록) — 각각 알파벳 박스 + 왼쪽 책 2권 + 오른쪽 1권
+const SHELVES = [
+  {k:"C", cat:"전문성", en:"Content",  col:"#e3ad35", nc:"#9c7420", ph:"내가 쌓아가는 지식·기술·역량",
+    left:[{w:8,h:46,c:"#c98f22"},{w:11,h:54,c:"#efc456",d:"d"}], right:{w:9,h:42,c:"#d9a02e"}},
+  {k:"A", cat:"태도",   en:"Attitude", col:"#b23f39", nc:"#9c332e", ph:"마인드셋, 감사, 확언, 내면 상태",
+    left:[{w:10,h:52,c:"#9c332e",d:"dm"},{w:8,h:44,c:"#c85a54"}], right:{w:11,h:50,c:"#86271f",d:"d"}},
+  {k:"S", cat:"관계",   en:"Social",   col:"#3d6fa0", nc:"#315b86", ph:"인간관계, 네트워크, 사회적 신용",
+    left:[{w:9,h:48,c:"#315b86"},{w:11,h:56,c:"#5285b5",d:"d"}], right:{w:8,h:42,c:"#274a70",d:"dm"}},
+  {k:"H", cat:"건강",   en:"Health",   col:"#46834a", nc:"#3a6e3e", ph:"신체·정신 건강, 에너지 관리",
+    left:[{w:11,h:53,c:"#3a6e3e",d:"d"},{w:8,h:45,c:"#5a9d5e"}], right:{w:10,h:50,c:"#2e5a32",d:"dm"}},
+];
+
 function GoalsPage({data, setData}) {
   const [main, setMain] = useState(data.yearMain||"");
-  const [price, setPrice] = useState((data.yearPrice||"").toString().replace(/[^0-9]/g, ""));
   const [yc, setYc] = useState(data.yearCash||{C:"",A:"",S:"",H:""});
-
-  const startDate = data.startDate || todayStr();
-  const startYear = parseInt(startDate.split("-")[0]);
+  const year = new Date().getFullYear();
 
   return (
     <div style={{animation:"fadeIn .4s"}}>
-      <PageHeader kanji={`CLIMAX · ${startYear} 클라이맥스`} title={`${startYear} 클라이맥스`} sub={`올해 시리즈의 마지막 장면 — 작가의 시선으로 미리 묘사해보세요`}/>
+      <div className="sf-head">
+        <div className="sf-title">{year} Shelf</div>
+        <div className="sf-desc">올해의 책장을 어떤 책들로 채울까</div>
+      </div>
 
-      <Section label="🎬 클라이맥스 장면 (메인 결말)" sub={`올해 ${startYear} 시리즈의 마지막 장면. 12월 말의 어느 순간, 결말에 도달한 '나'는 어디에 있고 무엇을 보고 있을까요? 이루고 싶은 그 모습을 구체적으로 상상해서 한 편의 소설처럼 묘사해보세요.`}>
-        <textarea className="input" rows={6} value={main} onChange={e=>setMain(e.target.value)} onBlur={()=>setData({...data,yearMain:main})} placeholder={`예: ${startYear}년 12월의 어느 저녁. 나는 따뜻한 조명이 켜진 내 작업실 책상 위에 올해 첫 출간한 책을 올려두고, 창밖으로 펼쳐진 도시의 야경을 바라본다. 1월에 시작했던 작은 글쓰기 클래스는 어느새 매달 신청 대기가 걸리는 인기 강좌가 되었고, 좋아하는 일로 충분히 살 수 있다는 사실을 매일 확인한다. 거울 속 나는 작년보다 훨씬 자신감 있게 웃고 있고, 더는 '언젠가'라는 말을 쓰지 않는다.`}/>
-      </Section>
-
-      <Section label="💰 정가(신뢰도)" sub={`올해 출간될 ${startYear} 시리즈 책 한 권에 매겨질 정가 — 1 C.A.S.H = 1만 원의 신뢰 가치`}>
-        <div style={{display:"flex",alignItems:"center",gap:"10px",padding:"4px 0"}}>
-          <input
-            type="text"
-            inputMode="numeric"
-            className="input"
-            value={price ? Number(price).toLocaleString() : ""}
-            onChange={e=>{
-              const digits = e.target.value.replace(/[^0-9]/g,"").slice(0,15);
-              setPrice(digits);
-            }}
-            onBlur={()=>setData({...data,yearPrice:price})}
-            placeholder="0"
-            style={{flex:"0 1 240px",textAlign:"right",fontSize:"18px",fontWeight:700,letterSpacing:"1px",fontFamily:"'Cormorant Garamond',serif",padding:"10px 14px"}}
-          />
-          <span className="heading-latin" style={{fontSize:"14px",color:"#9c7a2a",fontWeight:700,letterSpacing:"2px"}}>C.A.S.H</span>
-        </div>
-        {price && (
-          <div style={{marginTop:"10px",padding:"10px 12px",background:"rgba(212,168,81,.08)",border:"1px solid rgba(212,168,81,.2)",borderRadius:"6px",fontSize:"11px",color:"#9c7a2a",fontStyle:"italic",fontFamily:"'Noto Serif KR',serif",lineHeight:1.7}}>
-            &ldquo;올해 출간되는 {startYear} 시리즈의 정가는 <span className="heading-latin" style={{color:"#d4a851",fontWeight:700,fontStyle:"normal",letterSpacing:"1px"}}>{Number(price).toLocaleString()} C.A.S.H</span><br/>
-            — 다른 사람에게 <span style={{color:"#d4a851",fontWeight:700,fontStyle:"normal"}}>{(Number(price)*10000).toLocaleString()}원</span>의 신뢰 가치를 전달하는 한 권의 책으로 완성된다.&rdquo;
-          </div>
-        )}
-      </Section>
-
-      <Section label="🎭 주인공 '나' 캐릭터 설정 (CASH)" sub="이 시리즈의 주인공은 '나'. 작가가 소설의 주인공을 빚듯 — 결말 시점의 주인공 '나'가 4가지 영역에서 어떤 캐릭터로 완성되어 있을지 묘사해보세요.">
-        {CASH_KEYS.map(k=>(
-          <div key={k} style={{marginBottom:"10px"}}>
-            <div style={{fontSize:"11px",color:CC[k],fontWeight:700,marginBottom:"4px",display:"flex",alignItems:"center",gap:"6px"}}>
-              <span style={{width:"18px",height:"18px",background:CC[k],color:"#fff",borderRadius:"4px",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:"10px",fontWeight:700}}>{k}</span>
-              {CK[k]} · {CL[k]}
+      <div className="sf-case">
+        {/* 2026 concept — 올해 전체 목표 */}
+        <div className="sf-shelf">
+          <div className="sf-int" style={{background:"#26190d"}}>
+            <span className="sf-spark" style={{left:"64%",top:"10px"}}>✦</span>
+            <span className="sf-spark" style={{left:"88%",top:"26px"}}>✦</span>
+            <div className="sf-cblock">{year}</div>
+            <div className="sf-note" style={{borderTop:"3px solid #b8862f"}}>
+              <div className="sf-nl" style={{color:"#9c7420"}}>Concept<span className="en">올해 전체 목표</span></div>
+              <AutoTA className="sf-ta" value={main} placeholder="올해 나는 어떤 사람이 될까 — 한 줄로"
+                onChange={e=>setMain(e.target.value)} onBlur={()=>setData({...data,yearMain:main})}/>
             </div>
-            <textarea className="input" rows={3} value={yc[k]||""} onChange={e=>setYc({...yc,[k]:e.target.value})} onBlur={()=>setData({...data,yearCash:yc})} placeholder={`예: ${k==="C"?"글쓰기와 강의를 결합한 나만의 콘텐츠 시스템을 완성한 1인 크리에이터. 첫 책이 출간되었고, 매달 오픈 즉시 마감되는 강좌를 운영하는 사람.":k==="A"?"흔들리지 않는 평정심을 갖춘 사람. 매일 아침 감사일기와 명상으로 하루를 시작하고, 어떤 상황에서도 '내가 선택한 길이 맞다'는 확신이 흔들리지 않는 캐릭터.":k==="S"?"신뢰하는 5명의 멘토와 깊은 관계를 만들었고, 같은 길을 걷는 200명의 동료 커뮤니티의 중심에 서 있는 사람. 혼자가 아니라는 감각이 일상이 된 캐릭터.":"주 3회 운동을 1년 내내 지켜낸 결과, 30대 후반에 가장 활기찬 컨디션을 유지하는 사람. 에너지가 늘 충만해 어떤 도전도 받아들일 수 있는 캐릭터."}`} style={{borderColor:CC[k]+"66"}}/>
+          </div>
+          <div className="sf-plank"/>
+        </div>
+
+        {/* C · A · S · H */}
+        {SHELVES.map(s=>(
+          <div className="sf-shelf" key={s.k}>
+            <div className="sf-int">
+              <span className="sf-spark" style={{left:"62%",top:"14px"}}>✦</span>
+              <div className="sf-letter" style={{background:s.col}}>{s.k}</div>
+              <div className="sf-spines">{s.left.map((b,i)=><Spine b={b} key={i}/>)}</div>
+              <div className="sf-note" style={{borderTop:"3px solid "+s.col}}>
+                <div className="sf-nl" style={{color:s.nc}}>{s.cat}<span className="en">{s.en}</span></div>
+                <AutoTA className="sf-ta" value={yc[s.k]||""} placeholder={s.ph}
+                  onChange={e=>setYc({...yc,[s.k]:e.target.value})} onBlur={()=>setData({...data,yearCash:yc})}/>
+              </div>
+              <div className="sf-spines"><Spine b={s.right}/></div>
+            </div>
+            <div className="sf-plank"/>
           </div>
         ))}
-      </Section>
+      </div>
     </div>
   );
 }
