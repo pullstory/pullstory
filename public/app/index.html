@@ -150,6 +150,70 @@
   .sf-nl .en{font-size:8px;color:#a08048;margin-left:5px;font-weight:400;letter-spacing:.05em}
   .sf-ta{width:100%;box-sizing:border-box;background:transparent;border:none;resize:none;outline:none;overflow:hidden;font-family:'Noto Serif KR',serif;font-size:12.5px;color:#3a2818;line-height:1.55;padding:0;display:block}
   .sf-ta::placeholder{color:#c9b389}
+
+  /* ===== Books 페이지 — My Books ===== */
+  .mb-ovbox{border:8px solid #5c3d18;border-radius:6px;background:#241a10;box-shadow:0 7px 18px rgba(0,0,0,.4);overflow:hidden;margin-bottom:18px}
+  .mb-ovtop{display:flex;align-items:center;justify-content:space-between;padding:6px 11px;background:linear-gradient(180deg,#6a441f,#4e3417);color:#e8c877}
+  .mb-ynav{display:flex;align-items:center;gap:7px}
+  .mb-ynav button{background:none;border:none;color:#caa869;font-size:18px;cursor:pointer;padding:0 3px;line-height:1;font-family:Georgia,serif}
+  .mb-ynav button:disabled{opacity:.3;cursor:default}
+  .mb-ynav b{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:16px;letter-spacing:.08em;color:#e8c877}
+  .mb-ovt{font-family:'Noto Serif KR',serif;font-size:11px;color:#d3ac6a}
+  .mb-ovgrid{display:grid;grid-template-columns:1fr 1fr}
+  .mb-ovcell{position:relative;padding:9px 10px 10px;display:flex;align-items:flex-end;gap:6px;min-height:56px;border-bottom:5px solid #6a441f}
+  .mb-ovcell:nth-child(odd){border-right:4px solid #4e3417}
+  .mb-ovcell:nth-child(n+3){border-bottom:none}
+  .mb-ovL{font-family:Georgia,serif;font-weight:700;font-size:26px;line-height:.9;flex-shrink:0;text-shadow:0 2px 3px rgba(0,0,0,.5)}
+  .mb-ovsp{display:flex;align-items:flex-end;gap:2px}
+  .mb-ovsp i{border-radius:1px;display:block}
+  .mb-ovn{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:#e6cd94;line-height:1}
+  .mb-ovn em{font-style:normal;color:#8a6a3a}
+  .mb-ovn small{font-family:'Noto Serif KR',serif;font-size:9px;color:#c9a56a;margin-left:1px;font-weight:400}
+  .mb-nb{background:#fffdf5;border-radius:6px;padding:13px;box-shadow:0 5px 14px rgba(40,25,10,.22);margin-bottom:18px;border-top:3px solid #b8862f}
+  .mb-nbl{font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:700;color:#2f2109}
+  .mb-nbd{font-family:'Noto Serif KR',serif;font-size:11px;color:#8a6d3c;margin:2px 0 11px}
+  .mb-nbi{width:100%;box-sizing:border-box;border:1px solid #d8c79a;border-radius:6px;background:rgba(255,253,245,.8);padding:9px 11px;font-family:'Noto Serif KR',serif;font-size:13px;color:#3a2818;margin-bottom:9px}
+  .mb-nbrow{display:flex;align-items:center;gap:7px;margin-bottom:11px;flex-wrap:wrap}
+  .mb-chip{width:26px;height:26px;border-radius:6px;color:#fff;font-family:Georgia,serif;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,.2);cursor:pointer}
+  .mb-chip.off{opacity:.32}
+  .mb-tsel{margin-left:auto;display:flex;border:1px solid #d8c79a;border-radius:7px;overflow:hidden}
+  .mb-tsel span{padding:6px 9px;font-family:'Noto Serif KR',serif;font-size:11px;color:#9c7a2a;cursor:pointer}
+  .mb-tsel span.on{background:#e9d7ad;color:#5c3f1c;font-weight:700}
+  .mb-addb{width:100%;padding:11px;border:none;border-radius:7px;background:linear-gradient(135deg,#e7c574,#b8862f);color:#fff8e5;font-family:'Noto Serif KR',serif;font-weight:700;font-size:13px;letter-spacing:.2em;cursor:pointer}
+  .mb-shelflbl{font-family:'Noto Serif KR',serif;font-size:12px;color:#5c3f1c;font-weight:700;margin:2px 2px 11px}
+  .mb-covers{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .mb-cover{position:relative;aspect-ratio:3/4.2;border-radius:3px 6px 6px 3px;overflow:hidden;box-shadow:0 8px 16px rgba(0,0,0,.32);display:flex;cursor:pointer}
+  .mb-cspine{width:9px;flex-shrink:0}
+  .mb-cin{flex:1;position:relative;padding:14px 12px;display:flex;flex-direction:column}
+  .mb-cfr{position:absolute;inset:8px;border:1px solid rgba(255,248,220,.4);border-radius:3px;pointer-events:none}
+  .mb-ctype{font-family:'Noto Serif KR',serif;font-size:9px;font-weight:700;letter-spacing:.08em;color:rgba(255,248,220,.85)}
+  .mb-cttl{font-family:'Noto Serif KR',serif;font-size:15px;font-weight:700;color:#fff8e5;line-height:1.4;margin-top:auto;text-shadow:0 1px 4px rgba(0,0,0,.4)}
+  .mb-cst{font-family:'Cormorant Garamond',serif;font-size:10px;font-style:italic;color:rgba(255,248,220,.75);margin-top:6px}
+  .mb-ov{position:fixed;inset:0;z-index:10000;background:rgba(20,12,5,.55);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:18px 12px;box-sizing:border-box;animation:fadeIn .2s}
+  .mb-page{width:100%;max-width:400px;border-radius:9px;background:#f3e9d1;background-image:radial-gradient(circle at 60% 0%,#f8f1de,#eaddbf 75%);overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+  .mb-dbar{display:flex;align-items:center;justify-content:space-between;padding:12px 13px 10px}
+  .mb-back{background:none;border:none;color:#8a6a3a;font-family:'Noto Serif KR',serif;font-size:12px;font-weight:700;cursor:pointer}
+  .mb-pill{border:none;font-family:'Noto Serif KR',serif;font-size:10px;font-weight:700;padding:4px 12px;border-radius:20px;background:rgba(212,168,81,.18);color:#9c7a2a;cursor:pointer}
+  .mb-dhead{display:flex;align-items:center;gap:11px;padding:4px 15px 14px;border-bottom:1px solid rgba(120,90,40,.18);margin-bottom:14px}
+  .mb-mini{width:34px;height:46px;border-radius:2px 3px 3px 2px;display:flex;flex-shrink:0;box-shadow:0 4px 9px rgba(0,0,0,.25);overflow:hidden}
+  .mb-mspine{width:6px}
+  .mb-mbody{flex:1;display:flex;align-items:center;justify-content:center;color:#fff8e5;font-family:Georgia,serif;font-weight:700;font-size:17px}
+  .mb-dtitle{font-family:'Noto Serif KR',serif;font-size:17px;font-weight:700;color:#2e2013;line-height:1.3}
+  .mb-dmeta{font-family:'Noto Serif KR',serif;font-size:10px;color:#a0824a;margin-top:4px}
+  .mb-dpad{padding:0 15px 16px}
+  .mb-g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:11px}
+  .mb-fl{font-family:'Noto Serif KR',serif;font-size:9px;font-weight:700;color:#9c7f4e;margin-bottom:4px}
+  .mb-callbl{display:flex;justify-content:space-between;align-items:baseline;margin:6px 0 7px;font-family:'Noto Serif KR',serif;font-size:10px;font-weight:700;color:#9c7f4e}
+  .mb-callbl b{font-weight:700}
+  .mb-cal{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
+  .mb-cell{aspect-ratio:1;border-radius:3px;font-size:8px;font-weight:700;background:rgba(245,236,217,.8);border:1px solid #ddcb9f;color:#a08a5e;font-family:Georgia,serif;cursor:pointer;padding:0}
+  .mb-cell.on{background:#5a8c4a;border-color:#4a7c3a;color:#fff}
+  .mb-bar{height:5px;background:#e8dcb5;border-radius:3px;overflow:hidden;margin-top:9px}
+  .mb-bar span{display:block;height:100%;background:linear-gradient(90deg,#5a8c4a,#4a7c3a);border-radius:3px}
+  .mb-foot{display:flex;gap:9px;margin-top:16px}
+  .mb-fbtn{flex:1;padding:10px;border-radius:7px;font-family:'Noto Serif KR',serif;font-size:12px;font-weight:700;text-align:center;cursor:pointer;border:none}
+  .mb-fbtn.done{background:linear-gradient(135deg,#6fa35c,#4a7c3a);color:#fff}
+  .mb-fbtn.del{background:transparent;border:1px solid #d8b0a0;color:#b06a55;flex:0 0 78px}
 </style>
 </head>
 <body>
@@ -786,569 +850,178 @@ const TYPE_INFO = {
 // 레거시(goal/event) → achievement 로 정규화
 const taskTypeOf = (t) => (t && t.type === "habit") ? "habit" : "achievement";
 
+// CASH 색/이름 (C노랑·A빨강·S파랑·H초록)
+const BC = {
+  C:{col:"#e3ad35",nc:"#9c7420",cat:"전문성",en:"Content", g:"linear-gradient(140deg,#e3ad35,#c8901f)", sp:"#c98f22"},
+  A:{col:"#b23f39",nc:"#9c332e",cat:"태도",   en:"Attitude",g:"linear-gradient(140deg,#c04a44,#a3352f)", sp:"#9c332e"},
+  S:{col:"#3d6fa0",nc:"#315b86",cat:"관계",   en:"Social",  g:"linear-gradient(140deg,#487eb2,#325f8c)", sp:"#315b86"},
+  H:{col:"#46834a",nc:"#3a6e3e",cat:"건강",   en:"Health",  g:"linear-gradient(140deg,#4f9354,#37703c)", sp:"#3a6e3e"},
+};
+const CASH4 = ["C","A","S","H"];
+
+// 책 상세 (표지 탭 → 전체화면 오버레이. Portal로 body에 렌더 → 캐러셀 transform 영향 X)
+function BookDetail({book, bc, onClose, updateBook, deleteBook, toggleStatus, toggleDay}) {
+  const isHabit = taskTypeOf(book) === "habit";
+  const h = book.habit || {};
+  const a = book.ach || {};
+  const dur = parseInt(h.duration) || 30;
+  const doneSet = new Set(h.done || []);
+  const pct = dur ? Math.round(doneSet.size / dur * 100) : 0;
+  const done = book.status === "완료";
+
+  const overlay = (
+    <div className="mb-ov" onClick={onClose}>
+      <div className="mb-page" onClick={e=>e.stopPropagation()}>
+        <div className="mb-dbar">
+          <button className="mb-back" onClick={onClose}>‹ 책장으로</button>
+          <button className="mb-pill" onClick={()=>toggleStatus(book.id)} style={done?{background:"rgba(90,140,74,.2)",color:"#4a7c3a"}:null}>{book.status||"진행중"}</button>
+        </div>
+        <div className="mb-dhead">
+          <div className="mb-mini"><div className="mb-mspine" style={{background:bc.sp}}/><div className="mb-mbody" style={{background:bc.g}}>{book.cat}</div></div>
+          <div>
+            <div className="mb-dtitle">{book.text||"(제목 없음)"}</div>
+            <div className="mb-dmeta">{isHabit?"🔁 습관":"🏆 성취"} · {book.cat} {bc.cat}</div>
+          </div>
+        </div>
+        <div className="mb-dpad">
+          {isHabit ? (
+            <div>
+              <div className="mb-g2">
+                <div className="mb-fld"><div className="mb-fl">시작일</div><input type="date" className="input" value={h.start||""} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),start:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
+                <div className="mb-fld"><div className="mb-fl">습관 빈도</div><select className="input" value={h.freq||"매일"} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),freq:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px",fontFamily:"inherit"}}>{["매일","격일","주 6회","주 5회","주 4회","주 3회","주 2회","주 1회"].map(f=><option key={f} value={f}>{f}</option>)}</select></div>
+                <div className="mb-fld"><div className="mb-fl">시간 포지션</div><input type="text" className="input" value={h.time||""} placeholder="예: 기상 직후" onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),time:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
+                <div className="mb-fld"><div className="mb-fl">목표 기간 (일)</div><input type="number" className="input" value={dur} min={1} max={365} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),duration:Math.min(365,Math.max(1,parseInt(e.target.value||"30")))}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
+                <div className="mb-fld" style={{gridColumn:"span 2"}}><div className="mb-fl">⏰ 알람 시간 <span style={{color:"#b89a68",fontWeight:400}}>(데일리 에피소드 자동 연동)</span></div><input type="time" className="input" value={h.alarmTime||""} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),alarmTime:e.target.value}}))} style={{fontSize:"12px",padding:"7px 8px",fontFamily:"'Cormorant Garamond',serif",fontWeight:700,letterSpacing:"1px"}}/></div>
+              </div>
+              <div className="mb-callbl"><span>습관 일정표 <span style={{color:"#b89a68",fontWeight:400}}>· 탭하여 체크</span></span><span style={{color:"#5a8c4a"}}>달성률 <b style={{fontSize:"13px"}}>{pct}%</b></span></div>
+              <div className="mb-cal">
+                {Array.from({length:dur},(_,i)=>i+1).map(day=>(
+                  <button key={day} className={"mb-cell"+(doneSet.has(day)?" on":"")} onClick={()=>toggleDay(book.id, day)}>{day}</button>
+                ))}
+              </div>
+              <div className="mb-bar"><span style={{width:pct+"%"}}/></div>
+            </div>
+          ) : (
+            <div>
+              <div className="mb-g2">
+                <div className="mb-fld"><div className="mb-fl">측정 기준</div><input type="text" className="input" value={a.criteria||""} placeholder="예: 판매 시작하기" onChange={e=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),criteria:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
+                <div className="mb-fld"><div className="mb-fl">데드라인</div><input type="date" className="input" value={a.deadline||""} onChange={e=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),deadline:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
+              </div>
+              <div className="mb-fld"><div className="mb-fl">목표 상세 <span style={{color:"#b89a68",fontWeight:400}}>(한 줄에 한 단계씩)</span></div><textarea className="input" rows={6} value={a.steps||""} placeholder={"1. 주제 선정 + 목차 구성\n2. 매일 한 꼭지씩 초고\n3. 전체 퇴고 + 교정\n4. 출간 / 첫 독자 피드백"} onChange={e=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),steps:e.target.value}}))} style={{fontSize:"12px",fontFamily:"inherit",lineHeight:1.6}}/></div>
+            </div>
+          )}
+          <div className="mb-foot">
+            <button className="mb-fbtn done" onClick={()=>toggleStatus(book.id)}>{done?"진행중으로":"✓ 완료로 표시"}</button>
+            <button className="mb-fbtn del" onClick={()=>{ if(confirm("이 책을 삭제할까요?")) deleteBook(book.id); }}>삭제</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+  return ReactDOM.createPortal(overlay, document.body);
+}
+
 function HomePage({data, setData}) {
-  const today = new Date();
-  const curYear = today.getFullYear();
-  const curMonth = today.getMonth() + 1;
-
-  const startYear = parseInt((data.startDate || todayStr()).split("-")[0]);
-  const maxYear = curYear; // 현재 년도까지만 (2027.1.1에 자동으로 2027 시리즈 활성화)
-
-  const [viewYear, setViewYear] = useState(curYear);
-  // 시작 선택은 항상 "이번 달" — 지난 달은 비활성으로 잠겨있음
-  const [selectedMonth, setSelectedMonth] = useState(viewYear === curYear ? curMonth : 1);
-  const isLockedMonth = (m) => viewYear === curYear && m < curMonth;
-
-  const [newTaskText, setNewTaskText] = useState("");
-  const [newTaskCat, setNewTaskCat] = useState("C");
-  const [newTaskType, setNewTaskType] = useState("habit");
-  const [cashPowerInput, setCashPowerInput] = useState("");
-  const [activeType, setActiveType] = useState("habit");  // 탭: 습관 / 성취
-  const [expanded, setExpanded] = useState({});           // {[taskId]: true}
+  const nowYear = new Date().getFullYear();
+  const [viewYear, setViewYear] = useState(nowYear);
+  const [detailId, setDetailId] = useState(null);
+  const [nbText, setNbText] = useState("");
+  const [nbCat, setNbCat] = useState("C");
+  const [nbType, setNbType] = useState("habit");
 
   const chapters = data.chapters || {};
-  const yearChapters = chapters[viewYear] || {};
-  const getChapter = (m) => yearChapters[m] || {cashPower:{target:"",done:false}, tasks:[]};
+  const yearBooks = (chapters[viewYear] || {}).tasks || [];
 
-  // 선택된 달의 cashPower 입력값 동기화
-  useEffect(() => {
-    const ch = getChapter(selectedMonth);
-    setCashPowerInput((ch.cashPower?.target || "").toString().replace(/[^0-9]/g, ""));
-  }, [selectedMonth, viewYear]);
-
-  const updateChapter = (m, updater) => {
-    const ch = getChapter(m);
-    const newCh = updater(ch);
-    const newYear = {...yearChapters, [m]: newCh};
-    const newChapters = {...chapters, [viewYear]: newYear};
-    setData({...data, chapters: newChapters});
+  const setYearBooks = (updater) => {
+    const ch = chapters[viewYear] || {tasks:[]};
+    const books = typeof updater === "function" ? updater(ch.tasks||[]) : updater;
+    setData({...data, chapters: {...chapters, [viewYear]: {...ch, tasks: books}}});
   };
-
-  const saveCashPower = () => {
-    updateChapter(selectedMonth, (ch) => ({
-      ...ch,
-      cashPower: {target: cashPowerInput, done: ch.cashPower?.done || false}
-    }));
+  const addBook = () => {
+    const text = nbText.trim(); if (!text) return;
+    setYearBooks(bs => [...bs, {id: Date.now()+Math.random(), cat:nbCat, type:nbType, text, status:"진행중", ts:Date.now()}]);
+    setNbText("");
   };
+  const updateBook = (id, up) => setYearBooks(bs => bs.map(t => t.id===id ? up(t) : t));
+  const deleteBook = (id) => { setYearBooks(bs => bs.filter(t => t.id!==id)); setDetailId(null); };
+  const toggleStatus = (id) => updateBook(id, t => ({...t, status: t.status==="완료"?"진행중":"완료"}));
+  const toggleDay = (id, day) => updateBook(id, t => { const d=new Set(t.habit?.done||[]); if(d.has(day))d.delete(day);else d.add(day); return {...t, habit:{...(t.habit||{}), done:Array.from(d).sort((a,b)=>a-b)}}; });
 
-  const toggleCashPowerDone = () => {
-    updateChapter(selectedMonth, (ch) => ({
-      ...ch,
-      cashPower: {target: ch.cashPower?.target || cashPowerInput, done: !(ch.cashPower?.done)}
-    }));
-  };
-
-  const addTask = () => {
-    const text = newTaskText.trim();
-    if (!text) return;
-    updateChapter(selectedMonth, (ch) => ({
-      ...ch,
-      tasks: [...(ch.tasks||[]), {
-        id: Date.now() + Math.random(),
-        cat: newTaskCat,
-        type: newTaskType,
-        text,
-        status: "진행중",
-        ts: Date.now()
-      }]
-    }));
-    setNewTaskText("");
-    setActiveType(newTaskType); // 추가한 타입의 탭으로 자동 전환
-  };
-
-  // 특정 task 업데이트 헬퍼 (습관/성취 세부 정보 편집용)
-  const updateTask = (id, updater) => {
-    updateChapter(selectedMonth, (ch) => ({
-      ...ch,
-      tasks: (ch.tasks||[]).map(t => t.id === id ? updater(t) : t)
-    }));
-  };
-
-  // 습관 일정표 — 특정 day 토글
-  const toggleHabitDay = (id, day) => {
-    updateTask(id, (t) => {
-      const done = new Set(t.habit?.done || []);
-      if (done.has(day)) done.delete(day); else done.add(day);
-      return {...t, habit: {...(t.habit||{}), done: Array.from(done).sort((a,b)=>a-b)}};
-    });
-  };
-
-  const delTask = (id) => {
-    updateChapter(selectedMonth, (ch) => ({
-      ...ch,
-      tasks: (ch.tasks||[]).filter(t => t.id !== id)
-    }));
-  };
-
-  const toggleTaskStatus = (id) => {
-    updateChapter(selectedMonth, (ch) => ({
-      ...ch,
-      tasks: (ch.tasks||[]).map(t => t.id === id ? {...t, status: t.status === "완료" ? "진행중" : "완료"} : t)
-    }));
-  };
-
-  const carryToNext = (task) => {
-    const nextMonth = selectedMonth === 12 ? 1 : selectedMonth + 1;
-    const nextYear  = selectedMonth === 12 ? viewYear + 1 : viewYear;
-    if (nextYear > maxYear) {
-      alert(`아직 ${nextYear} 시리즈가 시작되지 않았습니다.\n${nextYear}년 1월 1일에 자동으로 열려요.`);
-      return;
-    }
-    const nextYearChs = chapters[nextYear] || {};
-    const nextCh = nextYearChs[nextMonth] || {cashPower:{target:"",done:false}, tasks:[]};
-    const newTask = {...task, id: Date.now() + Math.random(), status: "진행중", ts: Date.now()};
-    const updatedNextCh = {...nextCh, tasks: [...(nextCh.tasks||[]), newTask]};
-    const updatedNextYear = {...nextYearChs, [nextMonth]: updatedNextCh};
-    const newChapters = {...chapters, [nextYear]: updatedNextYear};
-    setData({...data, chapters: newChapters});
-    alert(`▶ Ch.${nextMonth} (${nextMonth}월)로 이어졌습니다.`);
-  };
-
-  const canPrevYear = viewYear > startYear;
-  const canNextYear = viewYear < maxYear;
-  const goPrevYear = () => { if (canPrevYear) { setViewYear(y=>y-1); setSelectedMonth(1); } };
-  const goNextYear = () => { if (canNextYear) { setViewYear(y=>y+1); setSelectedMonth(1); } };
-
-  const selectedCh = getChapter(selectedMonth);
-  const selDone = (selectedCh.tasks||[]).filter(t => t.status === "완료").length;
-  const selTotal = (selectedCh.tasks||[]).length;
-  const selPct = selTotal ? Math.round(selDone / selTotal * 100) : 0;
-  const nextMonthLabel = selectedMonth === 12 ? 1 : selectedMonth + 1;
-
-  const arrowBtn = (enabled) => ({
-    width:"32px",height:"32px",borderRadius:"50%",
-    background: enabled ? "rgba(212,168,81,.15)" : "transparent",
-    border:"1px solid " + (enabled ? "#d4a851" : "#d8c79a"),
-    color: enabled ? "#9c7a2a" : "#c9b685",
-    cursor: enabled ? "pointer" : "not-allowed",
-    fontSize:"12px", fontWeight:700,
-    display:"inline-flex", alignItems:"center", justifyContent:"center"
-  });
-
-  const months = [1,2,3,4,5,6,7,8,9,10,11,12];
+  const detail = yearBooks.find(b => b.id===detailId);
+  const total = yearBooks.length;
+  const doneCount = yearBooks.filter(b => b.status==="완료").length;
 
   return (
     <div style={{animation:"fadeIn .4s"}}>
-      {/* Year navigator */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"14px",marginBottom:"6px"}}>
-        <button onClick={goPrevYear} disabled={!canPrevYear} style={arrowBtn(canPrevYear)}>◀</button>
-        <div className="heading-latin" style={{fontSize:"24px",color:"#9c7a2a",fontWeight:700,letterSpacing:"4px"}}>{viewYear}</div>
-        <button onClick={goNextYear} disabled={!canNextYear} style={arrowBtn(canNextYear)}>▶</button>
-      </div>
-      <div className="heading-script" style={{textAlign:"center",fontSize:"22px",color:"#9c7a2a",marginBottom:"4px"}}>챕터</div>
-      <div style={{textAlign:"center",fontSize:"10px",color:"#8a7556",marginBottom:"18px",lineHeight:1.6}}>
-        클라이맥스로 가는 12개의 챕터<br/>
-        <span style={{color:"#b8924a"}}>매월 어떤 이야기를 만들어갈지 — 여기서 계획하고 점검하세요</span>
+      <div className="sf-head">
+        <div className="sf-title">My Books</div>
+        <div className="sf-desc">{viewYear}년, 나의 책장을 어떤 책들로 채울까</div>
       </div>
 
-      {/* Chapter grid 3x4 */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"7px",marginBottom:"20px"}}>
-        {months.map(m => {
-          const ch = getChapter(m);
-          const total = (ch.tasks||[]).length;
-          const done = (ch.tasks||[]).filter(t => t.status === "완료").length;
-          const isSelected = m === selectedMonth;
-          const isCurrent = viewYear === curYear && m === curMonth;
-          const isLocked = isLockedMonth(m); // 이미 지난 달 — 비활성
-          const isFuture = !isLocked && !isCurrent;
-          const allDone = total > 0 && done === total;
-
-          // 색상: 잠김(지난 달) > 선택 > 현재월 > 미래
-          let bg, border, prefixColor, numColor, monthColor, progColor;
-          if (isLocked) {
-            bg = "rgba(60,42,24,.25)";
-            border = "1px solid rgba(106,85,56,.4)";
-            prefixColor = "#7a6240";
-            numColor = "#7a6240";
-            monthColor = "#6a5538";
-            progColor = "#6a5538";
-          } else if (isSelected) {
-            bg = "linear-gradient(135deg,rgba(212,168,81,.28),rgba(184,134,47,.14))";
-            border = "2px solid #d4a851";
-            prefixColor = "#d4a851";
-            numColor = "#9c7a2a";
-            monthColor = "#9c7a2a";
-            progColor = "#9c7a2a";
-          } else if (isCurrent) {
-            bg = "rgba(212,168,81,.12)";
-            border = "1.5px solid rgba(212,168,81,.65)";
-            prefixColor = "#d4a851";
-            numColor = "#9c7a2a";
-            monthColor = "#9c7a2a";
-            progColor = "#9c7a2a";
-          } else {
-            bg = "rgba(255,253,245,.5)";
-            border = "1px solid #d8c79a";
-            prefixColor = "#b89066";
-            numColor = "#6b4f30";
-            monthColor = "#6b4f30";
-            progColor = "#8a7556";
-          }
-
-          return (
-            <button
-              key={m}
-              onClick={()=>{ if (!isLocked) setSelectedMonth(m); }}
-              disabled={isLocked}
-              style={{
-                padding:"10px 4px",
-                background: bg,
-                border: border,
-                borderRadius:"8px",
-                textAlign:"center",
-                cursor: isLocked ? "not-allowed" : "pointer",
-                opacity: isLocked ? .5 : (isFuture ? .9 : 1),
-                transition:"all .2s",
-                boxShadow: isSelected ? "0 0 14px rgba(212,168,81,.4)" : "none",
-                fontFamily:"inherit"
-              }}>
-              <div className="heading-latin" style={{color:prefixColor,fontWeight:700,letterSpacing:"1px",lineHeight:1.05,display:"flex",alignItems:"baseline",justifyContent:"center",gap:"1px"}}>
-                <span style={{fontSize:"11px"}}>Ch.</span>
-                <span style={{fontSize:"22px",color:numColor,letterSpacing:"0"}}>{m}</span>
+      <div className="mb-ovbox">
+        <div className="mb-ovtop">
+          <span className="mb-ynav">
+            <button onClick={()=>setViewYear(viewYear-1)}>‹</button>
+            <b>{viewYear}</b>
+            <button onClick={()=>setViewYear(Math.min(nowYear, viewYear+1))} disabled={viewYear>=nowYear}>›</button>
+          </span>
+          <span className="mb-ovt">총 {total}권{doneCount?` · ${doneCount} 완료`:""}</span>
+        </div>
+        <div className="mb-ovgrid">
+          {CASH4.map(k=>{
+            const list = yearBooks.filter(b=>b.cat===k);
+            const dn = list.filter(b=>b.status==="완료").length;
+            return (
+              <div className="mb-ovcell" key={k}>
+                <span className="mb-ovL" style={{color:BC[k].col}}>{k}</span>
+                <span className="mb-ovsp">{list.slice(0,4).map((b,i)=><i key={i} style={{width:(5+i%2)+"px",height:(24+(i*5)%13)+"px",background:BC[k].sp}}/>)}</span>
+                <span className="mb-ovn">{dn}<em>/{list.length}</em><small>권</small></span>
               </div>
-              <div className="heading-serif" style={{
-                fontSize: ch.title ? "11px" : "13px",
-                color:monthColor,
-                fontWeight: ch.title ? 700 : 600,
-                margin:"4px 0 2px",
-                lineHeight:1.2,
-                minHeight:"14px",
-                overflow:"hidden",
-                textOverflow:"ellipsis",
-                display:"-webkit-box",
-                WebkitLineClamp:2,
-                WebkitBoxOrient:"vertical",
-                padding:"0 2px",
-                fontStyle: ch.title ? "normal" : "normal"
-              }}>{ch.title || (m + "월")}</div>
-              <div style={{fontSize:"9px",color:progColor,fontWeight:600,letterSpacing:".5px"}}>
-                {isLocked ? "—" : (total === 0 ? "—" : `${done}/${total}`)}
-                {allDone && total > 0 && !isLocked && <span style={{marginLeft:"2px"}}>✓</span>}
-              </div>
-            </button>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
-      {/* Selected chapter detail */}
-      <div style={{marginTop:"16px",paddingTop:"16px",borderTop:"1px dashed #d8c79a"}}>
-        <div style={{display:"flex",alignItems:"baseline",gap:"8px",marginBottom:"14px"}}>
-          <div className="heading-latin" style={{color:"#d4a851",fontWeight:700,letterSpacing:"2px",lineHeight:1,display:"flex",alignItems:"baseline",gap:"2px"}}>
-            <span style={{fontSize:"13px"}}>Ch.</span>
-            <span style={{fontSize:"22px"}}>{selectedMonth}</span>
-          </div>
-          <div style={{fontSize:"11px",color:"#8a7556"}}>— {viewYear}년 {selectedMonth}월의 이야기</div>
+      <div className="mb-nb">
+        <div className="mb-nbl">New Book</div>
+        <div className="mb-nbd">올해 새로 써 내려갈 책 한 권을 추가하세요</div>
+        <input className="mb-nbi" value={nbText} placeholder="책 제목 — 예: 매일 아침 글쓰기"
+          onChange={e=>setNbText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.nativeEvent.isComposing)addBook();}}/>
+        <div className="mb-nbrow">
+          {CASH4.map(k=><span key={k} className={"mb-chip"+(nbCat===k?"":" off")} style={{background:BC[k].col}} onClick={()=>setNbCat(k)}>{k}</span>)}
+          <span className="mb-tsel">
+            <span className={nbType==="habit"?"on":""} onClick={()=>setNbType("habit")}>🔁 습관</span>
+            <span className={nbType==="achievement"?"on":""} onClick={()=>setNbType("achievement")}>🏆 성취</span>
+          </span>
         </div>
+        <button className="mb-addb" onClick={addBook}>＋ 책 추가</button>
+      </div>
 
-        {/* ① 정가(신뢰도) — 클라이맥스 페이지와 동일 형식 + 체크박스 */}
-        <div style={{marginBottom:"18px"}}>
-          <div className="heading-serif" style={{fontSize:"13px",color:"#6b4f30",fontWeight:700,marginBottom:"4px",letterSpacing:".5px",borderBottom:"1px dashed #d8c79a",paddingBottom:"4px"}}>
-            💰 정가(신뢰도)
-          </div>
-          <div style={{fontSize:"10px",color:"#8a7556",marginBottom:"8px"}}>
-            이번 달({selectedMonth}월) {viewYear} 시리즈에 매겨질 정가 — 1 C.A.S.H = 1만 원의 신뢰 가치
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:"10px",padding:"4px 0"}}>
-            <input
-              type="text"
-              inputMode="numeric"
-              className="input"
-              value={cashPowerInput ? Number(cashPowerInput).toLocaleString() : ""}
-              onChange={e=>setCashPowerInput(e.target.value.replace(/[^0-9]/g,"").slice(0,15))}
-              onBlur={saveCashPower}
-              placeholder="0"
-              style={{flex:"0 1 200px",textAlign:"right",fontSize:"18px",fontWeight:700,letterSpacing:"1px",fontFamily:"'Cormorant Garamond',serif",padding:"10px 14px"}}
-            />
-            <span className="heading-latin" style={{fontSize:"14px",color:"#9c7a2a",fontWeight:700,letterSpacing:"2px",flexShrink:0}}>C.A.S.H</span>
-            <label style={{display:"inline-flex",alignItems:"center",gap:"4px",flexShrink:0,cursor:"pointer",padding:"4px 8px",background:selectedCh.cashPower?.done?"rgba(90,140,74,.15)":"rgba(255,253,245,.6)",border:"1px solid "+(selectedCh.cashPower?.done?"#5a8c4a":"#d8c79a"),borderRadius:"6px"}}>
-              <input type="checkbox" checked={!!selectedCh.cashPower?.done} onChange={toggleCashPowerDone} style={{width:"18px",height:"18px",accentColor:"#5a8c4a",cursor:"pointer",margin:0}}/>
-              <span style={{fontSize:"10px",fontWeight:700,color:selectedCh.cashPower?.done?"#5a8c4a":"#8a7556",letterSpacing:".5px"}}>달성</span>
-            </label>
-          </div>
-          {cashPowerInput && (
-            <div style={{marginTop:"10px",padding:"10px 12px",background:"rgba(212,168,81,.08)",border:"1px solid rgba(212,168,81,.2)",borderRadius:"6px",fontSize:"11px",color:"#9c7a2a",fontStyle:"italic",fontFamily:"'Noto Serif KR',serif",lineHeight:1.7}}>
-              &ldquo;{viewYear}년 {selectedMonth}월의 정가는 <span className="heading-latin" style={{color:"#d4a851",fontWeight:700,fontStyle:"normal",letterSpacing:"1px"}}>{Number(cashPowerInput).toLocaleString()} C.A.S.H</span><br/>
-              — 다른 사람에게 <span style={{color:"#d4a851",fontWeight:700,fontStyle:"normal"}}>{(Number(cashPowerInput)*10000).toLocaleString()}원</span>의 신뢰 가치를 만드는 한 챕터를 써내려간다.&rdquo;
-            </div>
-          )}
-        </div>
-
-        {/* ② C.A.S.H 할일 추가 */}
-        <div style={{marginBottom:"14px",padding:"12px",background:"rgba(255,253,245,.6)",borderRadius:"10px",border:"1px solid #d8c79a"}}>
-          <div className="heading-serif" style={{fontSize:"12px",color:"#6b4f30",fontWeight:700,marginBottom:"3px",letterSpacing:"1px"}}>
-            <span className="heading-latin" style={{color:"#9c7a2a",letterSpacing:"2px"}}>C.A.S.H</span> 할 일
-          </div>
-          <div style={{fontSize:"10px",color:"#8a7556",marginBottom:"10px"}}>4가지 영역에서 이번 달 만들어갈 이야기</div>
-
-          {/* Category buttons + Type dropdown */}
-          <div style={{display:"flex",gap:"6px",marginBottom:"8px",flexWrap:"wrap"}}>
-            {CASH_KEYS.map(k => {
-              const active = newTaskCat === k;
-              return (
-                <button key={k} onClick={()=>setNewTaskCat(k)} style={{
-                  width:"36px",height:"36px",borderRadius:"6px",
-                  background: active ? CC[k] : "transparent",
-                  color: active ? "#fff" : CC[k],
-                  border: `1.5px solid ${CC[k]}`,
-                  cursor:"pointer",fontSize:"13px",fontWeight:700,
-                  boxShadow: active ? `0 2px 6px ${CC[k]}55` : "none",
-                  transition:"all .15s",
-                  fontFamily:"inherit"
-                }}>{k}</button>
-              );
-            })}
-            <select value={newTaskType} onChange={e=>setNewTaskType(e.target.value)} style={{
-              padding:"0 12px",height:"36px",
-              background:"rgba(255,253,245,.85)",border:"1px solid #d8c79a",
-              borderRadius:"6px",color:"#3a2818",fontSize:"12px",cursor:"pointer",
-              fontFamily:"inherit",fontWeight:600
-            }}>
-              {Object.entries(TYPE_INFO).map(([k,v])=>(
-                <option key={k} value={k}>{v.icon} {v.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div style={{display:"flex",gap:"6px"}}>
-            <input
-              className="input"
-              value={newTaskText}
-              onChange={e=>setNewTaskText(e.target.value)}
-              onKeyDown={e=>{if(e.key==="Enter"&&!e.nativeEvent.isComposing)addTask();}}
-              placeholder="할 일 추가..."
-              style={{borderColor:CC[newTaskCat]+"55"}}
-            />
-            <button onClick={addTask} className="btn-gold" style={{padding:"8px 18px",fontSize:"12px",flexShrink:0,letterSpacing:"2px"}}>ADD</button>
-          </div>
-        </div>
-
-        {/* ③ Task list — 습관/성취 탭으로 분류 */}
-        {(() => {
-          const allTasks = selectedCh.tasks || [];
-          const habitCount = allTasks.filter(t => taskTypeOf(t) === "habit").length;
-          const achCount = allTasks.filter(t => taskTypeOf(t) === "achievement").length;
-          const filtered = allTasks.filter(t => taskTypeOf(t) === activeType);
-          const tabInfo = TYPE_INFO[activeType];
-
-          return (
-            <div>
-              {/* Tabs: 습관 / 성취 */}
-              <div style={{display:"flex",borderBottom:"1px solid #d8c79a",marginBottom:"4px"}}>
-                {["habit","achievement"].map(type => {
-                  const ti = TYPE_INFO[type];
-                  const count = type === "habit" ? habitCount : achCount;
-                  const active = activeType === type;
-                  return (
-                    <button key={type} onClick={()=>setActiveType(type)} style={{
-                      flex:1, padding:"10px 6px",
-                      background: active ? "rgba(212,168,81,.14)" : "transparent",
-                      border: "none",
-                      borderBottom: active ? "3px solid #d4a851" : "3px solid transparent",
-                      color: active ? "#d4a851" : "#8a7556",
-                      cursor: "pointer", fontFamily: "inherit",
-                      display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",
-                      transition: "all .2s"
-                    }}>
-                      <span style={{fontSize:"14px"}}>{ti.icon}</span>
-                      <span style={{fontSize:"13px",fontWeight:700,letterSpacing:".5px"}}>{ti.label}</span>
-                      <span style={{fontSize:"10px",color: active ? "#9c7a2a" : "#b89066",fontWeight:600}}>({count})</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="heading-script" style={{textAlign:"center",fontSize:"15px",color:"#9c7a2a",margin:"10px 0 4px",lineHeight:1.4}}>
-                {tabInfo.desc}
-              </div>
-              <div style={{textAlign:"center",fontSize:"10px",color:"#b89066",fontStyle:"italic",marginBottom:"12px"}}>
-                {tabInfo.example}
-              </div>
-
-              {filtered.length === 0 ? (
-                <div style={{padding:"22px 16px",textAlign:"center",fontSize:"12px",color:"#b89066",fontStyle:"italic",background:"rgba(255,253,245,.45)",borderRadius:"8px",border:"1px dashed #d8c79a",lineHeight:1.7}}>
-                  아직 이번 달의 <span style={{color:"#9c7a2a",fontWeight:700,fontStyle:"normal"}}>{tabInfo.label}</span> 이야기가 비어 있습니다.<br/>
-                  <span style={{color:"#9c7a2a",fontStyle:"normal",fontWeight:600}}>위에서 첫 번째 할 일을 추가해보세요.</span>
+      <div className="mb-shelflbl">책장에 꽂은 책</div>
+      {total===0 ? (
+        <div style={{textAlign:"center",color:"#b89066",fontSize:"12px",padding:"24px 10px",lineHeight:1.7}}>아직 책이 없어요.<br/>『New Book』으로 첫 책을 추가해보세요.</div>
+      ) : (
+        <div className="mb-covers">
+          {yearBooks.map(b=>{
+            const bc = BC[b.cat] || BC.C;
+            const isHabit = taskTypeOf(b)==="habit";
+            return (
+              <div className="mb-cover" key={b.id} onClick={()=>setDetailId(b.id)}>
+                <div className="mb-cspine" style={{background:bc.sp}}/>
+                <div className="mb-cin" style={{background:bc.g}}>
+                  <div className="mb-cfr"/>
+                  <div className="mb-ctype">{isHabit?"🔁 습관":"🏆 성취"}</div>
+                  <div className="mb-cttl">{b.text||"(제목 없음)"}</div>
+                  <div className="mb-cst">{b.status==="완료"?"✓ 완료":"진행중"}</div>
                 </div>
-              ) : (
-                <div>
-                  {filtered.map(t => {
-                    const ttype = taskTypeOf(t);
-                    const ti = TYPE_INFO[ttype];
-                    const isDone = t.status === "완료";
-                    const isExpanded = !!expanded[t.id];
-                    return (
-                      <div key={t.id} style={{
-                        padding:"10px 12px",
-                        background: isDone ? CC[t.cat]+"15" : "rgba(255,253,245,.7)",
-                        borderRadius:"8px",marginBottom:"6px",
-                        borderLeft:`4px solid ${CC[t.cat]}`,
-                        border:`1px solid ${CC[t.cat]}33`,
-                        borderLeftWidth:"4px"
-                      }}>
-                        {/* Header row */}
-                        <div style={{display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
-                          <button onClick={()=>toggleTaskStatus(t.id)} style={{
-                            padding:"3px 7px",
-                            background: isDone ? "#9c7a2a" : "#5a8c4a",
-                            color:"#fff",borderRadius:"3px",fontSize:"9px",fontWeight:700,
-                            letterSpacing:"1px",border:"none",cursor:"pointer",fontFamily:"inherit"
-                          }}>{isDone ? "완료" : "진행중"}</button>
-                          <span style={{padding:"3px 7px",background:CC[t.cat],color:"#fff",borderRadius:"3px",fontSize:"9px",fontWeight:700,letterSpacing:".5px"}}>{t.cat}</span>
-                          <span title={ti.label} style={{fontSize:"13px"}}>{ti.icon}</span>
-                          <span style={{flex:1,minWidth:0,fontSize:"13px",color:isDone?"#a99068":"#3a2818",fontWeight:500,wordBreak:"break-word",textDecoration:isDone?"line-through":"none"}}>{t.text}</span>
-                          <button onClick={()=>setExpanded({...expanded, [t.id]: !isExpanded})} title={isExpanded?"접기":"펼치기"} style={{
-                            background:isExpanded?"rgba(212,168,81,.18)":"transparent",
-                            border:"1px solid "+(isExpanded?"#d4a851":"#d8c79a"),
-                            borderRadius:"4px",
-                            color:isExpanded?"#9c7a2a":"#b89066",
-                            cursor:"pointer",fontSize:"10px",fontWeight:700,
-                            padding:"3px 7px",fontFamily:"inherit"
-                          }}>{isExpanded ? "▲" : "▼"}</button>
-                          <button onClick={()=>delTask(t.id)} style={{background:"none",border:"none",color:"#b89066",cursor:"pointer",fontSize:"14px",padding:"2px 4px"}}>✕</button>
-                        </div>
-
-                        {/* Expanded planning panel */}
-                        {isExpanded && (
-                          <div style={{marginTop:"10px",padding:"12px",background:"rgba(60,42,24,.04)",border:"1px solid #d8c79a",borderRadius:"6px",animation:"fadeIn .2s"}}>
-                            <div className="heading-latin" style={{fontSize:"11px",color:"#b8924a",fontWeight:700,letterSpacing:"2px",marginBottom:"10px"}}>
-                              Ch.{selectedMonth} <span style={{color:"#8a7556",letterSpacing:"1px",fontSize:"10px"}}>({selectedMonth}월)</span>
-                            </div>
-
-                            {ttype === "habit" ? (() => {
-                              const h = t.habit || {};
-                              const start = h.start || "";
-                              const freq = h.freq || "매일";
-                              const tpos = h.time || "";
-                              const alarmT = h.alarmTime || "";
-                              const dur = parseInt(h.duration) || 30;
-                              const doneSet = new Set(h.done || []);
-                              const pct = dur ? Math.round(doneSet.size / dur * 100) : 0;
-                              return (
-                                <div>
-                                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"10px"}}>
-                                    <div>
-                                      <div style={{fontSize:"9px",color:"#8a7556",marginBottom:"3px",fontWeight:700,letterSpacing:".5px"}}>시작일</div>
-                                      <input type="date" value={start} onChange={e=>updateTask(t.id, tt=>({...tt, habit:{...(tt.habit||{}), start:e.target.value}}))} className="input" style={{fontSize:"11px",padding:"7px 8px"}}/>
-                                    </div>
-                                    <div>
-                                      <div style={{fontSize:"9px",color:"#8a7556",marginBottom:"3px",fontWeight:700,letterSpacing:".5px"}}>습관 빈도</div>
-                                      <select value={freq} onChange={e=>updateTask(t.id, tt=>({...tt, habit:{...(tt.habit||{}), freq:e.target.value}}))} className="input" style={{fontSize:"11px",padding:"7px 8px",fontFamily:"inherit"}}>
-                                        {["매일","격일","주 6회","주 5회","주 4회","주 3회","주 2회","주 1회"].map(f=><option key={f} value={f}>{f}</option>)}
-                                      </select>
-                                    </div>
-                                    <div>
-                                      <div style={{fontSize:"9px",color:"#8a7556",marginBottom:"3px",fontWeight:700,letterSpacing:".5px"}}>시간 포지션</div>
-                                      <input type="text" value={tpos} onChange={e=>updateTask(t.id, tt=>({...tt, habit:{...(tt.habit||{}), time:e.target.value}}))} className="input" placeholder="예: 기상 직후" style={{fontSize:"11px",padding:"7px 8px"}}/>
-                                    </div>
-                                    <div>
-                                      <div style={{fontSize:"9px",color:"#8a7556",marginBottom:"3px",fontWeight:700,letterSpacing:".5px"}}>목표 기간 (일)</div>
-                                      <input type="number" value={dur} min={1} max={365} onChange={e=>updateTask(t.id, tt=>({...tt, habit:{...(tt.habit||{}), duration:Math.min(365, Math.max(1, parseInt(e.target.value||"30")))}}))} className="input" style={{fontSize:"11px",padding:"7px 8px"}}/>
-                                    </div>
-                                    <div style={{gridColumn:"span 2"}}>
-                                      <div style={{fontSize:"9px",color:"#8a7556",marginBottom:"3px",fontWeight:700,letterSpacing:".5px"}}>⏰ 알람 시간 <span style={{color:"#b89066",fontWeight:500}}>(데일리 에피소드에 자동 연동)</span></div>
-                                      <input type="time" value={alarmT} onChange={e=>updateTask(t.id, tt=>({...tt, habit:{...(tt.habit||{}), alarmTime:e.target.value}}))} className="input" style={{fontSize:"12px",padding:"7px 8px",fontFamily:"'Cormorant Garamond',serif",fontWeight:700,letterSpacing:"1px"}}/>
-                                    </div>
-                                  </div>
-
-                                  {/* Calendar grid */}
-                                  <div style={{marginTop:"12px"}}>
-                                    <div style={{fontSize:"9px",color:"#8a7556",marginBottom:"6px",fontWeight:700,letterSpacing:".5px",display:"flex",justifyContent:"space-between"}}>
-                                      <span>습관 일정표 <span style={{color:"#b89066",fontWeight:500}}>(탭하여 완료 체크)</span></span>
-                                      <span style={{color:"#5a8c4a",fontWeight:700}}>달성률 <span style={{fontSize:"13px"}}>{pct}%</span></span>
-                                    </div>
-                                    <div style={{display:"grid",gridTemplateColumns:"repeat(13,1fr)",gap:"3px"}}>
-                                      {Array.from({length: dur}, (_, i) => i+1).map(day => {
-                                        const isDoneDay = doneSet.has(day);
-                                        return (
-                                          <button key={day} onClick={()=>toggleHabitDay(t.id, day)} style={{
-                                            aspectRatio:"1",
-                                            background: isDoneDay ? "#5a8c4a" : "rgba(245,236,217,.7)",
-                                            border: "1px solid " + (isDoneDay ? "#4a7c3a" : "#d8c79a"),
-                                            borderRadius:"3px",
-                                            fontSize:"8px",
-                                            color: isDoneDay ? "#fff" : "#8a7556",
-                                            cursor:"pointer",fontWeight:700,padding:0,fontFamily:"inherit",
-                                            transition:"all .12s"
-                                          }}>{day}</button>
-                                        );
-                                      })}
-                                    </div>
-                                    {/* Progress bar */}
-                                    <div style={{marginTop:"8px",height:"4px",background:"#e8dcb5",borderRadius:"2px",overflow:"hidden"}}>
-                                      <div style={{width:pct+"%",height:"100%",background:"linear-gradient(90deg,#5a8c4a,#4a7c3a)",transition:"width .3s",borderRadius:"2px"}}/>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })() : (() => {
-                              const a = t.ach || {};
-                              const criteria = a.criteria || "";
-                              const deadline = a.deadline || "";
-                              const steps = a.steps || "";
-                              return (
-                                <div>
-                                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"10px"}}>
-                                    <div>
-                                      <div style={{fontSize:"9px",color:"#8a7556",marginBottom:"3px",fontWeight:700,letterSpacing:".5px"}}>측정 기준 <span style={{color:"#b89066",fontWeight:500}}>(Y/E/N)</span></div>
-                                      <input type="text" value={criteria} onChange={e=>updateTask(t.id, tt=>({...tt, ach:{...(tt.ach||{}), criteria:e.target.value}}))} className="input" placeholder="예: 판매 시작하기" style={{fontSize:"11px",padding:"7px 8px"}}/>
-                                    </div>
-                                    <div>
-                                      <div style={{fontSize:"9px",color:"#8a7556",marginBottom:"3px",fontWeight:700,letterSpacing:".5px"}}>데드라인</div>
-                                      <input type="date" value={deadline} onChange={e=>updateTask(t.id, tt=>({...tt, ach:{...(tt.ach||{}), deadline:e.target.value}}))} className="input" style={{fontSize:"11px",padding:"7px 8px"}}/>
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <div style={{fontSize:"9px",color:"#8a7556",marginBottom:"3px",fontWeight:700,letterSpacing:".5px"}}>목표 상세 <span style={{color:"#b89066",fontWeight:500}}>(한 줄에 한 단계씩)</span></div>
-                                    <textarea value={steps} onChange={e=>updateTask(t.id, tt=>({...tt, ach:{...(tt.ach||{}), steps:e.target.value}}))} className="input" rows={5} placeholder={"1. 주제 선정 + 목차 구성\n2. 매일 한 꼭지씩 초고 쓰기\n3. 전체 퇴고 + 교정\n4. 출판사 투고 / 독립 출간\n5. 첫 독자 피드백 수집"} style={{fontSize:"12px",fontFamily:"inherit",lineHeight:1.6}}/>
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        )}
-
-                        {/* Carry to next */}
-                        <button onClick={()=>carryToNext(t)} style={{
-                          width:"100%",padding:"6px",marginTop:"6px",
-                          background:"transparent",
-                          border:"1px dashed rgba(74,123,168,.55)",
-                          borderRadius:"5px",color:"#4a7ba8",fontSize:"10px",
-                          cursor:"pointer",fontWeight:700,letterSpacing:"1px",
-                          fontFamily:"inherit"
-                        }}>
-                          ▶ Ch.{nextMonthLabel} ({nextMonthLabel}월)로 이어가기
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Overall progress (모든 task 합산) */}
-              {allTasks.length > 0 && (
-                <div style={{marginTop:"14px",padding:"10px 12px",background:"rgba(212,168,81,.1)",borderRadius:"8px",border:"1px solid rgba(212,168,81,.25)"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:"11px",marginBottom:"6px"}}>
-                    <span style={{color:"#6b4f30",fontWeight:700}}>이번 달 전체 진행도</span>
-                    <span style={{color:"#9c7a2a",fontWeight:700}}>{selDone}/{selTotal} · {selPct}%</span>
-                  </div>
-                  <div style={{height:"6px",background:"#e8dcb5",borderRadius:"3px",overflow:"hidden"}}>
-                    <div style={{
-                      width: selPct + "%",
-                      height: "100%",
-                      background: "linear-gradient(90deg,#d4a851,#b8862f)",
-                      transition: "width .3s",
-                      borderRadius: "3px"
-                    }}/>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })()}
-
-        <div style={{textAlign:"center",fontSize:"10px",color:"#8a7556",marginTop:"14px",padding:"10px",background:"rgba(212,168,81,.08)",borderRadius:"6px",lineHeight:1.7}}>
-          💡 매월의 이야기들이 모여 <span style={{color:"#9c7a2a",fontWeight:700}}>{viewYear} 시리즈의 클라이맥스</span>로 이어집니다
+              </div>
+            );
+          })}
         </div>
-      </div>
+      )}
+
+      {detail && <BookDetail book={detail} bc={BC[detail.cat]||BC.C} onClose={()=>setDetailId(null)}
+        updateBook={updateBook} deleteBook={deleteBook} toggleStatus={toggleStatus} toggleDay={toggleDay}/>}
     </div>
   );
 }
@@ -1509,7 +1182,7 @@ function EpisodePage({data, setData}) {
   // 이번 달 챕터에서 가져올 task 목록
   const curYear = todayDate.getFullYear();
   const curMonth = todayDate.getMonth() + 1;
-  const sourceTasks = (((data.chapters||{})[curYear]||{})[curMonth]||{}).tasks || [];
+  const sourceTasks = ((data.chapters||{})[curYear]||{}).tasks || [];
 
   // 에피소드 펼침 토글
   const [expandedEp, setExpandedEp] = useState({});
@@ -1528,26 +1201,21 @@ function EpisodePage({data, setData}) {
   const syncHabitDoneInData = (currentData, sourceId, isAdding) => {
     const chapters = {...(currentData.chapters || {})};
     for (const year of Object.keys(chapters)) {
-      const yearChs = chapters[year] || {};
-      for (const month of Object.keys(yearChs)) {
-        const ch = yearChs[month];
-        const idx = (ch.tasks || []).findIndex(t => t.id === sourceId);
-        if (idx >= 0) {
-          const src = ch.tasks[idx];
-          const startK = src.habit && src.habit.start;
-          if (!startK) return currentData;
-          const day = dayDiff(todayKey, startK);
-          const dur = parseInt(src.habit && src.habit.duration) || 30;
-          if (!day || day < 1 || day > dur) return currentData;
-          const doneSet = new Set((src.habit && src.habit.done) || []);
-          if (isAdding) doneSet.add(day); else doneSet.delete(day);
-          const newHabit = {...(src.habit||{}), done: Array.from(doneSet).sort((a,b)=>a-b)};
-          const newSrc = {...src, habit: newHabit};
-          const newTasks = ch.tasks.map((t,i) => i === idx ? newSrc : t);
-          const newCh = {...ch, tasks: newTasks};
-          const newYearChs = {...yearChs, [month]: newCh};
-          return {...currentData, chapters: {...chapters, [year]: newYearChs}};
-        }
+      const ch = chapters[year] || {};
+      const idx = (ch.tasks || []).findIndex(t => t.id === sourceId);
+      if (idx >= 0) {
+        const src = ch.tasks[idx];
+        const startK = src.habit && src.habit.start;
+        if (!startK) return currentData;
+        const day = dayDiff(todayKey, startK);
+        const dur = parseInt(src.habit && src.habit.duration) || 30;
+        if (!day || day < 1 || day > dur) return currentData;
+        const doneSet = new Set((src.habit && src.habit.done) || []);
+        if (isAdding) doneSet.add(day); else doneSet.delete(day);
+        const newHabit = {...(src.habit||{}), done: Array.from(doneSet).sort((a,b)=>a-b)};
+        const newSrc = {...src, habit: newHabit};
+        const newTasks = ch.tasks.map((t,i) => i === idx ? newSrc : t);
+        return {...currentData, chapters: {...chapters, [year]: {...ch, tasks: newTasks}}};
       }
     }
     return currentData;
