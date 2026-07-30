@@ -395,7 +395,8 @@ function todayStr() {
 }
 
 // 사진 압축 → base64
-function compressPhoto(file, maxW=720, quality=0.7) {
+// stamp=true면 필름 카메라식 날짜 각인(찍은 시각)을 픽셀에 직접 그려 넣는다 — 인증 사진용
+function compressPhoto(file, maxW=720, quality=0.7, stamp=false) {
   return new Promise((res) => {
     const reader = new FileReader();
     reader.onload = e => {
@@ -405,13 +406,43 @@ function compressPhoto(file, maxW=720, quality=0.7) {
         const ratio = Math.min(maxW/img.width, maxW/img.height, 1);
         c.width = Math.round(img.width*ratio);
         c.height = Math.round(img.height*ratio);
-        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        const ctx = c.getContext("2d");
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        if (stamp) drawDateStamp(ctx, c.width, c.height);
         res(c.toDataURL("image/jpeg", quality));
       };
       img.src = e.target.result;
     };
     reader.readAsDataURL(file);
   });
+}
+
+// 90년대 필름 카메라 날짜 각인 (우측 하단, 주황 글로우) — "2026 07 30  14:05"
+function drawDateStamp(ctx, w, h) {
+  const d = new Date();
+  const p = n => String(n).padStart(2,"0");
+  const txt = `${d.getFullYear()} ${p(d.getMonth()+1)} ${p(d.getDate())}  ${p(d.getHours())}:${p(d.getMinutes())}`;
+  // 짧은 변 기준 — 세로 사진에서 각인만 커지지 않도록
+  const s = Math.max(11, Math.round(Math.min(w, h) * 0.062));
+  ctx.save();
+  ctx.font = `700 ${s}px 'Courier New', Courier, monospace`;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "alphabetic";
+  const x = w - s*0.75, y = h - s*0.75;
+  // ① 어두운 그림자 — 밝은 사진에서도 묻히지 않게
+  ctx.shadowColor = "rgba(0,0,0,.6)";
+  ctx.shadowBlur = s*0.55;
+  ctx.fillStyle = "rgba(255,140,26,.92)";
+  ctx.fillText(txt, x, y);
+  // ② 주황 글로우 ③ 밝은 심지
+  ctx.shadowColor = "rgba(255,120,0,.85)";
+  ctx.shadowBlur = s*0.5;
+  ctx.fillStyle = "#ff8c1a";
+  ctx.fillText(txt, x, y);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "#ffb968";
+  ctx.fillText(txt, x, y);
+  ctx.restore();
 }
 
 // ═════════════════════════════════════════════════════════════════════
@@ -1366,11 +1397,14 @@ function EpisodePage({data, setData}) {
 
   const handleVerifyPhoto = async (e) => {
     const f = e.target.files[0]; if (!f) return;
-    setVerifyPhoto(await compressPhoto(f, 720, 0.7));
+    // 찍은 시각을 사진에 각인 (stamp=true)
+    setVerifyPhoto(await compressPhoto(f, 720, 0.7, true));
+    // 같은 이름으로 다시 찍어도 change가 다시 발생하도록 초기화
+    e.target.value = "";
   };
 
   const submitVerify = () => {
-    if (!verifyPhoto) { alert("인증 사진을 첨부해주세요."); return; }
+    if (!verifyPhoto) { alert("인증 사진을 찍어주세요."); return; }
     if (!verifyMemo.trim()) { alert("간단한 메모를 작성해주세요."); return; }
     const targetTask = tasks.find(t => t.id === verifyId);
     // doneAt = 완료한 시각 → 스토리 정렬 기준
@@ -1701,15 +1735,15 @@ function EpisodePage({data, setData}) {
             </div>
 
             <div style={{marginBottom:"12px"}}>
-              <div className="heading-serif" style={{fontSize:"12px",color:"#6b4f30",fontWeight:700,marginBottom:"6px"}}>📷 인증 사진</div>
-              <input type="file" accept="image/*" ref={verifyFileRef} onChange={handleVerifyPhoto} style={{position:"absolute",left:"-9999px",width:"1px",height:"1px",opacity:0}}/>
+              <div className="heading-serif" style={{fontSize:"12px",color:"#6b4f30",fontWeight:700,marginBottom:"6px"}}>📷 인증 사진 <span style={{color:"#b89a68",fontWeight:400,fontSize:"10px"}}>· 찍은 시각이 사진에 새겨집니다</span></div>
+              <input type="file" accept="image/*" capture="environment" ref={verifyFileRef} onChange={handleVerifyPhoto} style={{position:"absolute",left:"-9999px",width:"1px",height:"1px",opacity:0}}/>
               {verifyPhoto ? (
                 <div style={{position:"relative"}}>
                   <img src={verifyPhoto} alt="" style={{width:"100%",borderRadius:"8px",display:"block",maxHeight:"260px",objectFit:"cover"}}/>
                   <button onClick={()=>verifyFileRef.current && verifyFileRef.current.click()} style={{position:"absolute",bottom:"8px",right:"8px",background:"rgba(0,0,0,.7)",border:"none",borderRadius:"6px",padding:"5px 10px",color:"#fff",cursor:"pointer",fontSize:"10px",fontWeight:700,fontFamily:"inherit"}}>📷 다시 찍기</button>
                 </div>
               ) : (
-                <button onClick={()=>verifyFileRef.current && verifyFileRef.current.click()} style={{width:"100%",padding:"24px",border:"1.5px dashed #b8924a88",borderRadius:"8px",background:"rgba(255,253,245,.5)",color:"#b8924a",cursor:"pointer",fontSize:"13px",fontWeight:700,fontFamily:"inherit"}}>📷 사진 추가</button>
+                <button onClick={()=>verifyFileRef.current && verifyFileRef.current.click()} style={{width:"100%",padding:"24px",border:"1.5px dashed #b8924a88",borderRadius:"8px",background:"rgba(255,253,245,.5)",color:"#b8924a",cursor:"pointer",fontSize:"13px",fontWeight:700,fontFamily:"inherit"}}>📷 사진 찍기</button>
               )}
             </div>
 
