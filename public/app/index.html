@@ -202,6 +202,7 @@
   .mb-dmeta{font-family:'Noto Serif KR',serif;font-size:10px;color:#a0824a;margin-top:4px}
   .mb-dpad{padding:0 15px 16px}
   .mb-g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:11px}
+  .mb-fld{min-width:0}
   .mb-fl{font-family:'Noto Serif KR',serif;font-size:9px;font-weight:700;color:#9c7f4e;margin-bottom:4px}
   .mb-callbl{display:flex;justify-content:space-between;align-items:baseline;margin:6px 0 7px;font-family:'Noto Serif KR',serif;font-size:10px;font-weight:700;color:#9c7f4e}
   .mb-callbl b{font-weight:700}
@@ -890,7 +891,7 @@ function BookDetail({book, bc, onClose, updateBook, deleteBook, toggleStatus}) {
                 <div className="mb-fld"><div className="mb-fl">시작일</div><input type="date" className="input" value={h.start||""} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),start:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
                 <div className="mb-fld"><div className="mb-fl">습관 빈도</div><select className="input" value={h.freq||"매일"} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),freq:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px",fontFamily:"inherit"}}>{["매일","격일","주 6회","주 5회","주 4회","주 3회","주 2회","주 1회"].map(f=><option key={f} value={f}>{f}</option>)}</select></div>
                 <div className="mb-fld"><div className="mb-fl">시간 포지션</div><input type="text" className="input" value={h.time||""} placeholder="예: 기상 직후" onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),time:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
-                <div className="mb-fld"><div className="mb-fl">목표 기간 (일)</div><input type="number" className="input" value={dur} min={1} max={365} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),duration:Math.min(365,Math.max(1,parseInt(e.target.value||"30")))}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
+                <div className="mb-fld"><div className="mb-fl">목표 기간 (일)</div><input type="number" className="input" value={h.duration ?? ""} min={1} max={365} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),duration:e.target.value}}))} onBlur={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),duration:Math.min(365,Math.max(1,parseInt(e.target.value)||30))}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
                 <div className="mb-fld" style={{gridColumn:"span 2"}}><div className="mb-fl">⏰ 알람 시간 <span style={{color:"#b89a68",fontWeight:400}}>(데일리 에피소드 자동 연동)</span></div><input type="time" className="input" value={h.alarmTime||""} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),alarmTime:e.target.value}}))} style={{fontSize:"12px",padding:"7px 8px",fontFamily:"'Cormorant Garamond',serif",fontWeight:700,letterSpacing:"1px"}}/></div>
               </div>
               <div className="mb-callbl"><span>습관 일정표 <span style={{color:"#b89a68",fontWeight:400}}>· Page에서 완료하면 자동 체크</span></span><span style={{color:"#5a8c4a"}}>달성률 <b style={{fontSize:"13px"}}>{pct}%</b></span></div>
