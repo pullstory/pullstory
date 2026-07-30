@@ -206,7 +206,7 @@
   .mb-callbl{display:flex;justify-content:space-between;align-items:baseline;margin:6px 0 7px;font-family:'Noto Serif KR',serif;font-size:10px;font-weight:700;color:#9c7f4e}
   .mb-callbl b{font-weight:700}
   .mb-cal{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
-  .mb-cell{aspect-ratio:1;border-radius:3px;font-size:8px;font-weight:700;background:rgba(245,236,217,.8);border:1px solid #ddcb9f;color:#a08a5e;font-family:Georgia,serif;cursor:pointer;padding:0}
+  .mb-cell{aspect-ratio:1;border-radius:3px;font-size:8px;font-weight:700;background:rgba(245,236,217,.8);border:1px solid #ddcb9f;color:#a08a5e;font-family:Georgia,serif;cursor:default;padding:0}
   .mb-cell.on{background:#5a8c4a;border-color:#4a7c3a;color:#fff}
   .mb-bar{height:5px;background:#e8dcb5;border-radius:3px;overflow:hidden;margin-top:9px}
   .mb-bar span{display:block;height:100%;background:linear-gradient(90deg,#5a8c4a,#4a7c3a);border-radius:3px}
@@ -860,7 +860,7 @@ const BC = {
 const CASH4 = ["C","A","S","H"];
 
 // 책 상세 (표지 탭 → 전체화면 오버레이. Portal로 body에 렌더 → 캐러셀 transform 영향 X)
-function BookDetail({book, bc, onClose, updateBook, deleteBook, toggleStatus, toggleDay}) {
+function BookDetail({book, bc, onClose, updateBook, deleteBook, toggleStatus}) {
   const isHabit = taskTypeOf(book) === "habit";
   const h = book.habit || {};
   const a = book.ach || {};
@@ -893,10 +893,10 @@ function BookDetail({book, bc, onClose, updateBook, deleteBook, toggleStatus, to
                 <div className="mb-fld"><div className="mb-fl">목표 기간 (일)</div><input type="number" className="input" value={dur} min={1} max={365} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),duration:Math.min(365,Math.max(1,parseInt(e.target.value||"30")))}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
                 <div className="mb-fld" style={{gridColumn:"span 2"}}><div className="mb-fl">⏰ 알람 시간 <span style={{color:"#b89a68",fontWeight:400}}>(데일리 에피소드 자동 연동)</span></div><input type="time" className="input" value={h.alarmTime||""} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),alarmTime:e.target.value}}))} style={{fontSize:"12px",padding:"7px 8px",fontFamily:"'Cormorant Garamond',serif",fontWeight:700,letterSpacing:"1px"}}/></div>
               </div>
-              <div className="mb-callbl"><span>습관 일정표 <span style={{color:"#b89a68",fontWeight:400}}>· 탭하여 체크</span></span><span style={{color:"#5a8c4a"}}>달성률 <b style={{fontSize:"13px"}}>{pct}%</b></span></div>
+              <div className="mb-callbl"><span>습관 일정표 <span style={{color:"#b89a68",fontWeight:400}}>· Page에서 완료하면 자동 체크</span></span><span style={{color:"#5a8c4a"}}>달성률 <b style={{fontSize:"13px"}}>{pct}%</b></span></div>
               <div className="mb-cal">
                 {Array.from({length:dur},(_,i)=>i+1).map(day=>(
-                  <button key={day} className={"mb-cell"+(doneSet.has(day)?" on":"")} onClick={()=>toggleDay(book.id, day)}>{day}</button>
+                  <div key={day} className={"mb-cell"+(doneSet.has(day)?" on":"")}>{day}</div>
                 ))}
               </div>
               <div className="mb-bar"><span style={{width:pct+"%"}}/></div>
@@ -945,7 +945,6 @@ function HomePage({data, setData}) {
   const updateBook = (id, up) => setYearBooks(bs => bs.map(t => t.id===id ? up(t) : t));
   const deleteBook = (id) => { setYearBooks(bs => bs.filter(t => t.id!==id)); setDetailId(null); };
   const toggleStatus = (id) => updateBook(id, t => ({...t, status: t.status==="완료"?"진행중":"완료"}));
-  const toggleDay = (id, day) => updateBook(id, t => { const d=new Set(t.habit?.done||[]); if(d.has(day))d.delete(day);else d.add(day); return {...t, habit:{...(t.habit||{}), done:Array.from(d).sort((a,b)=>a-b)}}; });
 
   const detail = yearBooks.find(b => b.id===detailId);
   const total = yearBooks.length;
@@ -1021,7 +1020,7 @@ function HomePage({data, setData}) {
       )}
 
       {detail && <BookDetail book={detail} bc={BC[detail.cat]||BC.C} onClose={()=>setDetailId(null)}
-        updateBook={updateBook} deleteBook={deleteBook} toggleStatus={toggleStatus} toggleDay={toggleDay}/>}
+        updateBook={updateBook} deleteBook={deleteBook} toggleStatus={toggleStatus}/>}
     </div>
   );
 }
