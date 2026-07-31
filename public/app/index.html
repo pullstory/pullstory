@@ -458,6 +458,48 @@
   .rs-go{background:linear-gradient(135deg,#b8564a,#8f3a30);color:#fff3ec}
   .rs-go:disabled{background:#d9c6b6;color:#fff;cursor:not-allowed}
 
+  /* ===== 필명 (장서표) ===== */
+  .pn-scene{height:100%;display:flex;align-items:center;justify-content:center;padding:18px;
+    background:radial-gradient(ellipse at 40% 15%,#3f2b18,#180d05 85%)}
+  .pn-ov{position:fixed;inset:0;z-index:10002;display:flex;align-items:center;justify-content:center;
+    padding:18px;background:rgba(14,8,3,.8);animation:fadeIn .2s}
+  .pn-plate{width:100%;max-width:320px;position:relative;border-radius:4px;padding:22px 18px 18px;
+    background:linear-gradient(#fffdf4,#f4ead1);box-shadow:0 14px 34px rgba(0,0,0,.55);
+    animation:slideUp .35s ease}
+  .pn-plate::before{content:"";position:absolute;inset:6px;border:1px solid rgba(156,116,32,.4);
+    border-radius:2px;pointer-events:none}
+  .pn-plate::after{content:"";position:absolute;inset:9px;border:1px solid rgba(156,116,32,.18);
+    border-radius:1px;pointer-events:none}
+  .pn-ex{position:relative;text-align:center;font-family:'Cormorant Garamond',Georgia,serif;font-size:10px;
+    letter-spacing:.44em;color:#b09355;font-weight:700;text-transform:uppercase}
+  .pn-h{position:relative;text-align:center;font-family:'Cormorant Garamond',Georgia,serif;font-size:23px;
+    font-weight:700;color:#2f2109;margin-top:8px;line-height:1.15}
+  .pn-sub{position:relative;text-align:center;font-family:'Noto Serif KR',serif;font-size:10.5px;
+    color:#8a6d3c;margin-top:7px;line-height:1.75}
+  .pn-rule{position:relative;width:38px;height:1px;margin:14px auto 16px;
+    background:linear-gradient(90deg,transparent,#b8862f,transparent)}
+  .pn-l{position:relative;font-family:'Noto Serif KR',serif;font-size:9.5px;font-weight:700;
+    color:#9c7f4e;margin-bottom:6px}
+  .pn-in{position:relative;width:100%;box-sizing:border-box;border:1px solid #d8c79a;border-radius:5px;
+    background:rgba(255,253,245,.9);padding:10px 11px;outline:none;
+    font-family:'Noto Serif KR',serif;font-size:16px;font-weight:700;color:#2f2109}
+  .pn-in:focus{border-color:#b8862f;background:#fffdf5}
+  .pn-msg{position:relative;font-size:9.5px;color:#a89066;font-style:italic;margin-top:6px;line-height:1.6}
+  .pn-lock{position:relative;margin-top:14px;padding:10px 11px;border-radius:5px;
+    background:rgba(156,116,32,.09);border:1px solid rgba(156,116,32,.25);
+    font-family:'Noto Serif KR',serif;font-size:9.5px;color:#8a6d3c;line-height:1.7}
+  .pn-lock b{color:#8a5f14}
+  .pn-acts{position:relative;display:flex;gap:8px;margin-top:16px}
+  .pn-go{flex:1;padding:12px;border:none;border-radius:6px;cursor:pointer;
+    font-family:'Noto Serif KR',serif;font-size:13px;font-weight:700;letter-spacing:.06em;
+    background:linear-gradient(135deg,#e0bd6e,#a8792a);color:#fff8ea}
+  .pn-go:disabled{background:#ddd0b4;color:#fff;cursor:not-allowed}
+  .pn-cancel{flex:0 0 88px;padding:12px;border-radius:6px;cursor:pointer;background:transparent;
+    border:1px solid #c2ac7e;color:#7a6238;font-family:'Noto Serif KR',serif;font-size:12px;font-weight:700}
+  .pn-name{background:none;border:none;padding:0;cursor:pointer;font-family:inherit;
+    font-size:11px;color:#9c7a2a;margin-top:4px;display:inline-flex;align-items:center;gap:4px}
+  .pn-name i{font-style:normal;font-size:9px;opacity:.75}
+
   /* ===== 책 상세 — Story / Write 두 탭 ===== */
   .bd-tabs{display:flex;margin:13px 0 15px;border-bottom:1.5px solid rgba(120,90,40,.22)}
   .bd-tabs button{flex:1;background:none;border:none;padding:9px 0 8px;cursor:pointer;position:relative;
@@ -716,6 +758,7 @@ function drawDateStamp(ctx, w, h) {
 // ═════════════════════════════════════════════════════════════════════
 const LS_KEY = "scashbook_data";
 const LS_AUTH = "scashbook_local_user";
+const LS_PROFILE = "pullstory_profile";
 
 function loadLocal() {
   try { const d = localStorage.getItem(LS_KEY); return d ? JSON.parse(d) : null; }
@@ -774,6 +817,38 @@ async function loadPhoto(id) {
     if (d) photoCache.set(id, d);
     return d;
   } catch (e) { console.warn("Photo load failed:", e); return null; }
+}
+
+// ── 지은이 (필명 · 책장 주소) ────────────────────────────────
+// data와 따로 users/{uid}에 둔다 — '새 책으로 시작하기'로 지워지면 안 되니까.
+// 책은 새로 시작해도 쓰는 사람은 그대로다.
+function loadProfileLocal() {
+  try { const d = localStorage.getItem(LS_PROFILE); return d ? JSON.parse(d) : null; }
+  catch (e) { return null; }
+}
+
+async function loadProfile(uid) {
+  const local = loadProfileLocal();
+  if (!FIREBASE_READY || !uid || uid === "local-user") return local;
+  try {
+    const snap = await fbDb.collection("users").doc(uid).get();
+    if (snap.exists) {
+      const p = snap.data();
+      try { localStorage.setItem(LS_PROFILE, JSON.stringify(p)); } catch (e) {}
+      return p;
+    }
+  } catch (e) { console.warn("Profile load failed:", e); }
+  return local;
+}
+
+async function saveProfile(uid, prev, patch) {
+  const next = {...(prev || {}), ...patch, updatedAt: Date.now()};
+  try { localStorage.setItem(LS_PROFILE, JSON.stringify(next)); } catch (e) {}
+  if (FIREBASE_READY && uid && uid !== "local-user") {
+    try { await fbDb.collection("users").doc(uid).set(next, {merge: true}); }
+    catch (e) { console.warn("Profile save failed:", e); }
+  }
+  return next;
 }
 
 async function loadRemote(uid) {
@@ -1287,6 +1362,58 @@ function Photo({src, id, alt, className, style, onClick}) {
       background:"rgba(120,90,40,.09)", border:"1px dashed rgba(120,90,40,.2)"}}/>;
   }
   return <img src={url} alt={alt||""} className={className} style={style} onClick={onClick}/>;
+}
+
+// 장서표 — 필명을 적는 자리.
+// mode="first" 시작할 때 한 번(문 열리기 전) · mode="edit" 메뉴에서 이름을 눌렀을 때
+function PenNamePlate({mode, initial, suggestion, onSave, onClose}) {
+  const [v, setV] = useState(initial || suggestion || "");
+  const [saving, setSaving] = useState(false);
+  const first = mode === "first";
+  const name = v.trim();
+
+  const submit = async () => {
+    if (!name || saving) return;
+    setSaving(true);
+    await onSave(name);
+    setSaving(false);
+  };
+
+  const plate = (
+    <div className="pn-plate" onClick={e=>e.stopPropagation()}>
+      <div className="pn-ex">Ex Libris</div>
+      <div className="pn-h">{first ? "이 책을 쓰는 이름" : "필명 고치기"}</div>
+      <div className="pn-sub">
+        {first
+          ? <span>앞으로의 기록에 붙을 이름입니다<br/>본명이 아니어도 됩니다</span>
+          : <span>읽는 사람이 부르게 될 이름입니다</span>}
+      </div>
+      <div className="pn-rule"/>
+
+      <div className="pn-l">필명</div>
+      <input className="pn-in" value={v} maxLength={20} placeholder="예: 현욱"
+        onChange={e=>setV(e.target.value)}
+        onKeyDown={e=>{ if(e.key==="Enter"&&!e.nativeEvent.isComposing) submit(); }}/>
+      {first && suggestion && (
+        <div className="pn-msg">구글 계정 이름을 넣어 뒀어요. 마음에 안 들면 지우고 새로 쓰세요</div>
+      )}
+
+      <div className="pn-lock">
+        ✎ 필명은 <b>언제든 바꿀 수 있습니다.</b> 지금 완벽하지 않아도 괜찮아요.
+      </div>
+
+      <div className="pn-acts">
+        {!first && <button className="pn-cancel" onClick={onClose}>닫기</button>}
+        <button className="pn-go" disabled={!name || saving} onClick={submit}>
+          {saving ? "저장 중…" : first ? "이 이름으로 시작하기" : "저장"}
+        </button>
+      </div>
+    </div>
+  );
+
+  if (first) return <div className="pn-scene">{plate}</div>;
+  return ReactDOM.createPortal(
+    <div className="pn-ov" onClick={onClose}>{plate}</div>, document.body);
 }
 
 function Spine({b}) {
@@ -3009,9 +3136,10 @@ function WorkshopPage({user}) {
   );
 }
 
-function PageBook({data, setData, onLogout, user}) {
+function PageBook({data, setData, onLogout, user, profile, onSaveProfile}) {
   const [pageIdx, setPageIdx] = useState(() => PAGES.findIndex(p=>p.key==="future"));  // 시작: 미래
   const [menu, setMenu] = useState(false);
+  const [editPen, setEditPen] = useState(false);
   const [dragDx, setDragDx] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef({active:false, x:0, y:0, moved:false});
@@ -3186,13 +3314,24 @@ function PageBook({data, setData, onLogout, user}) {
         </div>
       </div>
 
+      {editPen && (
+        <PenNamePlate
+          mode="edit"
+          initial={(profile && profile.penName) || ""}
+          onSave={async (penName)=>{ await onSaveProfile({penName}); setEditPen(false); }}
+          onClose={()=>setEditPen(false)}
+        />
+      )}
+
       {/* Menu overlay (햄버거) — 메뉴는 RTL 순서로 표시 */}
       {menu && (
         <div onClick={()=>setMenu(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:50,display:"flex",alignItems:"flex-start",justifyContent:"flex-start",animation:"fadeIn .2s"}}>
           <div onClick={e=>e.stopPropagation()} style={{width:"260px",height:"100%",background:"linear-gradient(180deg,#3a2c1e,#1a0f08)",padding:"20px",paddingTop:"max(20px,env(safe-area-inset-top))",borderRight:"1px solid #6a5538",overflow:"auto"}}>
             <div style={{textAlign:"center",marginBottom:"20px",paddingBottom:"16px",borderBottom:"1px solid #4a3520"}}>
               <div className="heading-latin" style={{fontSize:"22px",color:"#d4a851",fontWeight:700,letterSpacing:"2px"}}>CASH Room</div>
-              <div style={{fontSize:"11px",color:"#9c7a2a",marginTop:"4px"}}>{user?.name||"작가"}님</div>
+              <button className="pn-name" onClick={()=>setEditPen(true)} title="필명 고치기">
+                {(profile && profile.penName) || "작가"}님 <i>✎</i>
+              </button>
               {data.bookTitle && <div className="heading-script" style={{fontSize:"15px",color:"#b8924a",marginTop:"6px"}}>『{data.bookTitle}』</div>}
             </div>
             <div style={{padding:"10px",background:"rgba(212,168,81,.1)",borderRadius:"8px",marginBottom:"14px",textAlign:"center"}}>
@@ -3237,6 +3376,7 @@ function PageBook({data, setData, onLogout, user}) {
 function App() {
   const [user, setUser] = useState(null);
   const [data, setDataState] = useState(null);
+  const [profile, setProfile] = useState(null);   // {penName, handle}
   const [opened, setOpened] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -3248,6 +3388,7 @@ function App() {
         try {
           const u = JSON.parse(localUser);
           setUser(u);
+          setProfile(loadProfileLocal());
           const d = loadLocal() || {...defaultData(), startDate:todayStr()};
           setDataState(d);
         } catch(e) {}
@@ -3260,6 +3401,7 @@ function App() {
         if (fbUser) {
           const u = {uid:fbUser.uid, name:fbUser.displayName||"작가"};
           setUser(u);
+          setProfile(await loadProfile(fbUser.uid));
           const remote = await loadRemote(fbUser.uid);
           const d = remote || loadLocal() || {...defaultData(), startDate:todayStr()};
           setDataState(d);
@@ -3282,6 +3424,7 @@ function App() {
 
   const handleLogin = (u) => {
     setUser(u);
+    setProfile(loadProfileLocal());
     const d = loadLocal() || {...defaultData(), startDate:todayStr()};
     setDataState(d);
     setOpened(false);
@@ -3296,6 +3439,12 @@ function App() {
     catch (e) { console.warn("Reset save failed:", e); }
   }, [user]);
 
+  const handleSaveProfile = useCallback(async (patch) => {
+    const next = await saveProfile(user && user.uid, profile, patch);
+    setProfile(next);
+    return next;
+  }, [user, profile]);
+
   const handleLogout = async () => {
     if (!confirm("로그아웃 하시겠습니까?\n(데이터는 다음 로그인 시 복원됩니다)")) return;
     if (FIREBASE_READY && fbAuth.currentUser) {
@@ -3304,6 +3453,7 @@ function App() {
     localStorage.removeItem(LS_AUTH);
     setUser(null);
     setDataState(null);
+    setProfile(null);
     setOpened(false);
   };
 
@@ -3318,6 +3468,17 @@ function App() {
   if (!user) return <LoginScreen onLogin={handleLogin}/>;
   if (!data) return <div style={{height:"100%",background:"#1a0f08"}}/>;
 
+  // 이름을 적고 → 문으로 들어간다
+  if (!(profile && profile.penName)) {
+    return (
+      <PenNamePlate
+        mode="first"
+        suggestion={(user.name && user.name !== "작가") ? user.name : ""}
+        onSave={(penName)=>handleSaveProfile({penName})}
+      />
+    );
+  }
+
   if (!opened) {
     return (
       <BookCover
@@ -3328,7 +3489,8 @@ function App() {
     );
   }
 
-  return <PageBook data={data} setData={setData} onLogout={handleLogout} user={user}/>;
+  return <PageBook data={data} setData={setData} onLogout={handleLogout} user={user}
+    profile={profile} onSaveProfile={handleSaveProfile}/>;
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
