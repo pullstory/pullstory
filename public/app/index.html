@@ -206,7 +206,7 @@
   .mb-fl{font-family:'Noto Serif KR',serif;font-size:9px;font-weight:700;color:#9c7f4e;margin-bottom:4px}
   .mb-callbl{display:flex;justify-content:space-between;align-items:baseline;margin:6px 0 7px;font-family:'Noto Serif KR',serif;font-size:10px;font-weight:700;color:#9c7f4e}
   .mb-callbl b{font-weight:700}
-  .mb-cal{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
+  .mb-cal{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px}
   .mb-cell{aspect-ratio:1;border-radius:3px;font-size:8px;font-weight:700;background:rgba(245,236,217,.8);border:1px solid #ddcb9f;color:#a08a5e;font-family:Georgia,serif;cursor:default;padding:0}
   .mb-cell.on{background:#5a8c4a;border-color:#4a7c3a;color:#fff}
   .mb-bar{height:5px;background:#e8dcb5;border-radius:3px;overflow:hidden;margin-top:9px}
@@ -457,6 +457,71 @@
   .rs-cancel{background:transparent;border:1px solid #c2ac7e;color:#7a6238}
   .rs-go{background:linear-gradient(135deg,#b8564a,#8f3a30);color:#fff3ec}
   .rs-go:disabled{background:#d9c6b6;color:#fff;cursor:not-allowed}
+
+  /* ===== 책 상세 — Story / Write 두 탭 ===== */
+  .bd-tabs{display:flex;margin:13px 0 15px;border-bottom:1.5px solid rgba(120,90,40,.22)}
+  .bd-tabs button{flex:1;background:none;border:none;padding:9px 0 8px;cursor:pointer;position:relative;
+    font-family:'Cormorant Garamond',Georgia,serif;font-size:14px;font-weight:700;letter-spacing:.16em;
+    color:#b09a6e}
+  .bd-tabs button.on{color:#8a5f14}
+  .bd-tabs button.on::after{content:"";position:absolute;left:0;right:0;bottom:-1.5px;height:2.5px;background:#b8862f}
+
+  .bd-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+  .bd-cell{aspect-ratio:1;min-width:0;border-radius:3px;display:flex;align-items:center;justify-content:center;
+    position:relative;overflow:hidden;padding:0;font-family:Georgia,serif;font-size:9px;font-weight:700;
+    background:rgba(245,236,217,.85);border:1px solid #ddcb9f;color:#a08a5e;cursor:default}
+  .bd-cell.on{background:#5a8c4a;border-color:#4a7c3a;color:#fff;cursor:pointer}
+  .bd-cell.on::after{content:"";position:absolute;bottom:2px;left:50%;transform:translateX(-50%);
+    width:3px;height:3px;border-radius:50%;background:rgba(255,255,255,.75)}
+  .bd-cell.dd{background:linear-gradient(140deg,#c04a44,#9c332e);border-color:#8f2f2a;color:#fff8ea;font-size:7.5px}
+  .bd-cell.sel{box-shadow:0 0 0 2px #b8862f}
+
+  .bd-peek{margin-top:11px;border:1px solid #c9a85a;border-radius:7px;overflow:hidden;
+    background:linear-gradient(#fffdf5,#f5ecd9);animation:fadeIn .2s}
+  .bd-pkh{background:linear-gradient(180deg,#d4a851,#b8862f);padding:5px 10px;display:flex;
+    justify-content:space-between;align-items:center}
+  .bd-pkh span{font-family:'Cormorant Garamond',Georgia,serif;font-size:10px;letter-spacing:.16em;
+    color:#fff8e5;font-weight:700}
+  .bd-pkh button{background:none;border:none;color:#fff8e5;font-size:12px;cursor:pointer;padding:0}
+  .bd-pkb{padding:9px}
+  .bd-pkb img{width:100%;display:block;border-radius:3px;border:3px solid #fffdf6;
+    box-shadow:0 3px 8px rgba(60,40,15,.25)}
+  .bd-pkm{font-family:'Nanum Pen Script',cursive;font-size:15px;color:#3f3524;margin-top:8px;line-height:1.5}
+  .bd-quote{margin-top:9px;width:100%;padding:8px;border:1px dashed #b8862f;border-radius:5px;
+    background:rgba(212,168,81,.13);color:#8a5f14;font-family:'Noto Serif KR',serif;font-size:11px;
+    font-weight:700;text-align:center;cursor:pointer}
+  .bd-none{padding:10px;font-size:10.5px;color:#a89066;font-style:italic;text-align:center;line-height:1.6}
+
+  /* Write */
+  .bd-new{width:100%;padding:10px;border:1px dashed rgba(150,115,50,.55);border-radius:6px;
+    background:rgba(212,168,81,.08);color:#8a6a3a;font-family:'Noto Serif KR',serif;font-size:12px;
+    font-weight:700;cursor:pointer;margin-bottom:11px}
+  .bd-post{display:flex;align-items:center;gap:8px;padding:10px 4px;width:100%;background:none;border:none;
+    border-bottom:1px solid rgba(120,90,40,.13);cursor:pointer;font-family:inherit;text-align:left}
+  .bd-pno{font-family:'Cormorant Garamond',Georgia,serif;font-size:14px;font-weight:700;color:#c2a468;
+    flex:0 0 18px;font-variant-numeric:tabular-nums}
+  .bd-ptt{flex:1;min-width:0;font-family:'Noto Serif KR',serif;font-size:12px;color:#3a2818;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bd-pdt{font-family:'Cormorant Garamond',Georgia,serif;font-size:10px;color:#a89066;flex-shrink:0}
+  .bd-pdel{font-size:9.5px;color:#b8756a;border:1px solid rgba(184,117,106,.45);border-radius:3px;
+    padding:2px 6px;flex-shrink:0;background:none;cursor:pointer;font-family:inherit}
+
+  .bd-edt{width:100%;box-sizing:border-box;border:none;border-bottom:1px solid rgba(120,90,40,.3);
+    background:transparent;font-family:'Noto Serif KR',serif;font-size:15px;font-weight:700;color:#2f2109;
+    padding:6px 2px 8px;outline:none}
+  .bd-edb{width:100%;box-sizing:border-box;margin-top:12px;background:transparent;border:none;resize:none;
+    outline:none;overflow:hidden;display:block;font-family:'Noto Serif KR',serif;font-size:12.5px;
+    line-height:24px;color:#3a2818;padding:0 2px;
+    background-image:linear-gradient(rgba(120,90,40,.13) 1px,transparent 1px);
+    background-size:100% 24px;background-position:0 22px}
+  .bd-pvl{font-family:'Noto Serif KR',serif;font-size:9px;font-weight:700;color:#9c7f4e;letter-spacing:.06em;
+    margin:16px 0 7px;padding-top:11px;border-top:1px dashed rgba(120,90,40,.28)}
+  .bd-pv{font-family:'Noto Serif KR',serif;font-size:12.5px;line-height:1.95;color:#3a2818;white-space:pre-wrap}
+  .bd-qb{margin:10px 0;border-left:3px solid #b8862f;padding:8px 0 8px 10px;background:rgba(212,168,81,.09)}
+  .bd-qb img{width:100%;display:block;border-radius:3px;border:2px solid #fffdf6}
+  .bd-qc{font-family:'Noto Serif KR',serif;font-size:9.5px;color:#8a6d3c;margin-top:6px;font-style:italic;
+    line-height:1.55}
+  .bd-qmiss{font-size:9.5px;color:#b8756a;font-style:italic}
 </style>
 </head>
 <body>
@@ -553,6 +618,34 @@ function defaultData() {
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+// 두 날짜(YYYY-MM-DD) 사이의 일수 — 같은 날이면 1 (양 끝 포함)
+function daysBetween(fromK, toK) {
+  if (!fromK || !toK) return 0;
+  const a = new Date(fromK + "T00:00:00"), b = new Date(toK + "T00:00:00");
+  if (isNaN(a.getTime()) || isNaN(b.getTime())) return 0;
+  return Math.floor((b - a) / 86400000) + 1;
+}
+
+// 날짜 키에 n일 더하기 (1일차 = start)
+function dayKeyOf(startK, day) {
+  if (!startK) return "";
+  const d = new Date(startK + "T00:00:00");
+  if (isNaN(d.getTime())) return "";
+  d.setDate(d.getDate() + (day - 1));
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+// 책의 표 범위 — 습관은 시작일+목표기간, 성취는 시작일+데드라인
+function bookSpan(book) {
+  if (!book) return {key:"habit", start:"", duration:0};
+  if (taskTypeOf(book) === "habit") {
+    const h = book.habit || {};
+    return {key:"habit", start: h.start || "", duration: parseInt(h.duration) || 30};
+  }
+  const a = book.ach || {};
+  return {key:"ach", start: a.start || "", duration: Math.max(0, daysBetween(a.start, a.deadline))};
 }
 
 // 사진 압축 → base64
@@ -1219,20 +1312,97 @@ const BC = {
 const CASH4 = ["C","A","S","H"];
 
 // 책 상세 (표지 탭 → 전체화면 오버레이. Portal로 body에 렌더 → 캐러셀 transform 영향 X)
-function BookDetail({book, bc, onClose, updateBook, deleteBook, toggleStatus}) {
+// Story = 책의 정보 + 표(습관 일정표 / D-DAY 표) · Write = 그 경험을 엮은 연재
+function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleStatus}) {
   const isHabit = taskTypeOf(book) === "habit";
   const h = book.habit || {};
   const a = book.ach || {};
-  const dur = parseInt(h.duration) || 30;
-  const doneSet = new Set(h.done || []);
-  const pct = dur ? Math.round(doneSet.size / dur * 100) : 0;
   const done = book.status === "완료";
+
+  const [tab, setTab] = useState("story");
+  const [openDay, setOpenDay] = useState(null);   // 표에서 펼쳐 본 날
+  const [editId, setEditId] = useState(null);     // 편집 중인 글
+
+  const span = bookSpan(book);
+  const dur = span.duration;
+  const doneSet = new Set((book[span.key] || {}).done || []);
+  const pct = dur ? Math.round(doneSet.size / dur * 100) : 0;
+  const posts = book.posts || [];
+
+  // 그 날 이 책으로 인증한 에피소드 찾기 — 사진을 복사하지 않고 원본을 가리킨다
+  const recordOfDay = (day) => {
+    const k = dayKeyOf(span.start, day);
+    if (!k) return null;
+    const rec = (records || {})[k];
+    if (!rec) return null;
+    const t = (rec.tasks || []).find(x => x.done && x.sourceTaskId === book.id);
+    return t ? {date: k, task: t} : null;
+  };
+
+  const setPosts = (fn) => updateBook(book.id, t => ({...t, posts: fn(t.posts || [])}));
+
+  const addPost = () => {
+    const p = {id: Date.now() + Math.random(), title: "", body: "", ts: Date.now()};
+    setPosts(ps => [...ps, p]);
+    setEditId(p.id);
+    setTab("write");
+  };
+  const updatePost = (id, patch) =>
+    setPosts(ps => ps.map(p => p.id === id ? {...p, ...patch, ts: p.ts || Date.now()} : p));
+  const deletePost = (id) => {
+    if (!confirm("이 글을 삭제할까요?")) return;
+    setPosts(ps => ps.filter(p => p.id !== id));
+    setEditId(null);
+  };
+
+  // Story의 기록을 Write에 인용 — 본문에 [[q:날짜]] 표시만 넣고 사진은 그대로 둔다
+  const quoteToWrite = (day) => {
+    const r = recordOfDay(day);
+    if (!r) return;
+    const mark = `\n[[q:${r.date}]]\n`;
+    const target = editId ? posts.find(p => p.id === editId) : posts[posts.length - 1];
+    if (target) {
+      updatePost(target.id, {body: (target.body || "") + mark});
+      setEditId(target.id);
+    } else {
+      const p = {id: Date.now() + Math.random(), title: "", body: mark, ts: Date.now()};
+      setPosts(ps => [...ps, p]);
+      setEditId(p.id);
+    }
+    setOpenDay(null);
+    setTab("write");
+  };
+
+  // 본문을 글/인용 조각으로 나눠 미리보기
+  const renderBody = (body) => {
+    const parts = String(body || "").split(/(\[\[q:\d{4}-\d{2}-\d{2}\]\])/g);
+    return parts.map((seg, i) => {
+      const m = seg.match(/^\[\[q:(\d{4}-\d{2}-\d{2})\]\]$/);
+      if (!m) return seg ? <span key={i}>{seg}</span> : null;
+      const k = m[1];
+      const rec = (records || {})[k];
+      const t = rec && (rec.tasks || []).find(x => x.done && x.sourceTaskId === book.id);
+      if (!t) return <div key={i} className="bd-qmiss">(인용한 기록을 찾을 수 없어요 — {k})</div>;
+      const dayN = span.start ? daysBetween(span.start, k) : 0;
+      return (
+        <div key={i} className="bd-qb">
+          {t.photo && <img src={t.photo} alt=""/>}
+          <div className="bd-qc">{dayN > 0 ? `DAY ${dayN} — ` : ""}&ldquo;{t.memo || "메모 없음"}&rdquo;</div>
+        </div>
+      );
+    });
+  };
+
+  const editing = editId ? posts.find(p => p.id === editId) : null;
+  const peek = openDay ? recordOfDay(openDay) : null;
 
   const overlay = (
     <div className="mb-ov" onClick={onClose}>
       <div className="mb-page" onClick={e=>e.stopPropagation()}>
         <div className="mb-dbar">
-          <button className="mb-back" onClick={onClose}>‹ 책장으로</button>
+          <button className="mb-back" onClick={editing ? ()=>setEditId(null) : onClose}>
+            {editing ? "‹ 목록으로" : "‹ 책장으로"}
+          </button>
           <button className="mb-pill" onClick={()=>toggleStatus(book.id)} style={done?{background:"rgba(90,140,74,.2)",color:"#4a7c3a"}:null}>{book.status||"진행중"}</button>
         </div>
         <div className="mb-dhead">
@@ -1242,37 +1412,141 @@ function BookDetail({book, bc, onClose, updateBook, deleteBook, toggleStatus}) {
             <div className="mb-dmeta">{isHabit?"🔁 습관":"🏆 성취"} · {book.cat} {bc.cat}</div>
           </div>
         </div>
+
         <div className="mb-dpad">
-          {isHabit ? (
+          <div className="bd-tabs">
+            <button className={tab==="story"?"on":""} onClick={()=>{setTab("story");setEditId(null);}}>STORY</button>
+            <button className={tab==="write"?"on":""} onClick={()=>setTab("write")}>WRITE</button>
+          </div>
+
+          {tab === "story" ? (
             <div>
-              <div className="mb-fld" style={{marginBottom:"11px"}}><div className="mb-fl">시작일</div><input type="date" className="input" value={h.start||""} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),start:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px",width:"100%",boxSizing:"border-box"}}/></div>
-              <div className="mb-g2">
-                <div className="mb-fld"><div className="mb-fl">습관 빈도</div><select className="input" value={h.freq||"매일"} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),freq:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px",fontFamily:"inherit"}}>{["매일","격일","주 6회","주 5회","주 4회","주 3회","주 2회","주 1회"].map(f=><option key={f} value={f}>{f}</option>)}</select></div>
-                <div className="mb-fld"><div className="mb-fl">시간 포지션</div><input type="text" className="input" value={h.time||""} placeholder="예: 기상 직후" onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),time:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
-                <div className="mb-fld"><div className="mb-fl">목표 기간 (일)</div><input type="number" className="input" value={h.duration ?? ""} min={1} max={365} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),duration:e.target.value}}))} onBlur={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),duration:Math.min(365,Math.max(1,parseInt(e.target.value)||30))}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
+              {isHabit ? (
+                <div>
+                  <div className="mb-fld" style={{marginBottom:"11px"}}><div className="mb-fl">시작일</div><input type="date" className="input" value={h.start||""} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),start:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px",width:"100%",boxSizing:"border-box"}}/></div>
+                  <div className="mb-g2">
+                    <div className="mb-fld"><div className="mb-fl">습관 빈도</div><select className="input" value={h.freq||"매일"} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),freq:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px",fontFamily:"inherit"}}>{["매일","격일","주 6회","주 5회","주 4회","주 3회","주 2회","주 1회"].map(f=><option key={f} value={f}>{f}</option>)}</select></div>
+                    <div className="mb-fld"><div className="mb-fl">시간 포지션</div><input type="text" className="input" value={h.time||""} placeholder="예: 기상 직후" onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),time:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
+                    <div className="mb-fld"><div className="mb-fl">목표 기간 (일)</div><input type="number" className="input" value={h.duration ?? ""} min={1} max={365} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),duration:e.target.value}}))} onBlur={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),duration:Math.min(365,Math.max(1,parseInt(e.target.value)||30))}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
+                  </div>
+                  <div className="mb-fld" style={{margin:"11px 0"}}><div className="mb-fl">⏰ 알람 시간 <span style={{color:"#b89a68",fontWeight:400}}>(데일리 에피소드 자동 연동)</span></div><input type="time" className="input" value={h.alarmTime||""} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),alarmTime:e.target.value}}))} style={{fontSize:"12px",padding:"7px 8px",width:"100%",boxSizing:"border-box",fontFamily:"'Cormorant Garamond',serif",fontWeight:700,letterSpacing:"1px"}}/></div>
+                </div>
+              ) : (
+                <div>
+                  <div className="mb-g2">
+                    <div className="mb-fld"><div className="mb-fl">시작일</div><input type="date" className="input" value={a.start||""} onChange={e=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),start:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
+                    <div className="mb-fld"><div className="mb-fl">데드라인</div><input type="date" className="input" value={a.deadline||""} onChange={e=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),deadline:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
+                  </div>
+                  <div className="mb-fld" style={{marginBottom:"11px"}}><div className="mb-fl">측정 기준</div><input type="text" className="input" value={a.criteria||""} placeholder="예: 판매 시작하기" onChange={e=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),criteria:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
+                  <div className="mb-fld"><div className="mb-fl">목표 상세 <span style={{color:"#b89a68",fontWeight:400}}>(한 줄에 한 단계씩)</span></div><textarea className="input" rows={5} value={a.steps||""} placeholder={"1. 주제 선정 + 목차 구성\n2. 매일 한 꼭지씩 초고\n3. 전체 퇴고 + 교정\n4. 출간 / 첫 독자 피드백"} onChange={e=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),steps:e.target.value}}))} style={{fontSize:"12px",fontFamily:"inherit",lineHeight:1.6}}/></div>
+                </div>
+              )}
+
+              {/* 표 — 습관 일정표 / D-DAY 표 */}
+              <div className="mb-callbl">
+                <span>{isHabit ? "습관 일정표" : "D-DAY 표"} <span style={{color:"#b89a68",fontWeight:400}}>· Page에서 완료하면 자동 체크</span></span>
+                <span style={{color:"#5a8c4a"}}>{doneSet.size}/{dur || 0} <b style={{fontSize:"13px"}}>{pct}%</b></span>
               </div>
-              <div className="mb-fld" style={{margin:"11px 0"}}><div className="mb-fl">⏰ 알람 시간 <span style={{color:"#b89a68",fontWeight:400}}>(데일리 에피소드 자동 연동)</span></div><input type="time" className="input" value={h.alarmTime||""} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),alarmTime:e.target.value}}))} style={{fontSize:"12px",padding:"7px 8px",width:"100%",boxSizing:"border-box",fontFamily:"'Cormorant Garamond',serif",fontWeight:700,letterSpacing:"1px"}}/></div>
-              <div className="mb-callbl"><span>습관 일정표 <span style={{color:"#b89a68",fontWeight:400}}>· Page에서 완료하면 자동 체크</span></span><span style={{color:"#5a8c4a"}}>달성률 <b style={{fontSize:"13px"}}>{pct}%</b></span></div>
-              <div className="mb-cal">
-                {Array.from({length:dur},(_,i)=>i+1).map(day=>(
-                  <div key={day} className={"mb-cell"+(doneSet.has(day)?" on":"")}>{day}</div>
-                ))}
+
+              {!span.start || !dur ? (
+                <div className="bd-none">
+                  {isHabit ? "시작일을 정하면 일정표가 생깁니다." : "시작일과 데드라인을 정하면 D-DAY 표가 생깁니다."}
+                </div>
+              ) : (
+                <div>
+                  <div className={isHabit ? "mb-cal" : "bd-cal"}>
+                    {Array.from({length: Math.min(dur, 366)},(_,i)=>i+1).map(day=>{
+                      const on = doneSet.has(day);
+                      const isDD = !isHabit && day === dur;
+                      const cls = "bd-cell" + (on?" on":"") + (isDD?" dd":"") + (openDay===day?" sel":"");
+                      return (
+                        <button key={day} className={cls}
+                          onClick={()=>{ if (on) setOpenDay(openDay===day?null:day); }}
+                          title={dayKeyOf(span.start, day)}>
+                          {isDD ? "D-DAY" : day}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mb-bar"><span style={{width:pct+"%"}}/></div>
+                </div>
+              )}
+
+              {/* 표에서 고른 날의 인증 기록 */}
+              {openDay && (
+                <div className="bd-peek">
+                  <div className="bd-pkh">
+                    <span>DAY {openDay} · {dayKeyOf(span.start, openDay)}</span>
+                    <button onClick={()=>setOpenDay(null)}>✕</button>
+                  </div>
+                  <div className="bd-pkb">
+                    {peek ? (
+                      <div>
+                        {peek.task.photo && <img src={peek.task.photo} alt="인증 사진"/>}
+                        <div className="bd-pkm">{peek.task.memo || "메모 없음"}</div>
+                        <button className="bd-quote" onClick={()=>quoteToWrite(openDay)}>✎ 이 기록을 Write에 인용하기</button>
+                      </div>
+                    ) : (
+                      <div className="bd-none">그날의 인증 기록을 찾을 수 없어요.</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : editing ? (
+            /* ─── 글 쓰기 ─── */
+            <div>
+              <input className="bd-edt" value={editing.title} placeholder="제목"
+                onChange={e=>updatePost(editing.id,{title:e.target.value})}/>
+              <AutoTA className="bd-edb" value={editing.body} placeholder="여기에 경험과 정보를 엮어 써 내려가 보세요…"
+                onChange={e=>updatePost(editing.id,{body:e.target.value})}/>
+              {/\[\[q:/.test(editing.body || "") && (
+                <div>
+                  <div className="bd-pvl">미리보기</div>
+                  <div className="bd-pv">{renderBody(editing.body)}</div>
+                </div>
+              )}
+              <div className="mb-foot">
+                <button className="mb-fbtn done" onClick={()=>setEditId(null)}>✓ 다 썼어요</button>
+                <button className="mb-fbtn del" onClick={()=>deletePost(editing.id)}>삭제</button>
               </div>
-              <div className="mb-bar"><span style={{width:pct+"%"}}/></div>
             </div>
           ) : (
+            /* ─── 연재 목록 ─── */
             <div>
-              <div className="mb-g2">
-                <div className="mb-fld"><div className="mb-fl">측정 기준</div><input type="text" className="input" value={a.criteria||""} placeholder="예: 판매 시작하기" onChange={e=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),criteria:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
-                <div className="mb-fld"><div className="mb-fl">데드라인</div><input type="date" className="input" value={a.deadline||""} onChange={e=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),deadline:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
+              <button className="bd-new" onClick={addPost}>⊕ 새 글 쓰기</button>
+              {posts.length === 0 ? (
+                <div className="bd-none" style={{padding:"22px 12px"}}>
+                  아직 쓴 글이 없어요.<br/>
+                  Story에서 겪은 것을 여기에 연재하면<br/>한 권의 책이 됩니다.
+                </div>
+              ) : (
+                posts.slice().reverse().map((p, i) => {
+                  const no = posts.length - i;
+                  const d = new Date(p.ts || Date.now());
+                  const dt = `${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`;
+                  return (
+                    <div className="bd-post" key={p.id}>
+                      <span className="bd-pno">{no}</span>
+                      <span className="bd-ptt" onClick={()=>setEditId(p.id)}>{p.title || "(제목 없음)"}</span>
+                      <span className="bd-pdt">{dt}</span>
+                      <button className="bd-pdel" onClick={()=>deletePost(p.id)}>삭제</button>
+                    </div>
+                  );
+                })
+              )}
+              <div className="bd-none" style={{marginTop:"13px"}}>
+                경험과 정보를 엮은 나만의 글을 연재합니다<br/>다 쓰이면 이것이 한 권의 책이 됩니다
               </div>
-              <div className="mb-fld"><div className="mb-fl">목표 상세 <span style={{color:"#b89a68",fontWeight:400}}>(한 줄에 한 단계씩)</span></div><textarea className="input" rows={6} value={a.steps||""} placeholder={"1. 주제 선정 + 목차 구성\n2. 매일 한 꼭지씩 초고\n3. 전체 퇴고 + 교정\n4. 출간 / 첫 독자 피드백"} onChange={e=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),steps:e.target.value}}))} style={{fontSize:"12px",fontFamily:"inherit",lineHeight:1.6}}/></div>
             </div>
           )}
-          <div className="mb-foot">
-            <button className="mb-fbtn done" onClick={()=>toggleStatus(book.id)}>{done?"진행중으로":"✓ 완료로 표시"}</button>
-            <button className="mb-fbtn del" onClick={()=>{ if(confirm("이 책을 삭제할까요?")) deleteBook(book.id); }}>삭제</button>
-          </div>
+
+          {!editing && (
+            <div className="mb-foot">
+              <button className="mb-fbtn done" onClick={()=>toggleStatus(book.id)}>{done?"진행중으로":"✓ 완료로 표시"}</button>
+              <button className="mb-fbtn del" onClick={()=>{ if(confirm("이 책을 삭제할까요?")) deleteBook(book.id); }}>삭제</button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1378,7 +1652,8 @@ function HomePage({data, setData}) {
         </div>
       )}
 
-      {detail && <BookDetail book={detail} bc={BC[detail.cat]||BC.C} onClose={()=>setDetailId(null)}
+      {detail && <BookDetail key={detail.id} book={detail} bc={BC[detail.cat]||BC.C} records={data.pageRecords||{}}
+        onClose={()=>setDetailId(null)}
         updateBook={updateBook} deleteBook={deleteBook} toggleStatus={toggleStatus}/>}
     </div>
   );
@@ -1554,7 +1829,8 @@ function EpisodePage({data, setData}) {
     return diff > 0 ? diff : null;
   };
 
-  // 습관 일정표 자동 연동: 데일리 완료/해제 시 챕터의 habit.done 토글
+  // 표 자동 연동: 데일리 완료/해제 시 그 책의 표를 토글
+  // 습관 → habit.done (시작일 + 목표기간) · 성취 → ach.done (시작일 + 데드라인)
   const syncHabitDoneInData = (currentData, sourceId, isAdding) => {
     const chapters = {...(currentData.chapters || {})};
     for (const year of Object.keys(chapters)) {
@@ -1562,15 +1838,15 @@ function EpisodePage({data, setData}) {
       const idx = (ch.tasks || []).findIndex(t => t.id === sourceId);
       if (idx >= 0) {
         const src = ch.tasks[idx];
-        const startK = src.habit && src.habit.start;
-        if (!startK) return currentData;
-        const day = dayDiff(todayKey, startK);
-        const dur = parseInt(src.habit && src.habit.duration) || 30;
-        if (!day || day < 1 || day > dur) return currentData;
-        const doneSet = new Set((src.habit && src.habit.done) || []);
+        const span = bookSpan(src);              // {key, start, duration}
+        if (!span.start || !span.duration) return currentData;
+        const day = dayDiff(todayKey, span.start);
+        if (!day || day < 1 || day > span.duration) return currentData;
+        const sub = src[span.key] || {};
+        const doneSet = new Set(sub.done || []);
         if (isAdding) doneSet.add(day); else doneSet.delete(day);
-        const newHabit = {...(src.habit||{}), done: Array.from(doneSet).sort((a,b)=>a-b)};
-        const newSrc = {...src, habit: newHabit};
+        const newSub = {...sub, done: Array.from(doneSet).sort((a,b)=>a-b)};
+        const newSrc = {...src, [span.key]: newSub};
         const newTasks = ch.tasks.map((t,i) => i === idx ? newSrc : t);
         return {...currentData, chapters: {...chapters, [year]: {...ch, tasks: newTasks}}};
       }
@@ -1653,7 +1929,7 @@ function EpisodePage({data, setData}) {
     const newTasks = tasks.map(t => t.id === verifyId ? {...t, done: true, doneAt: Date.now(), photo: verifyPhoto, memo: verifyMemo.trim()} : t);
     let next = {...data, pageRecords: {...(data.pageRecords||{}), [todayKey]: {...(data.pageRecords||{})[todayKey]||{}, tasks: newTasks}}, startDate: data.startDate||todayKey};
     // 습관 자동 연동
-    if (targetTask && targetTask.sourceTaskId && targetTask.sourceType === "habit") {
+    if (targetTask && targetTask.sourceTaskId) {
       next = syncHabitDoneInData(next, targetTask.sourceTaskId, true);
     }
     setData(next);
