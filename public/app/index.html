@@ -469,9 +469,8 @@ const CD = {
   H:"신체·정신 건강, 에너지 관리"
 };
 const CASH_KEYS = ["C","A","S","H"];
-// 에피소드(Today) 전용: CASH 4요소로 안 잡히는 나머지를 담는 L(Life) 포함
-const EP_KEYS = ["C","A","S","H","L"];
 // Today 페이지 색 — 재디자인 팔레트(BC)와 동일. COL=테두리/채움, INK=크림 종이 위 글자
+// L(Life)은 선택지에서 뺐지만, 이미 만들어둔 L 에피소드가 제 색으로 남도록 항목은 유지
 const EP_COL = {C:"#c8901f", A:"#b23f39", S:"#3d6fa0", H:"#46834a", L:"#6e5a8c"};
 const EP_INK = {C:"#9c7420", A:"#b23f39", S:"#3d6fa0", H:"#46834a", L:"#6e5a8c"};
 
@@ -1710,7 +1709,7 @@ function EpisodePage({data, setData}) {
           {/* 에피소드 추가 */}
           <div className="td-compose">
             <div className="td-chips">
-              {EP_KEYS.map(k => {
+              {CASH_KEYS.map(k => {
                 const on = newCat === k;
                 return (
                   <button key={k} className="td-chip" onClick={()=>setNewCat(k)} title={CL[k]} style={{
