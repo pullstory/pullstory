@@ -415,6 +415,48 @@
     padding-top:12px;border-top:1px solid rgba(120,90,40,.18);line-height:1.75}
   .sb-empty{margin-top:14px;padding:12px;font-size:11px;color:#a99068;font-style:italic;text-align:center;
     background:rgba(245,236,217,.5);border-radius:6px;border:1px dashed #d8c79a;line-height:1.7}
+
+  /* ===== 새 책으로 시작하기 (초기화) ===== */
+  .rs-link{position:absolute;bottom:14px;left:0;right:0;text-align:center;z-index:6}
+  .rs-link button{background:none;border:none;color:#9a7c4c;font-family:'Noto Serif KR',serif;
+    font-size:10.5px;letter-spacing:.06em;border-bottom:1px solid rgba(154,124,76,.35);
+    padding:0 0 2px;cursor:pointer}
+  .rs-ov{position:fixed;inset:0;z-index:10001;background:rgba(14,8,3,.8);display:flex;
+    align-items:center;justify-content:center;padding:18px;animation:fadeIn .2s}
+  .rs-sheet{width:100%;max-width:330px;border-radius:8px;padding:17px 16px 16px;color:#3a2818;
+    background:linear-gradient(#fffdf4,#f5ecd6);box-shadow:0 16px 40px rgba(0,0,0,.6)}
+  .rs-sheet h4{font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;font-weight:700;
+    color:#2f2109;text-align:center}
+  .rs-sub{font-family:'Noto Serif KR',serif;font-size:10.5px;color:#8a6d3c;text-align:center;
+    margin-top:5px;line-height:1.7}
+  .rs-hr{height:1px;background:rgba(120,90,40,.22);margin:14px 0 13px}
+  .rs-box{border:1px solid rgba(120,90,40,.28);border-radius:6px;padding:11px 12px;
+    background:rgba(255,255,255,.55)}
+  .rs-box .t{font-family:'Noto Serif KR',serif;font-size:12.5px;font-weight:700;color:#2f2109}
+  .rs-box .d{font-family:'Noto Serif KR',serif;font-size:10px;color:#8a6d3c;margin-top:6px;line-height:1.7}
+  .rs-box .d b{color:#9c4033}
+  .rs-box .d em{font-style:normal;color:#4e7c42}
+  .rs-fld{margin:13px 0 2px}
+  .rs-fld .l{font-family:'Noto Serif KR',serif;font-size:10px;font-weight:700;color:#9c7f4e;margin-bottom:5px}
+  .rs-fld input{width:100%;box-sizing:border-box;border:1px solid #d8c79a;border-radius:5px;
+    background:rgba(255,253,245,.9);padding:8px 9px;font-family:'Cormorant Garamond',Georgia,serif;
+    font-size:14px;font-weight:700;letter-spacing:.05em;color:#3a2818;outline:none}
+  .rs-fld .n{font-size:9px;color:#a89066;margin-top:5px;font-style:italic;line-height:1.6}
+  .rs-big{font-family:'Cormorant Garamond',Georgia,serif;font-size:19px;font-weight:700;
+    color:#9c4033;line-height:1.35;text-align:center}
+  .rs-sm{font-family:'Noto Serif KR',serif;font-size:10.5px;color:#8a6d3c;margin-top:9px;
+    line-height:1.8;text-align:center}
+  .rs-sm b{color:#2f2109}
+  .rs-type{width:100%;box-sizing:border-box;margin-top:12px;border:1px solid #d8c79a;border-radius:5px;
+    background:rgba(255,253,245,.9);padding:9px;font-family:'Noto Serif KR',serif;font-size:13px;
+    text-align:center;letter-spacing:.08em;color:#3a2818;outline:none}
+  .rs-type::placeholder{color:#c2ae86;letter-spacing:.04em}
+  .rs-acts{display:flex;gap:8px;margin-top:15px}
+  .rs-acts button{flex:1;padding:11px;border-radius:6px;font-family:'Noto Serif KR',serif;
+    font-size:12px;font-weight:700;border:none;cursor:pointer}
+  .rs-cancel{background:transparent;border:1px solid #c2ac7e;color:#7a6238}
+  .rs-go{background:linear-gradient(135deg,#b8564a,#8f3a30);color:#fff3ec}
+  .rs-go:disabled{background:#d9c6b6;color:#fff;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -588,6 +630,16 @@ function scheduleSave(uid, data) {
   }, 800);
 }
 
+// 초기화 전용 저장 — merge 없이 통째로 덮어써야 서버의 옛 기록까지 지워진다.
+// (set(...,{merge:true})는 pageRecords·chapters 같은 맵 안의 키를 지우지 않아서
+//  다른 기기에서 열거나 다시 로그인하면 옛 기록이 되살아난다)
+async function resetSave(uid, data) {
+  clearTimeout(saveTimer);   // 예약된 merge 저장이 뒤늦게 옛 데이터를 되살리지 못하게
+  saveLocal(data);
+  if (!FIREBASE_READY || !uid || uid === "local-user") return;
+  await fbDb.collection("scashbook").doc(uid).set(data);
+}
+
 async function loadRemote(uid) {
   if (!FIREBASE_READY || !uid) return null;
   try {
@@ -690,8 +742,29 @@ function LoginScreen({onLogin}) {
 // 표지가 회전하며 페이드 아웃 → 뒤에 자리잡고 있던 동기부여 문구 페이지가 드러남
 // 두 페이지 모두 같은 책 프레임 안에 있어서 화면 잘림 없음
 // ═════════════════════════════════════════════════════════════════════
-function BookCover({data, onStart}) {
+function BookCover({data, onStart, onReset}) {
   const [opening, setOpening] = useState(false);
+  const [resetStep, setResetStep] = useState(0);      // 0 닫힘 · 1 안내+시작일 · 2 마지막 확인
+  const [resetDate, setResetDate] = useState(todayStr());
+  const [confirmText, setConfirmText] = useState("");
+  const [wiping, setWiping] = useState(false);
+
+  // 사라질 양을 실제 숫자로 보여준다
+  const recs = data.pageRecords || {};
+  const lostPages = data.pageCount || 0;
+  const lostStories = Object.values(recs).reduce(
+    (n, r) => n + ((r.tasks || []).filter(t => t.done).length), 0);
+
+  const closeReset = () => { setResetStep(0); setConfirmText(""); setResetDate(todayStr()); };
+
+  const doReset = async () => {
+    if (wiping) return;
+    setWiping(true);
+    try { await onReset(resetDate); }
+    catch (e) { console.warn("reset failed:", e); }
+    setWiping(false);
+    closeReset();
+  };
 
   const handleStart = () => {
     setOpening(true);
@@ -744,6 +817,66 @@ function BookCover({data, onStart}) {
 
         </div>
       </div>
+
+      {/* 문 아래 — 평생 몇 번 누를 버튼이라 조용하게 */}
+      {!opening && (
+        <div className="rs-link">
+          <button onClick={()=>setResetStep(1)}>새 책으로 시작하기</button>
+        </div>
+      )}
+
+      {resetStep > 0 && ReactDOM.createPortal(
+        <div className="rs-ov" onClick={closeReset}>
+          <div className="rs-sheet" onClick={e=>e.stopPropagation()}>
+            {resetStep === 1 ? (
+              <div>
+                <h4>새 책으로 시작하기</h4>
+                <div className="rs-sub">지금까지의 기록을 덮고<br/>첫 페이지부터 다시 시작합니다</div>
+                <div className="rs-hr"/>
+                <div className="rs-box">
+                  <div className="t">전부 지우기</div>
+                  <div className="d">
+                    <b>지웁니다</b> — 매일의 스토리와 인증 사진, DAY · PAGE · C.A.S.H,
+                    습관 일정표, Vision · Shelf · My Books에 세워둔 계획까지 전부<br/>
+                    <em>남깁니다</em> — Notes에 쓴 노트
+                  </div>
+                </div>
+                <div className="rs-fld">
+                  <div className="l">시작일</div>
+                  <input type="date" value={resetDate} onChange={e=>setResetDate(e.target.value)}/>
+                  <div className="n">이 날이 DAY 1이 됩니다 · 이전 날짜는 달력에서 잠깁니다</div>
+                </div>
+                <div className="rs-acts">
+                  <button className="rs-cancel" onClick={closeReset}>그만두기</button>
+                  <button className="rs-go" disabled={!resetDate} onClick={()=>setResetStep(2)}>다음</button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="rs-big">정말 지울까요?</div>
+                <div className="rs-sm">
+                  <b>{lostPages}개의 페이지</b>와 <b>{lostStories}개의 스토리</b>가<br/>
+                  영영 사라집니다. 되돌릴 수 없어요.<br/>
+                  새 책은 <b>{resetDate}</b>부터 시작합니다.
+                </div>
+                <input
+                  className="rs-type"
+                  value={confirmText}
+                  onChange={e=>setConfirmText(e.target.value)}
+                  placeholder="지우려면 '새 책'이라고 적어주세요"
+                />
+                <div className="rs-acts">
+                  <button className="rs-cancel" onClick={closeReset}>그만두기</button>
+                  <button className="rs-go" disabled={confirmText.trim() !== "새 책" || wiping} onClick={doReset}>
+                    {wiping ? "지우는 중…" : "지우고 시작"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
@@ -2782,6 +2915,15 @@ function App() {
     setOpened(false);
   };
 
+  // 새 책으로 시작 — 전부 지우고 고른 날짜를 DAY 1로
+  const handleReset = useCallback(async (startDate) => {
+    const fresh = {...defaultData(), startDate: startDate || todayStr()};
+    setDataState(fresh);
+    setOpened(false);
+    try { await resetSave(user && user.uid, fresh); }
+    catch (e) { console.warn("Reset save failed:", e); }
+  }, [user]);
+
   const handleLogout = async () => {
     if (!confirm("로그아웃 하시겠습니까?\n(데이터는 다음 로그인 시 복원됩니다)")) return;
     if (FIREBASE_READY && fbAuth.currentUser) {
@@ -2809,6 +2951,7 @@ function App() {
       <BookCover
         data={data}
         onStart={()=>setOpened(true)}
+        onReset={handleReset}
       />
     );
   }
