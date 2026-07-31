@@ -295,6 +295,126 @@
   .td-foot b{color:#9c7420}
   .td-empty{font-family:'Noto Serif KR',serif;font-size:11.5px;color:#b09a6e;font-style:italic;
     text-align:center;padding:16px 10px;line-height:1.7}
+
+  /* ===== Story 페이지 — 펼쳐진 책 ===== */
+  .sb-book{position:relative;border-radius:3px;padding:0 13px;box-shadow:0 14px 34px rgba(0,0,0,.5);
+    background:linear-gradient(90deg,
+      #8a6636 0px,#c8ab74 3px,#9d7a45 6px,#d8bd88 9px,
+      #fffdf4 13px,#fffdf4 calc(100% - 13px),
+      #d8bd88 calc(100% - 9px),#9d7a45 calc(100% - 6px),#c8ab74 calc(100% - 3px),#8a6636 100%)}
+  .sb-page{position:relative;background:linear-gradient(#fffdf4,#f7efdb);padding:20px 15px 22px;
+    box-shadow:inset 13px 0 20px -14px rgba(90,60,25,.5), inset -13px 0 20px -14px rgba(90,60,25,.5)}
+
+  .sb-tp{text-align:center;padding-bottom:15px}
+  .sb-om{font-family:'Cormorant Garamond',Georgia,serif;font-size:10px;letter-spacing:.42em;
+    color:#b09355;text-transform:uppercase;font-weight:700}
+  .sb-h2{font-family:'Cormorant Garamond',Georgia,serif;font-size:33px;font-weight:700;color:#2f2109;
+    line-height:1.02;margin-top:7px;letter-spacing:.01em}
+  .sb-rule{width:46px;height:1px;margin:11px auto 10px;
+    background:linear-gradient(90deg,transparent,#b8862f,transparent)}
+  .sb-tp p{font-family:'Noto Serif KR',serif;font-size:11px;color:#8a6d3c;line-height:1.75}
+
+  .sb-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:16px 0 4px}
+  .sb-stat{position:relative;border:1px solid rgba(156,116,32,.42);border-radius:3px;
+    padding:11px 4px 9px;text-align:center;background:rgba(255,255,255,.42);min-width:0}
+  .sb-stat::before{content:"";position:absolute;inset:3px;border:1px solid rgba(156,116,32,.2);border-radius:2px}
+  .sb-stat .n{position:relative;font-family:'Cormorant Garamond',Georgia,serif;font-size:27px;
+    font-weight:700;line-height:1;color:#9c7420;font-variant-numeric:tabular-nums}
+  .sb-stat .k{position:relative;font-family:'Cormorant Garamond',Georgia,serif;font-size:10px;
+    letter-spacing:.19em;color:#8a6d3c;margin-top:5px;font-weight:700}
+  .sb-stat .d{position:relative;font-family:'Noto Serif KR',serif;font-size:8.5px;color:#a89066;
+    margin-top:3px;line-height:1.45}
+
+  .sb-sect{display:flex;align-items:center;gap:9px;margin:24px 0 12px}
+  .sb-sect .k{font-family:'Cormorant Garamond',Georgia,serif;font-size:11px;letter-spacing:.28em;
+    color:#9c7420;text-transform:uppercase;white-space:nowrap;font-weight:700}
+  .sb-sect .l{flex:1;height:1px;background:rgba(120,90,40,.24)}
+
+  .sb-yr{display:flex;align-items:center;justify-content:center;gap:15px;margin-bottom:6px}
+  .sb-yr b{font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;font-weight:700;
+    letter-spacing:.13em;color:#9c7420}
+  .sb-yr button{width:24px;height:24px;border-radius:50%;border:1px solid #d6bc85;color:#a8894e;
+    background:transparent;display:flex;align-items:center;justify-content:center;font-size:9px;
+    cursor:pointer;padding:0;font-family:inherit}
+  .sb-yr button:disabled{opacity:.35;cursor:default}
+
+  .sb-tr{display:flex;align-items:baseline;gap:6px;padding:7px 3px;width:100%;background:transparent;
+    border:none;border-bottom:1px solid rgba(120,90,40,.1);cursor:pointer;font-family:inherit;text-align:left}
+  .sb-tr .c{font-family:'Cormorant Garamond',Georgia,serif;font-size:12px;font-weight:700;color:#9c7420;
+    letter-spacing:.05em;flex:0 0 36px;font-variant-numeric:tabular-nums}
+  .sb-tr .t{font-family:'Noto Serif KR',serif;font-size:12.5px;color:#3a2818;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;max-width:165px}
+  .sb-tr .dots{flex:1;border-bottom:1px dotted rgba(120,90,40,.42);transform:translateY(-3px);min-width:12px}
+  .sb-tr .p{font-family:'Cormorant Garamond',Georgia,serif;font-size:12px;font-weight:700;color:#a8894e;
+    font-variant-numeric:tabular-nums;flex-shrink:0}
+  .sb-tr.on{border-radius:3px;border-bottom-color:transparent;
+    background:linear-gradient(90deg,rgba(212,168,81,.2),rgba(212,168,81,.04))}
+  .sb-tr.on .t{font-weight:700;color:#2f2109}
+  .sb-tr.on .c{color:#8a5f14}
+  .sb-tr.off{cursor:not-allowed}
+  .sb-tr.off .c,.sb-tr.off .t,.sb-tr.off .p{color:#c3b291}
+  .sb-tr.off .t{font-style:italic}
+  .sb-tr .now{font-family:'Cormorant Garamond',Georgia,serif;font-size:9px;letter-spacing:.1em;
+    color:#fff8ea;background:#b8862f;border-radius:2px;padding:1px 5px;flex-shrink:0;font-weight:700}
+
+  .sb-ch{margin-top:8px;border-top:2px solid rgba(156,116,32,.3);padding-top:16px}
+  .sb-chh{text-align:center;margin-bottom:17px}
+  .sb-chn{font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;font-weight:700;color:#9c7420;
+    line-height:1;margin-top:3px}
+  .sb-cht{font-family:'Nanum Pen Script',cursive;font-size:23px;color:#8a5f14;text-align:center;
+    background:transparent;border:none;border-bottom:1px dashed rgba(184,134,47,.5);
+    padding:3px 8px 5px;margin-top:9px;outline:none;width:100%;box-sizing:border-box}
+  .sb-hint{font-size:8.5px;color:#b09a6e;font-style:italic;margin-top:5px}
+
+  .sb-blk{margin-bottom:16px}
+  .sb-blk .h{font-family:'Noto Serif KR',serif;font-size:11px;font-weight:700;color:#6b4f30;
+    border-bottom:1px dashed rgba(120,90,40,.3);padding-bottom:4px;margin-bottom:8px}
+  .sb-row{display:flex;justify-content:space-between;font-size:10.5px;color:#8a6d3c;margin-bottom:5px}
+  .sb-row b{color:#9c7420}
+  .sb-bar{height:5px;background:rgba(120,90,40,.14);border-radius:3px;overflow:hidden}
+  .sb-bar i{display:block;height:100%;background:linear-gradient(90deg,#d9b25c,#a8792a);transition:width .4s}
+  .sb-three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .sb-three > div{border:1px solid rgba(120,90,40,.22);border-radius:4px;padding:9px 3px;
+    text-align:center;background:rgba(255,255,255,.5);min-width:0}
+  .sb-three .v{font-family:'Cormorant Garamond',Georgia,serif;font-size:19px;font-weight:700;line-height:1}
+  .sb-three .l{font-size:8.5px;color:#8a7556;margin-top:4px}
+
+  .sb-cash{display:flex;flex-direction:column;gap:7px}
+  .sb-cit{display:flex;align-items:center;gap:7px}
+  .sb-sq{width:16px;height:16px;border-radius:3px;color:#fff8ea;font-family:Georgia,serif;font-weight:700;
+    font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .sb-nm{font-size:10.5px;color:#6b4f30;flex:1;min-width:0}
+  .sb-ct{font-family:'Cormorant Garamond',Georgia,serif;font-size:12px;font-weight:700;
+    font-variant-numeric:tabular-nums}
+  .sb-tk{height:3px;border-radius:2px;background:rgba(120,90,40,.13);overflow:hidden;margin-top:3px}
+  .sb-tk i{display:block;height:100%;transition:width .4s}
+
+  /* 달력 — minmax(0,1fr)로 칸이 줄어들 수 있게 + 표시는 겹친 점(최소높이 제거) */
+  .sb-calh{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-bottom:5px}
+  .sb-calh div{text-align:center;font-family:'Cormorant Garamond',Georgia,serif;font-size:10px;
+    font-weight:700;color:#8a7556}
+  .sb-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+  .sb-cell{aspect-ratio:1;min-width:0;border-radius:4px;display:flex;align-items:center;justify-content:center;
+    position:relative;font-family:'Cormorant Garamond',Georgia,serif;font-size:13px;font-weight:700;
+    background:rgba(255,255,255,.5);border:1px solid rgba(120,90,40,.16);color:#a08a5e;
+    font-variant-numeric:tabular-nums;padding:0;cursor:pointer;overflow:hidden}
+  .sb-cell.full{background:linear-gradient(140deg,#d9b25c,#a8792a);border-color:#8a6420;color:#fff8ea}
+  .sb-cell.part{background:#fdf5e2;border-color:rgba(184,134,47,.5);color:#9c7420}
+  .sb-cell.part::after{content:"";position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
+    width:3px;height:3px;border-radius:50%;background:#b8862f}
+  .sb-cell.pre{background:transparent;border-style:dashed;border-color:rgba(120,90,40,.13);
+    color:#cbbb99;cursor:not-allowed}
+  .sb-cell.fut{background:transparent;border-color:rgba(120,90,40,.1);color:#cbbb99}
+  .sb-cell.now{box-shadow:0 0 0 2px #b8862f}
+  .sb-cell.sel{box-shadow:0 0 0 2px #b8862f,0 0 10px rgba(212,168,81,.55)}
+  .sb-lgd{display:flex;justify-content:center;gap:11px;margin-top:11px;padding-top:9px;
+    border-top:1px dashed rgba(120,90,40,.24);font-size:8.5px;color:#8a7556;flex-wrap:wrap}
+  .sb-lgd s{text-decoration:none;display:inline-block;width:8px;height:8px;border-radius:2px;
+    margin-right:3px;vertical-align:-1px}
+  .sb-colo{text-align:center;font-size:9px;color:#a89066;font-style:italic;margin-top:18px;
+    padding-top:12px;border-top:1px solid rgba(120,90,40,.18);line-height:1.75}
+  .sb-empty{margin-top:14px;padding:12px;font-size:11px;color:#a99068;font-style:italic;text-align:center;
+    background:rgba(245,236,217,.5);border-radius:6px;border:1px dashed #d8c79a;line-height:1.7}
 </style>
 </head>
 <body>
@@ -486,16 +606,6 @@ function Section({label, children, sub}) {
       <div className="heading-serif" style={{fontSize:"13px",color:"#6b4f30",fontWeight:700,marginBottom:"8px",borderBottom:"1px dashed #d8c79a",paddingBottom:"4px"}}>{label}</div>
       {sub && <div style={{fontSize:"10px",color:"#8a7556",marginBottom:"8px",marginTop:"-4px"}}>{sub}</div>}
       {children}
-    </div>
-  );
-}
-
-function PageHeader({kanji, title, sub}) {
-  return (
-    <div style={{textAlign:"center",marginBottom:"16px"}}>
-      {kanji && <div className="heading-latin" style={{fontSize:"11px",color:"#b89066",letterSpacing:"3px",marginBottom:"2px"}}>{kanji}</div>}
-      <div className="heading-script" style={{fontSize:"30px",color:"#9c7a2a"}}>{title}</div>
-      {sub && <div style={{fontSize:"11px",color:"#8a7556",marginTop:"2px"}}>{sub}</div>}
     </div>
   );
 }
@@ -1785,27 +1895,22 @@ function HistoryPage({data, setData}) {
   // 챕터/연도 변경 시 선택된 날짜 자동 해제
   useEffect(() => { setSelectedDate(null); }, [selectedChapter, viewYear]);
 
-  // ─── Stats (헤더 카드) ───
+  // ─── 세 지표 (이 세계의 규칙) ───
+  // L(Life)은 모든 지표·영역별 활동에서 제외 — C.A.S.H 네 요소만 센다
+  const isCash = (t) => CASH_KEYS.indexOf(t.cat) >= 0;
+
+  // DAY — 시작한 날부터 오늘까지 (당일 포함)
+  const dayCount = (() => {
+    const s = new Date(startDate + "T00:00:00");
+    if (isNaN(s.getTime())) return 1;
+    const t = new Date(todayK + "T00:00:00");
+    return Math.max(1, Math.floor((t - s) / 86400000) + 1);
+  })();
+  // PAGE — Today에서 그날의 에피소드를 전부 끝낸 날의 수
   const totalPages = data.pageCount || 0;
-  const totalEpisodes = Object.values(records).reduce((sum, r) =>
-    sum + ((r.tasks || []).filter(t => t.done).length), 0);
-  // 연속 페이지 streak
-  const computeStreak = () => {
-    let streak = 0;
-    let started = false;
-    for (let i = 0; i < 730; i++) {
-      const d = new Date(todayD);
-      d.setDate(todayD.getDate() - i);
-      const k = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
-      const r = records[k];
-      const completed = r && r.completed;
-      if (completed) { streak++; started = true; }
-      else if (!started && i === 0) continue; // 오늘 미완료는 시작 전
-      else break;
-    }
-    return streak;
-  };
-  const streak = computeStreak();
+  // C.A.S.H — 실행한 스토리(에피소드)의 총합 = 스토리 자본
+  const cashTotal = Object.values(records).reduce((sum, r) =>
+    sum + ((r.tasks || []).filter(t => t.done && isCash(t)).length), 0);
 
   // ─── 시작일 정보 (앱 사용 시작일 이전은 비활성) ───
   const [startY, startM, startDay] = startDate.split("-").map(n => parseInt(n));
@@ -1874,11 +1979,14 @@ function HistoryPage({data, setData}) {
       if (!r) continue;
       const tasks = r.tasks || [];
       const done = tasks.filter(t => t.done);
+      // 하루 완성 여부는 L 포함 — 그날 적은 걸 전부 끝냈는지의 문제라서
       if (r.completed) completed++;
       else if (done.length > 0) partial++;
-      totalDoneTasks += done.length;
-      totalAuthPhotos += done.filter(t => t.photo).length;
-      done.forEach(t => { if (cashCount[t.cat] !== undefined) cashCount[t.cat]++; });
+      // 에피소드 개수 지표는 L 제외
+      const doneCash = done.filter(isCash);
+      totalDoneTasks += doneCash.length;
+      totalAuthPhotos += doneCash.filter(t => t.photo).length;
+      doneCash.forEach(t => { if (cashCount[t.cat] !== undefined) cashCount[t.cat]++; });
     }
     return {days, completed, partial, totalDoneTasks, totalAuthPhotos, cashCount};
   };
@@ -1886,315 +1994,175 @@ function HistoryPage({data, setData}) {
   const completionPct = analysis.days ? Math.round(analysis.completed / analysis.days * 100) : 0;
 
   // ─── Sub components ───
-  const StatCard = ({icon, value, label, color}) => (
-    <div style={{
-      padding:"14px 8px",
-      background:"linear-gradient(135deg, rgba(255,253,245,.85), rgba(245,236,217,.55))",
-      border:"1px solid #d8c79a",
-      borderRadius:"8px",
-      textAlign:"center",
-      position:"relative",
-      boxShadow:"inset 0 0 30px rgba(184,134,47,.06)"
-    }}>
-      <div style={{position:"absolute",inset:"4px",border:"1px solid rgba(184,134,47,.18)",borderRadius:"6px",pointerEvents:"none"}}/>
-      <div style={{fontSize:"20px",marginBottom:"3px",lineHeight:1}}>{icon}</div>
-      <div className="heading-serif" style={{fontSize:"22px",fontWeight:700,color:color||"#9c7a2a",lineHeight:1.1}}>{value}</div>
-      <div className="heading-latin" style={{fontSize:"9px",color:"#8a7556",letterSpacing:"2px",marginTop:"3px",fontWeight:600}}>{label}</div>
-    </div>
-  );
-
   return (
     <div style={{animation:"fadeIn .4s"}}>
-      <PageHeader kanji="PRESENT · 현재" title="지금의 나" sub="지금까지의 모든 에피소드가 모여 만든 오늘의 나 — 여기서 다음 한 페이지가 시작됩니다"/>
+      <div className="sb-book"><div className="sb-page">
 
-      {/* ─── 3 stat cards (page · cash · episode) — 페이지 종이 종이 카드 느낌 ─── */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"8px",marginBottom:"22px"}}>
-        <StatCard icon="📄" value={totalPages} label="PAGE" color="#9c7a2a"/>
-        <StatCard icon="🪶" value={streak} label="C.A.S.H" color="#c97a3a"/>
-        <StatCard icon="✨" value={totalEpisodes} label="EPISODE" color="#5a8c4a"/>
-      </div>
-
-      {/* ─── 시리즈 펼쳐 보기 (통합 패널) — 챕터 → 캘린더 → 날짜 디테일 위계 ─── */}
-      <div style={{padding:"14px",background:"linear-gradient(180deg,rgba(255,253,245,.7),rgba(245,236,217,.5))",border:"1px solid #d4a851",borderRadius:"10px",animation:"fadeIn .25s"}}>
-        {/* Year navigator */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"14px",marginBottom:"6px"}}>
-          <button onClick={()=>{ if (viewYear > startYear) { setViewYear(y=>y-1); setSelectedChapter(1); } }} disabled={viewYear<=startYear} style={{width:"30px",height:"30px",borderRadius:"50%",background: viewYear>startYear ? "rgba(212,168,81,.15)":"transparent",border:"1px solid "+(viewYear>startYear?"#d4a851":"#d8c79a"),color: viewYear>startYear?"#9c7a2a":"#c9b685",cursor: viewYear>startYear?"pointer":"not-allowed",fontSize:"11px",fontWeight:700}}>◀</button>
-          <div className="heading-latin" style={{fontSize:"22px",color:"#9c7a2a",fontWeight:700,letterSpacing:"3px"}}>{viewYear}</div>
-          <button onClick={()=>{ if (viewYear < reviewMaxYear) { setViewYear(y=>y+1); setSelectedChapter(1); } }} disabled={viewYear>=reviewMaxYear} style={{width:"30px",height:"30px",borderRadius:"50%",background: viewYear<reviewMaxYear ? "rgba(212,168,81,.15)":"transparent",border:"1px solid "+(viewYear<reviewMaxYear?"#d4a851":"#d8c79a"),color: viewYear<reviewMaxYear?"#9c7a2a":"#c9b685",cursor: viewYear<reviewMaxYear?"pointer":"not-allowed",fontSize:"11px",fontWeight:700}}>▶</button>
+        {/* ─── 표제지 ─── */}
+        <div className="sb-tp">
+          <div className="sb-om">Present · 지금</div>
+          <div className="sb-h2">Story Book</div>
+          <div className="sb-rule"/>
+          <p>지금까지의 모든 에피소드가 모여 만든 오늘의 나<br/>— 여기서 다음 한 페이지가 시작됩니다</p>
         </div>
-        <div className="heading-script" style={{textAlign:"center",fontSize:"14px",color:"#9c7a2a",marginBottom:"14px"}}>시리즈 펼쳐 보기</div>
 
-        {/* 12 chapter grid — Ch.N + 챕터 제목 (없으면 N월) */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"6px",marginBottom:"18px"}}>
+        {/* ─── 세 지표 (세계관 규칙) ─── */}
+        <div className="sb-stats">
+          <div className="sb-stat">
+            <div className="n">{dayCount}</div><div className="k">DAY</div>
+            <div className="d">시작한 날부터</div>
+          </div>
+          <div className="sb-stat">
+            <div className="n">{totalPages}</div><div className="k">PAGE</div>
+            <div className="d">다 채운 하루</div>
+          </div>
+          <div className="sb-stat">
+            <div className="n">{cashTotal}</div><div className="k">C.A.S.H</div>
+            <div className="d">실행한 스토리</div>
+          </div>
+        </div>
+
+        {/* ─── 목차 ─── */}
+        <div className="sb-sect"><span className="k">Contents</span><span className="l"/></div>
+        <div className="sb-yr">
+          <button onClick={()=>{ if (viewYear > startYear) { setViewYear(y=>y-1); setSelectedChapter(1); } }} disabled={viewYear<=startYear}>◀</button>
+          <b>{viewYear}</b>
+          <button onClick={()=>{ if (viewYear < reviewMaxYear) { setViewYear(y=>y+1); setSelectedChapter(1); } }} disabled={viewYear>=reviewMaxYear}>▶</button>
+        </div>
+
+        <div>
           {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => {
             const stats = monthAnalysis(viewYear, m);
             const isSelected = m === selectedChapter;
             const isCurrent = viewYear === todayD.getFullYear() && m === todayD.getMonth() + 1;
             const isLocked = isLockedChapter(viewYear, m);
-            const hasAny = stats.completed + stats.partial > 0;
             const chTitle = getChapterTitle(viewYear, m);
-
-            let bg, border, prefixColor, monthColor, titleColor;
-            if (isLocked) {
-              bg = "rgba(60,42,24,.08)";
-              border = "1px solid rgba(106,85,56,.25)";
-              prefixColor = "#b8a880"; monthColor = "#b8a880"; titleColor = "#b8a880";
-            } else if (isSelected) {
-              bg = "linear-gradient(135deg,rgba(212,168,81,.3),rgba(184,134,47,.15))";
-              border = "2px solid #d4a851";
-              prefixColor = "#d4a851"; monthColor = "#9c7a2a"; titleColor = "#9c7a2a";
-            } else if (hasAny) {
-              bg = "rgba(184,134,47,.1)";
-              border = "1px solid rgba(184,134,47,.5)";
-              prefixColor = "#b8924a"; monthColor = "#8a6730"; titleColor = "#6b4f30";
-            } else if (isCurrent) {
-              bg = "rgba(212,168,81,.08)";
-              border = "1.5px solid rgba(212,168,81,.55)";
-              prefixColor = "#d4a851"; monthColor = "#9c7a2a"; titleColor = "#9c7a2a";
-            } else {
-              bg = "rgba(255,253,245,.5)";
-              border = "1px dashed #c9b685";
-              prefixColor = "#b89066"; monthColor = "#a99068"; titleColor = "#a99068";
-            }
-
             return (
               <button key={m}
+                className={"sb-tr" + (isLocked ? " off" : isSelected ? " on" : "")}
                 onClick={()=>{ if (!isLocked) setSelectedChapter(m); }}
                 disabled={isLocked}
-                title={isLocked ? "시작월 이전" : ""}
-                style={{
-                  padding:"10px 4px",background:bg,border:border,borderRadius:"7px",
-                  cursor: isLocked?"not-allowed":"pointer",
-                  textAlign:"center",fontFamily:"inherit",
-                  boxShadow: isSelected ? "0 0 12px rgba(212,168,81,.35)" : "none",
-                  opacity: isLocked ? .55 : 1,
-                  transition:"all .2s",
-                  minHeight:"68px"
-                }}>
-                <div className="heading-latin" style={{color:prefixColor,fontWeight:700,letterSpacing:"1px",lineHeight:1.05,display:"flex",alignItems:"baseline",justifyContent:"center",gap:"1px"}}>
-                  <span style={{fontSize:"10px"}}>Ch.</span>
-                  <span style={{fontSize:"22px"}}>{m}</span>
-                </div>
-                <div className="heading-serif" style={{
-                  fontSize: chTitle ? "11px" : "12px",
-                  color:titleColor,
-                  fontWeight: chTitle ? 700 : 500,
-                  marginTop:"4px",
-                  lineHeight:1.2,
-                  minHeight:"14px",
-                  overflow:"hidden",
-                  textOverflow:"ellipsis",
-                  display:"-webkit-box",
-                  WebkitLineClamp:2,
-                  WebkitBoxOrient:"vertical",
-                  padding:"0 2px",
-                  fontStyle: chTitle ? "normal" : "italic"
-                }}>{chTitle || (m + "월")}</div>
-                {stats.completed > 0 && !isLocked && (
-                  <div style={{fontSize:"9px",color:"#d4a851",fontWeight:700,marginTop:"3px"}}>★ {stats.completed}</div>
-                )}
+                title={isLocked ? "시작월 이전" : ""}>
+                <span className="c">Ch. {m}</span>
+                <span className="t">{chTitle || (m + "월")}</span>
+                <span className="dots"/>
+                {isCurrent && !isLocked && <span className="now">NOW</span>}
+                <span className="p">{isLocked ? "—" : stats.completed}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Selected chapter detail panel — 분석 + 캘린더 + 선택된 날짜 디테일 */}
-        <div key={`${viewYear}-${selectedChapter}`} style={{padding:"16px 14px",background:"#fffaf0",border:"1px solid #d4a851",borderRadius:"10px",position:"relative",animation:"fadeIn .25s"}}>
-          <div style={{position:"absolute",inset:"5px",border:"1px solid rgba(184,134,47,.2)",borderRadius:"7px",pointerEvents:"none"}}/>
-
-          {/* Chapter header — CHAPTER N + Ch.N + editable title */}
-          <div style={{textAlign:"center",marginBottom:"16px",position:"relative"}}>
-            <div className="heading-latin" style={{fontSize:"11px",color:"#b8924a",letterSpacing:"3px",fontWeight:700}}>CHAPTER {selectedChapter}</div>
-            <div className="heading-latin" style={{fontSize:"32px",color:"#9c7a2a",fontWeight:700,letterSpacing:"3px",lineHeight:1,marginTop:"2px"}}>Ch.{selectedChapter}</div>
-            <div style={{marginTop:"10px",position:"relative"}}>
-              <input
-                value={chapterTitleInput}
-                onChange={e=>setChapterTitleInput(e.target.value)}
-                onBlur={saveChapterTitle}
-                onKeyDown={e=>{ if(e.key==="Enter"&&!e.nativeEvent.isComposing){ e.target.blur(); }}}
-                placeholder={`${selectedChapter}월의 제목을 적어보세요`}
-                maxLength={30}
-                style={{
-                  width:"100%",
-                  background:"transparent",
-                  border:"none",
-                  borderBottom:"1px dashed rgba(184,134,47,.55)",
-                  textAlign:"center",
-                  fontFamily:"'Nanum Pen Script', cursive",
-                  fontSize:"24px",
-                  color:"#9c7a2a",
-                  padding:"4px 0 6px",
-                  lineHeight:1.3,
-                  outline:"none",
-                  fontWeight:700
-                }}
-              />
-              <div style={{fontSize:"9px",color:"#b89066",marginTop:"3px",fontStyle:"italic"}}>✍️ 직접 적은 제목이 챕터 카드에 그대로 표시됩니다</div>
-            </div>
-            <div style={{width:"40px",height:"1px",background:"rgba(184,134,47,.45)",margin:"12px auto 6px"}}/>
-            <div className="heading-script" style={{fontSize:"15px",color:"#b8924a",lineHeight:1.3}}>한 챕터를 다시 펼쳐 봅니다</div>
+        {/* ─── 펼친 챕터 ─── */}
+        <div className="sb-ch" key={`${viewYear}-${selectedChapter}`} style={{animation:"fadeIn .25s"}}>
+          <div className="sb-chh">
+            <div className="sb-om">Chapter {selectedChapter}</div>
+            <div className="sb-chn">Ch. {selectedChapter}</div>
+            <input
+              className="sb-cht"
+              value={chapterTitleInput}
+              onChange={e=>setChapterTitleInput(e.target.value)}
+              onBlur={saveChapterTitle}
+              onKeyDown={e=>{ if(e.key==="Enter"&&!e.nativeEvent.isComposing){ e.target.blur(); }}}
+              placeholder={`${selectedChapter}월의 제목을 적어보세요`}
+              maxLength={30}
+            />
+            <div className="sb-hint">✍️ 직접 적은 제목이 목차에 그대로 실립니다</div>
           </div>
 
           {/* 데일리 페이지 달성률 */}
-          <div style={{marginBottom:"16px",position:"relative"}}>
-            <div className="heading-serif" style={{fontSize:"12px",color:"#6b4f30",fontWeight:700,marginBottom:"6px",letterSpacing:".5px",borderBottom:"1px dashed #d8c79a",paddingBottom:"4px"}}>★ 데일리 페이지 달성률</div>
-            <div style={{display:"flex",justifyContent:"space-between",fontSize:"11px",marginBottom:"6px",color:"#8a7556"}}>
-              <span>{analysis.days}일 중 <span style={{color:"#d4a851",fontWeight:700}}>{analysis.completed}일</span> 페이지 완성</span>
-              <span className="heading-latin" style={{color:"#d4a851",fontWeight:700,letterSpacing:"1px"}}>{completionPct}%</span>
+          <div className="sb-blk">
+            <div className="h">★ 데일리 페이지 달성률</div>
+            <div className="sb-row">
+              <span>{analysis.days}일 중 <b>{analysis.completed}일</b> 페이지 완성</span>
+              <b>{completionPct}%</b>
             </div>
-            <div style={{height:"8px",background:"#e8dcb5",borderRadius:"4px",overflow:"hidden"}}>
-              <div style={{width:completionPct+"%",height:"100%",background:"linear-gradient(90deg,#d4a851,#b8862f)",transition:"width .4s",borderRadius:"4px"}}/>
-            </div>
+            <div className="sb-bar"><i style={{width:completionPct+"%"}}/></div>
           </div>
 
           {/* 에피소드 수행 현황 */}
-          <div style={{marginBottom:"16px",position:"relative"}}>
-            <div className="heading-serif" style={{fontSize:"12px",color:"#6b4f30",fontWeight:700,marginBottom:"8px",letterSpacing:".5px",borderBottom:"1px dashed #d8c79a",paddingBottom:"4px"}}>📚 에피소드 수행 현황</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"6px"}}>
+          <div className="sb-blk">
+            <div className="h">📚 에피소드 수행 현황</div>
+            <div className="sb-three">
               {[
-                {label:"완벽한 날", value:analysis.completed, color:"#5a8c4a", bg:"rgba(90,140,74,.1)"},
-                {label:"부분 달성",  value:analysis.partial,   color:"#c97a3a", bg:"rgba(201,122,58,.1)"},
-                {label:"총 인증",   value:analysis.totalAuthPhotos, color:"#9c7a2a", bg:"rgba(212,168,81,.1)"}
+                {label:"완벽한 날", value:analysis.completed,       color:"#46834a"},
+                {label:"부분 달성", value:analysis.partial,         color:"#c8901f"},
+                {label:"총 인증",   value:analysis.totalAuthPhotos, color:"#9c7420"}
               ].map((s,i)=>(
-                <div key={i} style={{padding:"10px 4px",background:s.bg,border:"1px solid "+s.color+"66",borderRadius:"6px",textAlign:"center"}}>
-                  <div className="heading-serif" style={{fontSize:"19px",fontWeight:700,color:s.color,lineHeight:1}}>{s.value}</div>
-                  <div style={{fontSize:"9px",color:"#8a7556",marginTop:"4px",letterSpacing:".5px"}}>{s.label}</div>
+                <div key={i}>
+                  <div className="v" style={{color:s.color}}>{s.value}</div>
+                  <div className="l">{s.label}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* C.A.S.H 영역별 활동 */}
-          <div style={{position:"relative",marginBottom:"4px"}}>
-            <div className="heading-serif" style={{fontSize:"12px",color:"#6b4f30",fontWeight:700,marginBottom:"8px",letterSpacing:".5px",borderBottom:"1px dashed #d8c79a",paddingBottom:"4px"}}>💎 C.A.S.H 영역별 활동</div>
-            {CASH_KEYS.map(k => {
-              const cnt = analysis.cashCount[k] || 0;
-              const max = Math.max(...CASH_KEYS.map(x=>analysis.cashCount[x]||0), 1);
-              const w = Math.round(cnt / max * 100);
-              return (
-                <div key={k} style={{marginBottom:"7px"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"3px"}}>
-                    <span style={{width:"18px",height:"18px",background:CC[k],color:"#fff",borderRadius:"3px",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:"10px",fontWeight:700}}>{k}</span>
-                    <span style={{fontSize:"11px",color:"#6b4f30",fontWeight:600,flex:1}}>{CK[k]} · {CL[k]}</span>
-                    <span className="heading-latin" style={{fontSize:"12px",color:CC[k],fontWeight:700,letterSpacing:"1px"}}>{cnt}<span style={{fontSize:"9px",color:"#8a7556",marginLeft:"2px"}}>건</span></span>
+          {/* C.A.S.H 영역별 활동 — L(Life)은 제외 */}
+          <div className="sb-blk">
+            <div className="h">💎 C.A.S.H 영역별 활동</div>
+            <div className="sb-cash">
+              {CASH_KEYS.map(k => {
+                const cnt = analysis.cashCount[k] || 0;
+                const max = Math.max(...CASH_KEYS.map(x=>analysis.cashCount[x]||0), 1);
+                const w = Math.round(cnt / max * 100);
+                return (
+                  <div key={k}>
+                    <div className="sb-cit">
+                      <span className="sb-sq" style={{background:EP_COL[k]}}>{k}</span>
+                      <span className="sb-nm">{CK[k]} · {CL[k]}</span>
+                      <span className="sb-ct" style={{color:EP_INK[k]}}>{cnt}</span>
+                    </div>
+                    <div className="sb-tk"><i style={{width:w+"%",background:EP_COL[k],opacity:cnt>0?1:0}}/></div>
                   </div>
-                  <div style={{height:"4px",background:"rgba(184,134,47,.12)",borderRadius:"2px",overflow:"hidden"}}>
-                    <div style={{width:w+"%",height:"100%",background:CC[k],transition:"width .4s",borderRadius:"2px",opacity: cnt > 0 ? 1 : 0}}/>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
           {analysis.totalDoneTasks === 0 && (
-            <div style={{marginTop:"14px",padding:"12px",fontSize:"11px",color:"#a99068",fontStyle:"italic",textAlign:"center",background:"rgba(245,236,217,.5)",borderRadius:"6px",border:"1px dashed #d8c79a",lineHeight:1.7}}>
+            <div className="sb-empty">
               이 챕터에는 아직 기록된 페이지가 없습니다.<br/>
               <span style={{color:"#9c7a2a",fontWeight:700,fontStyle:"normal"}}>오늘부터 한 줄씩 써내려가 보세요.</span>
             </div>
           )}
 
-          {/* ─── 이 달의 페이지 (캘린더) — 챕터 패널 안에 임베드 ─── */}
-          <div style={{marginTop:"22px",paddingTop:"16px",borderTop:"1px dashed #d8c79a",position:"relative"}}>
-            <div className="heading-script" style={{textAlign:"center",fontSize:"15px",color:"#9c7a2a",marginBottom:"12px"}}>이 달의 페이지</div>
+          {/* ─── 이 달의 페이지 (캘린더) ─── */}
+          <div className="sb-blk" style={{marginTop:"18px"}}>
+            <div className="h">🗓 이 달의 페이지</div>
 
-            {/* Day-of-week */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:"4px",marginBottom:"4px"}}>
+            <div className="sb-calh">
               {["일","월","화","수","목","금","토"].map((d,i)=>(
-                <div key={d} style={{textAlign:"center",fontSize:"10px",fontWeight:700,padding:"4px 0",color: i===0?"#b85450":i===6?"#4a7ba8":"#8a7556",letterSpacing:".5px"}}>{d}</div>
+                <div key={d} style={{color: i===0?"#b23f39":i===6?"#3d6fa0":"#8a7556"}}>{d}</div>
               ))}
             </div>
 
-            {/* Day cells — 종이 노트 카드 느낌 */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:"4px"}}>
+            <div className="sb-cal">
               {cells.map((d,i) => {
                 if (d === null) return <div key={"e"+i}/>;
                 const ds = dateStr(d);
                 const status = dayStatus(d);
-                const isToday = ds === todayK;
-                const isSelected = ds === selectedDate;
                 const isLocked = isBeforeStart(d);
                 const isFuture = isFutureDay(d);
-
-                let bg, border, color, mark, shadow;
-                if (isLocked) {
-                  bg = "rgba(60,42,24,.08)";
-                  border = "1px solid rgba(106,85,56,.25)";
-                  color = "#b8a880";
-                  mark = "";
-                  shadow = "none";
-                } else if (status === "completed") {
-                  bg = "linear-gradient(135deg,#d4a851 0%,#b8862f 100%)";
-                  border = "1px solid #9c7a2a";
-                  color = "#fff";
-                  mark = "★";
-                  shadow = "0 2px 5px rgba(184,134,47,.4), inset 0 -2px 0 rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.25)";
-                } else if (status === "partial") {
-                  bg = "linear-gradient(135deg,#fef9e8,#f5ecd9)";
-                  border = "1px solid rgba(184,134,47,.55)";
-                  color = "#9c7a2a";
-                  mark = "·";
-                  shadow = "0 1px 3px rgba(184,134,47,.18)";
-                } else if (isFuture) {
-                  bg = "rgba(255,253,245,.35)";
-                  border = "1px dashed rgba(184,134,47,.18)";
-                  color = "#c9b685";
-                  mark = "";
-                  shadow = "none";
-                } else {
-                  bg = "linear-gradient(135deg,#fdf8e8,#f5ecd9)";
-                  border = "1px solid rgba(184,134,47,.3)";
-                  color = "#a99068";
-                  mark = "";
-                  shadow = "0 1px 2px rgba(0,0,0,.05)";
-                }
-                if (isSelected && !isLocked) {
-                  border = "2px solid #d4a851";
-                  shadow = "0 0 12px rgba(212,168,81,.5), inset 0 0 0 1px rgba(255,253,245,.3)";
-                } else if (isToday && !isLocked) {
-                  border = "2px solid #d4a851";
-                }
-
+                let cls = "sb-cell";
+                if (isLocked) cls += " pre";
+                else if (status === "completed") cls += " full";
+                else if (status === "partial") cls += " part";
+                else if (isFuture) cls += " fut";
+                if (ds === selectedDate && !isLocked) cls += " sel";
+                else if (ds === todayK && !isLocked) cls += " now";
                 return (
-                  <button key={i}
+                  <button key={i} className={cls}
                     onClick={()=>{ if (!isLocked) setSelectedDate(ds); }}
                     disabled={isLocked}
-                    title={isLocked ? "시작일 이전" : ""}
-                    style={{
-                      aspectRatio:"1",
-                      background: bg,
-                      border: border,
-                      borderRadius:"5px",
-                      cursor: isLocked ? "not-allowed" : "pointer",
-                      position:"relative",padding:"2px 0",
-                      display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
-                      fontFamily:"inherit",
-                      boxShadow: shadow,
-                      transition:"transform .12s",
-                      opacity: isLocked ? .55 : 1
-                    }}>
-                    <div className="heading-serif" style={{
-                      fontSize:"13px",
-                      color: color,
-                      fontWeight: status==="completed"?700:500,
-                      lineHeight:1,
-                      textShadow: status === "completed" ? "0 1px 1px rgba(0,0,0,.18)" : "none"
-                    }}>{d}</div>
-                    {mark && <div style={{
-                      fontSize: status==="completed" ? "11px" : "14px",
-                      color: status==="completed" ? "#fff8e5" : "#b8924a",
-                      lineHeight:1,marginTop:"2px",
-                      textShadow: status === "completed" ? "0 1px 2px rgba(0,0,0,.2)" : "none"
-                    }}>{mark}</div>}
-                  </button>
+                    title={isLocked ? "시작일 이전" : ""}>{d}</button>
                 );
               })}
             </div>
 
-            {/* Legend */}
-            <div style={{display:"flex",justifyContent:"center",gap:"12px",marginTop:"12px",fontSize:"10px",color:"#8a7556",paddingTop:"10px",borderTop:"1px dashed #d8c79a",flexWrap:"wrap"}}>
-              <span><span style={{display:"inline-block",width:"10px",height:"10px",background:"linear-gradient(135deg,#d4a851,#b8862f)",borderRadius:"2px",marginRight:"4px",verticalAlign:"middle"}}/>페이지 완성</span>
-              <span><span style={{display:"inline-block",width:"10px",height:"10px",background:"linear-gradient(135deg,#fef9e8,#f5ecd9)",border:"1px solid rgba(184,134,47,.55)",borderRadius:"2px",marginRight:"4px",verticalAlign:"middle"}}/>부분 달성</span>
-              <span style={{color:"#a99068"}}>활동 없음</span>
+            <div className="sb-lgd">
+              <span><s style={{background:"linear-gradient(140deg,#d9b25c,#a8792a)"}}/>페이지 완성</span>
+              <span><s style={{background:"#fdf5e2",border:"1px solid rgba(184,134,47,.5)"}}/>부분 달성</span>
+              <span style={{color:"#a89066"}}>활동 없음</span>
             </div>
 
             {/* Selected day detail — 종이 찢어낸 페이지 디자인 */}
@@ -2306,11 +2274,12 @@ function HistoryPage({data, setData}) {
             })()}
           </div>
         </div>
-      </div>
 
-      <div style={{textAlign:"center",fontSize:"10px",color:"#8a7556",marginTop:"14px",padding:"10px",background:"rgba(212,168,81,.08)",borderRadius:"6px",lineHeight:1.7,fontStyle:"italic"}}>
-        💭 지금까지 쌓인 모든 페이지가 곧 오늘의 나 — 여기서 내일의 한 페이지가 시작됩니다
-      </div>
+        <div className="sb-colo">
+          지금까지 쌓인 모든 페이지가 곧 오늘의 나<br/>— 여기서 내일의 한 페이지가 시작됩니다
+        </div>
+
+      </div></div>
     </div>
   );
 }
@@ -2392,7 +2361,7 @@ function CoverPage({data, setData}) {
 // ═════════════════════════════════════════════════════════════════════
 const PAGES = [
   {key:"workshop", label:"Notes",     title:"Notes",     sub:"노트"},
-  {key:"now",      label:"Scrapbook", title:"Scrapbook", sub:"스크랩북"},
+  {key:"now",      label:"Story",     title:"Story",     sub:"스토리북"},
   {key:"writing",  label:"Page",      title:"Page",      sub:"오늘의 페이지"},
   {key:"chapters", label:"Books",     title:"Books",     sub:"이달의 책"},
   {key:"climax",   label:"Shelf",     title:"Shelf",     sub:"올해의 책장"},
