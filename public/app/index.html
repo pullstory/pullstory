@@ -733,6 +733,37 @@ async function resetSave(uid, data) {
   await fbDb.collection("scashbook").doc(uid).set(data);
 }
 
+// ── 사진 저장소 ──────────────────────────────────────────────
+// Firestore 문서 하나당 사진 한 장. 문서마다 1MB 한도를 따로 쓰기 때문에
+// 사진을 본 문서에 넣던 방식과 달리 장수 제한이 사실상 사라진다.
+const photoCache = new Map();   // photoId → dataURI (세션 동안 재요청 안 하게)
+
+async function savePhoto(uid, dataUri) {
+  if (!dataUri) return null;
+  if (!FIREBASE_READY || !uid || uid === "local-user") return {inline: dataUri};
+  try {
+    const ref = fbDb.collection("photos").doc();
+    await ref.set({ownerUid: uid, data: dataUri, visibility: "private", createdAt: Date.now()});
+    photoCache.set(ref.id, dataUri);
+    return {id: ref.id};
+  } catch (e) {
+    console.warn("Photo save failed:", e);
+    return {inline: dataUri};   // 실패해도 기록은 남게 — 예전처럼 본문에 담는다
+  }
+}
+
+async function loadPhoto(id) {
+  if (!id) return null;
+  if (photoCache.has(id)) return photoCache.get(id);
+  if (!FIREBASE_READY) return null;
+  try {
+    const snap = await fbDb.collection("photos").doc(id).get();
+    const d = snap.exists ? (snap.data().data || null) : null;
+    if (d) photoCache.set(id, d);
+    return d;
+  } catch (e) { console.warn("Photo load failed:", e); return null; }
+}
+
 async function loadRemote(uid) {
   if (!FIREBASE_READY || !uid) return null;
   try {
@@ -1225,6 +1256,27 @@ function AutoTA({value, onChange, onBlur, placeholder, className}) {
     onChange={e=>{ onChange(e); resize(); }} onInput={resize} onBlur={onBlur}/>;
 }
 
+// 인증 사진 — 예전 기록은 base64가 본문에 그대로(src), 새 기록은 photoId만 들고 있다.
+// 둘 다 받아서 알아서 그린다.
+function Photo({src, id, alt, className, style, onClick}) {
+  const [url, setUrl] = useState(src || (id ? photoCache.get(id) : null) || null);
+  useEffect(() => {
+    if (src) { setUrl(src); return; }
+    if (!id) { setUrl(null); return; }
+    const hit = photoCache.get(id);
+    if (hit) { setUrl(hit); return; }
+    let alive = true;
+    loadPhoto(id).then(d => { if (alive) setUrl(d); });
+    return () => { alive = false; };
+  }, [src, id]);
+
+  if (!url) {
+    return <div className={className} style={{...(style||{}), minHeight:"54px",
+      background:"rgba(120,90,40,.09)", border:"1px dashed rgba(120,90,40,.2)"}}/>;
+  }
+  return <img src={url} alt={alt||""} className={className} style={style} onClick={onClick}/>;
+}
+
 function Spine({b}) {
   return <div className="sf-sp" style={{width:b.w+"px",height:b.h+"px",background:b.c}}>{b.d ? <span className={b.d}/> : null}</div>;
 }
@@ -1386,7 +1438,7 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
       const dayN = span.start ? daysBetween(span.start, k) : 0;
       return (
         <div key={i} className="bd-qb">
-          {t.photo && <img src={t.photo} alt=""/>}
+          {(t.photo || t.photoId) && <Photo src={t.photo} id={t.photoId}/>}
           <div className="bd-qc">{dayN > 0 ? `DAY ${dayN} — ` : ""}&ldquo;{t.memo || "메모 없음"}&rdquo;</div>
         </div>
       );
@@ -1482,7 +1534,7 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
                   <div className="bd-pkb">
                     {peek ? (
                       <div>
-                        {peek.task.photo && <img src={peek.task.photo} alt="인증 사진"/>}
+                        {(peek.task.photo || peek.task.photoId) && <Photo src={peek.task.photo} id={peek.task.photoId} alt="인증 사진"/>}
                         <div className="bd-pkm">{peek.task.memo || "메모 없음"}</div>
                         <button className="bd-quote" onClick={()=>quoteToWrite(openDay)}>✎ 이 기록을 Write에 인용하기</button>
                       </div>
@@ -1664,7 +1716,7 @@ function HomePage({data, setData}) {
 // 챕터에서 정한 월별 계획을 하루 단위로 가져와 실행, 사진+메모로 인증.
 // 모두 완료 시 자정에 page +1 (게임 경험치처럼).
 // ═════════════════════════════════════════════════════════════════════
-function EpisodePage({data, setData}) {
+function EpisodePage({data, setData, user}) {
   const todayKey = todayStr();
   const todayDate = new Date();
   const wd = ["SUN","MON","TUE","WED","THU","FRI","SAT"][todayDate.getDay()];
@@ -1921,12 +1973,22 @@ function EpisodePage({data, setData}) {
     e.target.value = "";
   };
 
-  const submitVerify = () => {
+  const [saving, setSaving] = useState(false);
+
+  const submitVerify = async () => {
     if (!verifyPhoto) { alert("인증 사진을 찍어주세요."); return; }
     if (!verifyMemo.trim()) { alert("간단한 메모를 작성해주세요."); return; }
+    if (saving) return;
+    setSaving(true);
+    // 사진은 photos 컬렉션에 따로 저장하고 기록엔 id만 남긴다 (본 문서 1MB 한도 회피)
+    const saved = await savePhoto(user && user.uid, verifyPhoto);
+    setSaving(false);
+    const photoFields = saved && saved.id
+      ? {photoId: saved.id, photo: null}
+      : {photo: (saved && saved.inline) || verifyPhoto};
     const targetTask = tasks.find(t => t.id === verifyId);
     // doneAt = 완료한 시각 → 스토리 정렬 기준
-    const newTasks = tasks.map(t => t.id === verifyId ? {...t, done: true, doneAt: Date.now(), photo: verifyPhoto, memo: verifyMemo.trim()} : t);
+    const newTasks = tasks.map(t => t.id === verifyId ? {...t, done: true, doneAt: Date.now(), ...photoFields, memo: verifyMemo.trim()} : t);
     let next = {...data, pageRecords: {...(data.pageRecords||{}), [todayKey]: {...(data.pageRecords||{})[todayKey]||{}, tasks: newTasks}}, startDate: data.startDate||todayKey};
     // 습관 자동 연동
     if (targetTask && targetTask.sourceTaskId) {
@@ -2016,10 +2078,10 @@ function EpisodePage({data, setData}) {
                   {tm && <span className="td-tm">{tm}</span>}
                 </div>
                 <div className="td-stt">{t.text}</div>
-                {t.photo && (
+                {(t.photo || t.photoId) && (
                   <div className="td-photo">
                     <div className="td-tape"/>
-                    <img src={t.photo} alt="인증 사진"/>
+                    <Photo src={t.photo} id={t.photoId} alt="인증 사진"/>
                   </div>
                 )}
                 <AutoTA className="td-memo" value={t.memo||""} placeholder="이 순간을 한 줄로 남겨보세요…"
@@ -2270,7 +2332,7 @@ function EpisodePage({data, setData}) {
               <textarea className="input" rows={3} value={verifyMemo} onChange={e=>setVerifyMemo(e.target.value)} placeholder="이 에피소드에서 어떤 변화/느낌이 있었나요?"/>
             </div>
 
-            <button onClick={submitVerify} className="btn-gold" style={{width:"100%",padding:"12px",fontSize:"13px",letterSpacing:"2px",marginBottom:"6px"}}>✓ 인증 완료</button>
+            <button onClick={submitVerify} disabled={saving} className="btn-gold" style={{width:"100%",padding:"12px",fontSize:"13px",letterSpacing:"2px",marginBottom:"6px"}}>{saving ? "저장 중…" : "✓ 인증 완료"}</button>
             <button onClick={cancelVerify} style={{width:"100%",padding:"8px",background:"transparent",border:"1px solid #6a5538",color:"#6a5538",borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontFamily:"inherit"}}>취소</button>
           </div>
         </div>,
@@ -2393,7 +2455,7 @@ function HistoryPage({data, setData}) {
       // 에피소드 개수 지표는 L 제외
       const doneCash = done.filter(isCash);
       totalDoneTasks += doneCash.length;
-      totalAuthPhotos += doneCash.filter(t => t.photo).length;
+      totalAuthPhotos += doneCash.filter(t => t.photo || t.photoId).length;
       doneCash.forEach(t => { if (cashCount[t.cat] !== undefined) cashCount[t.cat]++; });
     }
     return {days, completed, partial, totalDoneTasks, totalAuthPhotos, cashCount};
@@ -2665,8 +2727,8 @@ function HistoryPage({data, setData}) {
                                 <span style={{padding:"2px 6px",background:CC[t.cat],color:"#fff",borderRadius:"3px",fontSize:"9px",fontWeight:700}}>{t.cat}</span>
                                 <span className="heading-serif" style={{flex:1,fontSize:"13px",color:"#3a2818",fontWeight:600,wordBreak:"break-word"}}>{t.text}</span>
                               </div>
-                              {t.photo && (
-                                <img src={t.photo} alt="" style={{width:"100%",borderRadius:"4px",marginBottom:t.memo?"8px":0,display:"block",border:"1px solid #d8c79a"}}/>
+                              {(t.photo || t.photoId) && (
+                                <Photo src={t.photo} id={t.photoId} style={{width:"100%",borderRadius:"4px",marginBottom:t.memo?"8px":0,display:"block",border:"1px solid #d8c79a"}}/>
                               )}
                               {t.memo && (
                                 <div className="heading-serif" style={{fontSize:"12px",color:"#3a2818",lineHeight:1.7,fontStyle:"italic",padding:"8px 10px",background:"rgba(245,236,217,.5)",borderLeft:"2px solid "+CC[t.cat],borderRadius:"0 3px 3px 0"}}>&ldquo;{t.memo}&rdquo;</div>
@@ -2991,7 +3053,7 @@ function PageBook({data, setData, onLogout, user}) {
       case "future":   return <FuturePage   data={data} setData={setData}/>;
       case "climax":   return <GoalsPage    data={data} setData={setData}/>;
       case "chapters": return <HomePage     data={data} setData={setData}/>;
-      case "writing":  return <EpisodePage  data={data} setData={setData}/>;
+      case "writing":  return <EpisodePage  data={data} setData={setData} user={user}/>;
       case "now":      return <HistoryPage  data={data} setData={setData}/>;
       case "workshop": return <WorkshopPage user={user}/>;
       default: return null;
