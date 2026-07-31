@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Scash Book">
+<meta name="apple-mobile-web-app-title" content="CASH Room">
 <meta name="theme-color" content="#3a2c1e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>Scash Book — 나의 인생 스토리</title>
+<title>CASH Room — 나의 인생 스토리</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&family=Nanum+Pen+Script&family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&display=swap" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -638,6 +638,17 @@ function dayKeyOf(startK, day) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
+// 그날이 '완성된 페이지'인지.
+// 자정 처리가 pageEarned를 붙인다(옛 기록은 completed). 아직 처리 안 된 오늘은
+// 그날 적은 걸 다 끝냈는지로 직접 판단한다.
+function isPageDone(r) {
+  if (!r) return false;
+  if (r.pageEarned || r.completed) return true;
+  if (r.processed) return false;          // 자정에 미완으로 판정된 날
+  const ts = r.tasks || [];
+  return ts.length > 0 && ts.every(t => t.done);
+}
+
 // 책의 표 범위 — 습관은 시작일+목표기간, 성취는 시작일+데드라인
 function bookSpan(book) {
   if (!book) return {key:"habit", start:"", duration:0};
@@ -843,7 +854,7 @@ function LoginScreen({onLogin}) {
   return (
     <div style={{height:"100%",background:"radial-gradient(ellipse at center,#3a2c1e 0%,#1a0f08 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",opacity:show?1:0,transition:"opacity 1.2s",padding:"24px",textAlign:"center"}}>
       <BrainGraphic/>
-      <div className="heading-latin" style={{fontSize:"44px",color:"#d4a851",marginTop:"20px",letterSpacing:"3px",fontWeight:700}}>Scash Book</div>
+      <div className="heading-latin" style={{fontSize:"44px",color:"#d4a851",marginTop:"20px",letterSpacing:"3px",fontWeight:700}}>CASH Room</div>
       <div className="heading-serif" style={{fontSize:"12px",color:"#9c7a2a",marginTop:"4px",letterSpacing:"4px"}}>S T O R Y · C A S H · B O O K</div>
       <div style={{maxWidth:"320px",fontSize:"12px",color:"#8a7556",marginTop:"32px",lineHeight:1.8}}>
         끌어당김의 핵심은 <span style={{color:"#d4a851"}}>반복</span>.<br/>
@@ -2430,7 +2441,7 @@ function HistoryPage({data, setData}) {
   const dayStatus = (d) => {
     const r = records[dateStr(d)];
     if (!r) return "empty";
-    if (r.completed) return "completed";
+    if (isPageDone(r)) return "completed";
     const tasks = r.tasks || [];
     if (tasks.some(t => t.done)) return "partial";
     return "empty";
@@ -2473,7 +2484,7 @@ function HistoryPage({data, setData}) {
       const tasks = r.tasks || [];
       const done = tasks.filter(t => t.done);
       // 하루 완성 여부는 L 포함 — 그날 적은 걸 전부 끝냈는지의 문제라서
-      if (r.completed) completed++;
+      if (isPageDone(r)) completed++;
       else if (done.length > 0) partial++;
       // 에피소드 개수 지표는 L 제외
       const doneCash = done.filter(isCash);
@@ -2668,8 +2679,8 @@ function HistoryPage({data, setData}) {
               const doneTasks = rec ? (rec.tasks||[]).filter(t => t.done) : [];
               const dayN = dn.getDate();
               const yearN = dn.getFullYear();
-              const status = rec && rec.completed ? "★ Page Up!" : doneTasks.length > 0 ? "한 줄을 더했어요" : "조용한 하루";
-              const sealed = rec && rec.completed;
+              const sealed = isPageDone(rec);
+              const status = sealed ? "★ Page Up!" : doneTasks.length > 0 ? "한 줄을 더했어요" : "조용한 하루";
 
               return (
                 <div style={{marginTop:"18px",position:"relative",animation:"fadeIn .3s"}}>
@@ -3180,7 +3191,7 @@ function PageBook({data, setData, onLogout, user}) {
         <div onClick={()=>setMenu(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:50,display:"flex",alignItems:"flex-start",justifyContent:"flex-start",animation:"fadeIn .2s"}}>
           <div onClick={e=>e.stopPropagation()} style={{width:"260px",height:"100%",background:"linear-gradient(180deg,#3a2c1e,#1a0f08)",padding:"20px",paddingTop:"max(20px,env(safe-area-inset-top))",borderRight:"1px solid #6a5538",overflow:"auto"}}>
             <div style={{textAlign:"center",marginBottom:"20px",paddingBottom:"16px",borderBottom:"1px solid #4a3520"}}>
-              <div className="heading-latin" style={{fontSize:"22px",color:"#d4a851",fontWeight:700,letterSpacing:"2px"}}>Scash Book</div>
+              <div className="heading-latin" style={{fontSize:"22px",color:"#d4a851",fontWeight:700,letterSpacing:"2px"}}>CASH Room</div>
               <div style={{fontSize:"11px",color:"#9c7a2a",marginTop:"4px"}}>{user?.name||"작가"}님</div>
               {data.bookTitle && <div className="heading-script" style={{fontSize:"15px",color:"#b8924a",marginTop:"6px"}}>『{data.bookTitle}』</div>}
             </div>
