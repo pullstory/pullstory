@@ -514,10 +514,11 @@
     line-height:24px;color:#3a2818;padding:0 2px;
     background-image:linear-gradient(rgba(120,90,40,.13) 1px,transparent 1px);
     background-size:100% 24px;background-position:0 22px}
-  .bd-pvl{font-family:'Noto Serif KR',serif;font-size:9px;font-weight:700;color:#9c7f4e;letter-spacing:.06em;
-    margin:16px 0 7px;padding-top:11px;border-top:1px dashed rgba(120,90,40,.28)}
-  .bd-pv{font-family:'Noto Serif KR',serif;font-size:12.5px;line-height:1.95;color:#3a2818;white-space:pre-wrap}
-  .bd-qb{margin:10px 0;border-left:3px solid #b8862f;padding:8px 0 8px 10px;background:rgba(212,168,81,.09)}
+  .bd-qb{position:relative;margin:10px 0;border-left:3px solid #b8862f;padding:8px 26px 8px 10px;
+    background:rgba(212,168,81,.09)}
+  .bd-qx{position:absolute;top:6px;right:6px;width:19px;height:19px;border-radius:50%;padding:0;
+    border:1px solid rgba(156,116,32,.45);background:rgba(255,253,245,.9);color:#9c7420;
+    font-size:10px;line-height:1;cursor:pointer;font-family:inherit}
   .bd-qb img{width:100%;display:block;border-radius:3px;border:2px solid #fffdf6}
   .bd-qc{font-family:'Noto Serif KR',serif;font-size:9.5px;color:#8a6d3c;margin-top:6px;font-style:italic;
     line-height:1.55}
@@ -1393,8 +1394,22 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
 
   const setPosts = (fn) => updateBook(book.id, t => ({...t, posts: fn(t.posts || [])}));
 
+  // 글은 문단과 인용이 번갈아 놓인 블록으로 이뤄진다.
+  // 예전 글은 body 문자열에 [[q:날짜]] 마커가 섞여 있어서 읽을 때 블록으로 바꾼다.
+  const toBlocks = (post) => {
+    if (Array.isArray(post.blocks)) return post.blocks;
+    const out = [];
+    String(post.body || "").split(/(\[\[q:\d{4}-\d{2}-\d{2}\]\])/g).forEach(seg => {
+      const m = seg.match(/^\[\[q:(\d{4}-\d{2}-\d{2})\]\]$/);
+      if (m) out.push({t:"q", d:m[1]});
+      else { const v = seg.replace(/^\n+|\n+$/g, ""); if (v) out.push({t:"p", v}); }
+    });
+    if (!out.length || out[out.length-1].t !== "p") out.push({t:"p", v:""});
+    return out;
+  };
+
   const addPost = () => {
-    const p = {id: Date.now() + Math.random(), title: "", body: "", ts: Date.now()};
+    const p = {id: Date.now() + Math.random(), title: "", blocks: [{t:"p", v:""}], body: "", ts: Date.now()};
     setPosts(ps => [...ps, p]);
     setEditId(p.id);
     setTab("write");
@@ -1407,17 +1422,20 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
     setEditId(null);
   };
 
-  // Story의 기록을 Write에 인용 — 본문에 [[q:날짜]] 표시만 넣고 사진은 그대로 둔다
+  // Story의 기록을 Write에 인용 — 날짜만 가리키고 사진은 원본을 그대로 쓴다
   const quoteToWrite = (day) => {
     const r = recordOfDay(day);
     if (!r) return;
-    const mark = `\n[[q:${r.date}]]\n`;
     const target = editId ? posts.find(p => p.id === editId) : posts[posts.length - 1];
     if (target) {
-      updatePost(target.id, {body: (target.body || "") + mark});
+      const bs = toBlocks(target).slice();
+      if (bs.length && bs[bs.length-1].t === "p" && !String(bs[bs.length-1].v).trim()) bs.pop();
+      bs.push({t:"q", d:r.date}, {t:"p", v:""});
+      updatePost(target.id, {blocks: bs, body: ""});
       setEditId(target.id);
     } else {
-      const p = {id: Date.now() + Math.random(), title: "", body: mark, ts: Date.now()};
+      const p = {id: Date.now() + Math.random(), title: "",
+                 blocks: [{t:"q", d:r.date}, {t:"p", v:""}], body: "", ts: Date.now()};
       setPosts(ps => [...ps, p]);
       setEditId(p.id);
     }
@@ -1425,24 +1443,24 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
     setTab("write");
   };
 
-  // 본문을 글/인용 조각으로 나눠 미리보기
-  const renderBody = (body) => {
-    const parts = String(body || "").split(/(\[\[q:\d{4}-\d{2}-\d{2}\]\])/g);
-    return parts.map((seg, i) => {
-      const m = seg.match(/^\[\[q:(\d{4}-\d{2}-\d{2})\]\]$/);
-      if (!m) return seg ? <span key={i}>{seg}</span> : null;
-      const k = m[1];
-      const rec = (records || {})[k];
-      const t = rec && (rec.tasks || []).find(x => x.done && x.sourceTaskId === book.id);
-      if (!t) return <div key={i} className="bd-qmiss">(인용한 기록을 찾을 수 없어요 — {k})</div>;
-      const dayN = span.start ? daysBetween(span.start, k) : 0;
-      return (
-        <div key={i} className="bd-qb">
-          {(t.photo || t.photoId) && <Photo src={t.photo} id={t.photoId}/>}
-          <div className="bd-qc">{dayN > 0 ? `DAY ${dayN} — ` : ""}&ldquo;{t.memo || "메모 없음"}&rdquo;</div>
-        </div>
-      );
-    });
+  // 인용 카드 — 그날 기록의 사진과 메모
+  const quoteCard = (k, i, onRemove) => {
+    const rec = (records || {})[k];
+    const t = rec && (rec.tasks || []).find(x => x.done && x.sourceTaskId === book.id);
+    const dayN = span.start ? daysBetween(span.start, k) : 0;
+    return (
+      <div key={"q"+i} className="bd-qb">
+        {onRemove && <button className="bd-qx" onClick={onRemove} title="인용 빼기">✕</button>}
+        {!t ? (
+          <div className="bd-qmiss">(인용한 기록을 찾을 수 없어요 — {k})</div>
+        ) : (
+          <div>
+            {(t.photo || t.photoId) && <Photo src={t.photo} id={t.photoId}/>}
+            <div className="bd-qc">{dayN > 0 ? `DAY ${dayN} — ` : ""}&ldquo;{t.memo || "메모 없음"}&rdquo;</div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   const editing = editId ? posts.find(p => p.id === editId) : null;
@@ -1550,14 +1568,19 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
             <div>
               <input className="bd-edt" value={editing.title} placeholder="제목"
                 onChange={e=>updatePost(editing.id,{title:e.target.value})}/>
-              <AutoTA className="bd-edb" value={editing.body} placeholder="여기에 경험과 정보를 엮어 써 내려가 보세요…"
-                onChange={e=>updatePost(editing.id,{body:e.target.value})}/>
-              {/\[\[q:/.test(editing.body || "") && (
-                <div>
-                  <div className="bd-pvl">미리보기</div>
-                  <div className="bd-pv">{renderBody(editing.body)}</div>
-                </div>
-              )}
+              {(() => {
+                const bs = toBlocks(editing);
+                const write = (nbs) => updatePost(editing.id, {blocks: nbs, body: ""});
+                return bs.map((b, i) => b.t === "p" ? (
+                  <AutoTA key={"p"+i} className="bd-edb" value={b.v}
+                    placeholder={i === 0 ? "여기에 경험과 정보를 엮어 써 내려가 보세요…" : ""}
+                    onChange={e=>write(bs.map((x,j)=> j===i ? {...x, v:e.target.value} : x))}/>
+                ) : quoteCard(b.d, i, () => {
+                  const nbs = bs.filter((_,j)=>j!==i);
+                  if (!nbs.length || nbs[nbs.length-1].t !== "p") nbs.push({t:"p", v:""});
+                  write(nbs);
+                }));
+              })()}
               <div className="mb-foot">
                 <button className="mb-fbtn done" onClick={()=>setEditId(null)}>✓ 다 썼어요</button>
                 <button className="mb-fbtn del" onClick={()=>deletePost(editing.id)}>삭제</button>
