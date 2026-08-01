@@ -521,6 +521,46 @@
     background:linear-gradient(135deg,#c8a05a,#96702a);color:#fff8ea}
   .pn-claim:disabled{background:#ddd0b4;color:#fff;cursor:not-allowed}
 
+  /* ===== Key Scene · 한 줄 · 내보내기 ===== */
+  .ks{margin-top:16px;padding-top:13px;border-top:1px solid rgba(120,90,40,.25)}
+  .ks-h{display:flex;align-items:baseline;gap:7px;margin-bottom:9px}
+  .ks-h .k{font-family:'Cormorant Garamond',Georgia,serif;font-size:12px;font-weight:700;
+    letter-spacing:.18em;color:#9c7420}
+  .ks-h .s{font-family:'Noto Serif KR',serif;font-size:9.5px;color:#a89066}
+  .ks-row{display:flex;gap:7px;flex-wrap:wrap}
+  .ks-t{width:52px;height:52px;border-radius:3px;position:relative;flex-shrink:0;overflow:hidden;padding:0;
+    border:2px solid rgba(120,90,40,.2);background:rgba(120,90,40,.07);cursor:pointer}
+  .ks-t img{width:100%;height:100%;object-fit:cover;display:block}
+  .ks-t.on{border-color:#b8862f;box-shadow:0 0 0 2px rgba(212,168,81,.35)}
+  .ks-t b{position:absolute;top:-1px;right:-1px;width:16px;height:16px;border-radius:0 2px 0 6px;
+    background:#b8862f;color:#fff8ea;font-size:9px;display:flex;align-items:center;justify-content:center}
+  .ks-n{font-family:'Noto Serif KR',serif;font-size:9px;color:#a89066;font-style:italic;margin-top:7px;
+    line-height:1.6}
+  .ks-cap{margin-top:11px}
+  .ks-cl{font-family:'Noto Serif KR',serif;font-size:9px;font-weight:700;color:#9c7f4e;margin-bottom:5px}
+  .ks-cl span{color:#b8a276;font-weight:400}
+  .ks-ci{width:100%;box-sizing:border-box;border:1px solid #d8c79a;border-radius:5px;resize:none;
+    background:rgba(255,253,245,.9);padding:8px 9px;outline:none;overflow:hidden;display:block;
+    font-family:'Noto Serif KR',serif;font-size:12px;color:#3a2818;line-height:1.6}
+  .ks-ci::placeholder{color:#c2ae86}
+
+  .sh{margin-top:14px;padding:12px;border-radius:6px;border:1px solid rgba(120,90,40,.28);
+    background:rgba(255,255,255,.5)}
+  .sh.on{border-color:#b8862f;background:rgba(212,168,81,.14)}
+  .sh.off{opacity:.72}
+  .sh-h{display:flex;align-items:center;justify-content:space-between;gap:9px}
+  .sh-h .t{font-family:'Noto Serif KR',serif;font-size:12px;font-weight:700;color:#2f2109}
+  .sh-sw{width:38px;height:21px;border-radius:12px;background:#d6c8a8;position:relative;flex-shrink:0;
+    border:none;padding:0;cursor:pointer;transition:background .2s}
+  .sh-sw::after{content:"";position:absolute;top:2.5px;left:2.5px;width:16px;height:16px;border-radius:50%;
+    background:#fffdf5;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .2s}
+  .sh.on .sh-sw{background:#5a8c4a}
+  .sh.on .sh-sw::after{left:19.5px}
+  .sh.off .sh-sw{background:#ddd0b4;cursor:not-allowed}
+  .sh-d{font-family:'Noto Serif KR',serif;font-size:9.5px;color:#8a6d3c;margin-top:8px;line-height:1.75}
+  .sh-d b{color:#8a5f14}
+  .sh-d .u{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:#8a5f14;word-break:break-all}
+
   /* ===== 책 상세 — Story / Write 두 탭 ===== */
   .bd-tabs{display:flex;margin:13px 0 15px;border-bottom:1.5px solid rgba(120,90,40,.22)}
   .bd-tabs button{flex:1;background:none;border:none;padding:9px 0 8px;cursor:pointer;position:relative;
@@ -838,6 +878,76 @@ async function loadPhoto(id) {
     if (d) photoCache.set(id, d);
     return d;
   } catch (e) { console.warn("Photo load failed:", e); return null; }
+}
+
+// ── 하루 한 장 내보내기 ──────────────────────────────────────
+// publicPages = 그 하루 전체(방문자가 열어 보는 것) · feed = 진열대 카드 한 장.
+// 원본 기록은 그대로 두고 사본만 만든다. 내리면 사본만 지운다.
+// 문서 id를 책장 주소로 만든다 — 주소는 영구·고유라 /p/{handle}/{date} 가 그대로 풀린다
+function pubIdOf(handle, date) { return handle + "_" + date; }
+
+async function setPhotosVisibility(ids, vis) {
+  if (!FIREBASE_READY) return;
+  const uniq = Array.from(new Set((ids || []).filter(Boolean)));
+  await Promise.all(uniq.map(id =>
+    fbDb.collection("photos").doc(id).set({visibility: vis}, {merge: true})
+      .catch(e => console.warn("photo visibility:", e))
+  ));
+}
+
+// 그날 완료한 에피소드를 시각 순으로
+function dayEpisodes(rec) {
+  return ((rec && rec.tasks) || []).filter(t => t.done)
+    .slice().sort((a, b) => (a.doneAt || a.id || 0) - (b.doneAt || b.id || 0));
+}
+
+// Key Scene — 고른 게 없으면 사진 있는 첫 에피소드로
+function keyEpisodeOf(rec) {
+  const eps = dayEpisodes(rec);
+  const picked = eps.find(t => t.id === (rec && rec.keyScene));
+  return picked || eps.find(t => t.photo || t.photoId) || eps[0] || null;
+}
+
+async function publishDay(uid, profile, date, rec) {
+  const eps = dayEpisodes(rec);
+  const key = keyEpisodeOf(rec);
+  const caption = ((rec && rec.caption) || "").trim();
+  const now = Date.now();
+  const common = {
+    ownerUid: uid,
+    handle: (profile && profile.handle) || "",
+    penName: (profile && profile.penName) || "",
+    date, caption,
+    keyPhotoId: (key && key.photoId) || null,
+    visibility: "public",
+    publishedAt: now,
+  };
+  if (!FIREBASE_READY || !uid || uid === "local-user" || !common.handle) return;
+  const id = pubIdOf(common.handle, date);
+  // 하루 전체 — 메모까지 담는다(들어와서 보는 사람에겐 보여야 하니까)
+  await fbDb.collection("publicPages").doc(id).set({
+    ...common,
+    episodes: eps.map(t => ({
+      cat: t.cat || "C", text: t.text || "", doneAt: t.doneAt || null,
+      photoId: t.photoId || null, memo: t.memo || "",
+    })),
+  });
+  // 진열대 카드 — 목록을 그리는 데 필요한 것만. 메모는 넣지 않는다
+  await fbDb.collection("feed").doc(id).set({
+    ...common,
+    kind: "page",
+    titles: eps.map(t => t.text || "").slice(0, 6),
+    count: eps.length,
+  });
+  await setPhotosVisibility(eps.map(t => t.photoId), "public");
+}
+
+async function unpublishDay(uid, handle, date, rec) {
+  if (!FIREBASE_READY || !uid || uid === "local-user" || !handle) return;
+  const id = pubIdOf(handle, date);
+  await fbDb.collection("publicPages").doc(id).delete().catch(e => console.warn("unpublish:", e));
+  await fbDb.collection("feed").doc(id).delete().catch(e => console.warn("unpublish:", e));
+  await setPhotosVisibility(dayEpisodes(rec).map(t => t.photoId), "private");
 }
 
 // ── 지은이 (필명 · 책장 주소) ────────────────────────────────
@@ -1430,6 +1540,7 @@ function PenNamePlate({mode, initial, suggestion, handle, uid, onSave, onClose})
   const [v, setV] = useState(initial || suggestion || "");
   const [saving, setSaving] = useState(false);
   const first = mode === "first";
+  const onlyHandle = mode === "handle";     // 처음 내보낼 때 — 주소만 묻는다
   const name = v.trim();
 
   // 책장 주소 — 아직 안 정한 사람에게만 입력칸이 뜬다
@@ -1439,7 +1550,7 @@ function PenNamePlate({mode, initial, suggestion, handle, uid, onSave, onClose})
   const hRef = useRef(0);
 
   useEffect(() => {
-    if (first || handle) return;
+    if (first || handle) return;   // 첫 화면이거나 이미 정했으면 확인할 게 없다
     const raw = h.trim().toLowerCase();
     if (!raw) { setHState({kind:"idle", msg:""}); return; }
     const err = handleError(raw);
@@ -1482,29 +1593,36 @@ function PenNamePlate({mode, initial, suggestion, handle, uid, onSave, onClose})
   const plate = (
     <div className="pn-plate" onClick={e=>e.stopPropagation()}>
       <div className="pn-ex">Ex Libris</div>
-      <div className="pn-h">{first ? "이 책을 쓰는 이름" : "필명 고치기"}</div>
+      <div className="pn-h">
+        {first ? "이 책을 쓰는 이름" : onlyHandle ? "책장 주소 정하기" : "필명 고치기"}
+      </div>
       <div className="pn-sub">
         {first
           ? <span>앞으로의 기록에 붙을 이름입니다<br/>본명이 아니어도 됩니다</span>
+          : onlyHandle
+          ? <span>처음으로 무언가를 내보내는 참입니다<br/><b>{initial}</b>의 책장이 놓일 자리를 정해 주세요</span>
           : <span>읽는 사람이 부르게 될 이름입니다</span>}
       </div>
       <div className="pn-rule"/>
 
-      <div className="pn-l">필명</div>
-      <input className="pn-in" value={v} maxLength={20} placeholder="예: 현욱"
-        onChange={e=>setV(e.target.value)}
-        onKeyDown={e=>{ if(e.key==="Enter"&&!e.nativeEvent.isComposing) submit(); }}/>
-      {first && suggestion && (
-        <div className="pn-msg">구글 계정 이름을 넣어 뒀어요. 마음에 안 들면 지우고 새로 쓰세요</div>
+      {!onlyHandle && (
+        <div>
+          <div className="pn-l">필명</div>
+          <input className="pn-in" value={v} maxLength={20} placeholder="예: 현욱"
+            onChange={e=>setV(e.target.value)}
+            onKeyDown={e=>{ if(e.key==="Enter"&&!e.nativeEvent.isComposing) submit(); }}/>
+          {first && suggestion && (
+            <div className="pn-msg">구글 계정 이름을 넣어 뒀어요. 마음에 안 들면 지우고 새로 쓰세요</div>
+          )}
+          <div className="pn-lock">
+            ✎ 필명은 <b>언제든 바꿀 수 있습니다.</b> 지금 완벽하지 않아도 괜찮아요.
+          </div>
+        </div>
       )}
-
-      <div className="pn-lock">
-        ✎ 필명은 <b>언제든 바꿀 수 있습니다.</b> 지금 완벽하지 않아도 괜찮아요.
-      </div>
 
       {!first && (
         <div>
-          <div className="pn-div"/>
+          {!onlyHandle && <div className="pn-div"/>}
           <div className="pn-l">책장 주소</div>
           {handle ? (
             <div className="pn-fixed">
@@ -1536,10 +1654,16 @@ function PenNamePlate({mode, initial, suggestion, handle, uid, onSave, onClose})
       )}
 
       <div className="pn-acts">
-        {!first && <button className="pn-cancel" onClick={onClose}>닫기</button>}
-        <button className="pn-go" disabled={!name || saving} onClick={submit}>
-          {saving ? "저장 중…" : first ? "이 이름으로 시작하기" : "필명 저장"}
-        </button>
+        {onlyHandle ? (
+          <button className="pn-cancel" style={{flex:1}} onClick={onClose}>나중에 할게요</button>
+        ) : (
+          <div style={{display:"flex",gap:"8px",width:"100%"}}>
+            {!first && <button className="pn-cancel" onClick={onClose}>닫기</button>}
+            <button className="pn-go" disabled={!name || saving} onClick={submit}>
+              {saving ? "저장 중…" : first ? "이 이름으로 시작하기" : "필명 저장"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1547,6 +1671,118 @@ function PenNamePlate({mode, initial, suggestion, handle, uid, onSave, onClose})
   if (first) return <div className="pn-scene">{plate}</div>;
   return ReactDOM.createPortal(
     <div className="pn-ov" onClick={onClose}>{plate}</div>, document.body);
+}
+
+// 하루의 끝 — Key Scene과 한 줄을 남기고, 진열대로 내보낸다.
+// Today와 Story의 날짜 상세가 같은 것을 쓴다.
+function DayShare({date, rec, updateRec, uid, profile, onNeedHandle, todayLabel}) {
+  const [busy, setBusy] = useState(false);
+  const eps = dayEpisodes(rec);
+  const withPhoto = eps.filter(t => t.photo || t.photoId);
+  const remaining = ((rec && rec.tasks) || []).filter(t => !t.done).length;
+  const canPublish = isPageDone(rec) && eps.length > 0;
+  const published = !!(rec && rec.published);
+  const keyId = (rec && rec.keyScene) || null;
+  const handle = (profile && profile.handle) || "";
+
+  // 내보낸 뒤에 내용이 바뀌면 진열된 사본도 따라 바뀐다
+  const sig = published
+    ? JSON.stringify([eps.map(t => [t.id, t.doneAt, t.photoId, t.memo]), (rec||{}).caption, keyId])
+    : "";
+  useEffect(() => {
+    if (!published || !sig || !handle) return;
+    const t = setTimeout(() => {
+      publishDay(uid, profile, date, rec).catch(e => console.warn("resync:", e));
+    }, 900);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line
+  }, [sig, published, handle]);
+
+  const toggle = async () => {
+    if (busy) return;
+    if (!published && !canPublish) return;
+    if (!published && !handle) { onNeedHandle(); return; }
+    setBusy(true);
+    try {
+      if (published) {
+        await unpublishDay(uid, handle, date, rec);
+        updateRec({published: false});
+      } else {
+        await publishDay(uid, profile, date, rec);
+        updateRec({published: true});
+      }
+    } catch (e) {
+      console.warn("publish toggle:", e);
+      alert("잘 안 됐어요. 잠시 뒤 다시 해주세요.");
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div>
+      <div className="ks">
+        <div className="ks-h">
+          <span className="k">KEY SCENE</span>
+          <span className="s">{todayLabel ? "오늘의 한 장면" : "이 날의 한 장면"}</span>
+        </div>
+
+        {withPhoto.length === 0 ? (
+          <div className="ks-n">인증한 사진이 생기면 여기서 고를 수 있어요</div>
+        ) : (
+          <div>
+            <div className="ks-row">
+              {withPhoto.map(t => (
+                <button key={t.id} className={"ks-t" + (keyId === t.id ? " on" : "")}
+                  title={t.text}
+                  onClick={()=>updateRec({keyScene: keyId === t.id ? null : t.id})}>
+                  <Photo src={t.photo} id={t.photoId}
+                    style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+                  {keyId === t.id && <b>★</b>}
+                </button>
+              ))}
+            </div>
+            <div className="ks-n">
+              {keyId ? "이 장면이 진열대의 얼굴이 됩니다"
+                     : "대표하는 한 장면을 고르세요 · 안 고르면 첫 사진으로 나갑니다"}
+            </div>
+          </div>
+        )}
+
+        <div className="ks-cap">
+          <div className="ks-cl">한 줄 <span>· 선택</span></div>
+          <AutoTA className="ks-ci" value={(rec && rec.caption) || ""}
+            placeholder="오늘은 무엇이었나요"
+            onChange={e=>updateRec({caption: e.target.value})}/>
+        </div>
+      </div>
+
+      <div className={"sh " + (published ? "on" : canPublish ? "" : "off")}>
+        <div className="sh-h">
+          <span className="t">이 페이지 내보내기</span>
+          <button className="sh-sw" onClick={toggle} disabled={busy || (!published && !canPublish)}
+            title={published ? "진열대에서 내리기" : "진열대에 올리기"}/>
+        </div>
+        <div className="sh-d">
+          {busy ? "잠시만요…"
+            : published ? (
+              <span>
+                진열 중 · <span className="u">pullstory.net/p/{handle}/{date}</span><br/>
+                내리면 진열만 그만두고 기록은 그대로 남습니다
+              </span>
+            ) : canPublish ? (
+              <span>이 하루를 진열대에 올립니다 · 언제든 내릴 수 있어요</span>
+            ) : eps.length === 0 ? (
+              <span>아직 끝낸 에피소드가 없어요</span>
+            ) : (
+              <span>
+                <b>{remaining}개만 더</b> 끝내면 내보낼 수 있어요<br/>
+                다 채운 하루만 진열대에 올라갑니다
+              </span>
+            )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function Spine({b}) {
@@ -2010,7 +2246,7 @@ function HomePage({data, setData}) {
 // 챕터에서 정한 월별 계획을 하루 단위로 가져와 실행, 사진+메모로 인증.
 // 모두 완료 시 자정에 page +1 (게임 경험치처럼).
 // ═════════════════════════════════════════════════════════════════════
-function EpisodePage({data, setData, user}) {
+function EpisodePage({data, setData, user, profile, onNeedHandle}) {
   const todayKey = todayStr();
   const todayDate = new Date();
   const wd = ["SUN","MON","TUE","WED","THU","FRI","SAT"][todayDate.getDay()];
@@ -2198,6 +2434,13 @@ function EpisodePage({data, setData, user}) {
       }
     }
     return currentData;
+  };
+
+  // 오늘 기록 자체에 쓰기 (Key Scene · 한 줄 · 공개 여부)
+  const updateTodayRec = (patch) => {
+    const records = {...(data.pageRecords||{})};
+    records[todayKey] = {...(records[todayKey]||{tasks:[]}), ...patch};
+    setData({...data, pageRecords: records, startDate: data.startDate||todayKey});
   };
 
   // 오늘 task 업데이트 헬퍼
@@ -2499,6 +2742,9 @@ function EpisodePage({data, setData, user}) {
             <div className="td-hint">한번 추가한 에피소드는 삭제할 수 없어요</div>
           </div>
 
+          <DayShare date={todayKey} rec={todayRec} updateRec={updateTodayRec}
+            uid={user && user.uid} profile={profile} onNeedHandle={onNeedHandle} todayLabel/>
+
           <div className="td-foot">
             💡 남은 할 일을 모두 끝내면 자정에 <b>page +1</b> · 미완료 항목은 자정에 사라집니다<br/>
             📚 My Books에서 가져온 습관을 끝내면 → 그 책의 습관 일정표에 자동 기록
@@ -2641,7 +2887,7 @@ function EpisodePage({data, setData, user}) {
 // 컨셉: 지금까지 써내려간 인생 책의 페이지를 펼쳐 다시 읽는 페이지.
 // 두 개의 탭: 지나온 페이지(캘린더+일별 회고) / 챕터 회고(월별 분석)
 // ═════════════════════════════════════════════════════════════════════
-function HistoryPage({data, setData}) {
+function HistoryPage({data, setData, user, profile, onNeedHandle}) {
   const records = data.pageRecords || {};
   const startDate = data.startDate || todayStr();
   const todayD = new Date();
@@ -3031,6 +3277,16 @@ function HistoryPage({data, setData}) {
                           ))}
                         </div>
                       )}
+
+                      {rec && (
+                        <DayShare date={selectedDate} rec={rec}
+                          updateRec={(patch)=>{
+                            const records = {...(data.pageRecords||{})};
+                            records[selectedDate] = {...(records[selectedDate]||{tasks:[]}), ...patch};
+                            setData({...data, pageRecords: records});
+                          }}
+                          uid={user && user.uid} profile={profile} onNeedHandle={onNeedHandle}/>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -3273,6 +3529,7 @@ function PageBook({data, setData, onLogout, user, profile, onSaveProfile}) {
   const [pageIdx, setPageIdx] = useState(() => PAGES.findIndex(p=>p.key==="future"));  // 시작: 미래
   const [menu, setMenu] = useState(false);
   const [editPen, setEditPen] = useState(false);
+  const [needHandle, setNeedHandle] = useState(false);
   const [dragDx, setDragDx] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef({active:false, x:0, y:0, moved:false});
@@ -3348,8 +3605,10 @@ function PageBook({data, setData, onLogout, user, profile, onSaveProfile}) {
       case "future":   return <FuturePage   data={data} setData={setData}/>;
       case "climax":   return <GoalsPage    data={data} setData={setData}/>;
       case "chapters": return <HomePage     data={data} setData={setData}/>;
-      case "writing":  return <EpisodePage  data={data} setData={setData} user={user}/>;
-      case "now":      return <HistoryPage  data={data} setData={setData}/>;
+      case "writing":  return <EpisodePage  data={data} setData={setData} user={user}
+                                profile={profile} onNeedHandle={()=>setNeedHandle(true)}/>;
+      case "now":      return <HistoryPage  data={data} setData={setData} user={user}
+                                profile={profile} onNeedHandle={()=>setNeedHandle(true)}/>;
       case "workshop": return <WorkshopPage user={user}/>;
       default: return null;
     }
@@ -3446,6 +3705,17 @@ function PageBook({data, setData, onLogout, user, profile, onSaveProfile}) {
           })}
         </div>
       </div>
+
+      {needHandle && (
+        <PenNamePlate
+          mode="handle"
+          initial={(profile && profile.penName) || ""}
+          handle={(profile && profile.handle) || ""}
+          uid={user && user.uid}
+          onSave={async (patch)=>{ await onSaveProfile(patch); if (patch.handle) setNeedHandle(false); }}
+          onClose={()=>setNeedHandle(false)}
+        />
+      )}
 
       {editPen && (
         <PenNamePlate
