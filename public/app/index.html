@@ -626,6 +626,30 @@
   .bd-qc{font-family:'Noto Serif KR',serif;font-size:9.5px;color:#8a6d3c;margin-top:6px;font-style:italic;
     line-height:1.55}
   .bd-qmiss{font-size:9.5px;color:#b8756a;font-style:italic}
+
+  /* 책 공개 */
+  .bp{margin-top:16px;padding:13px;border-radius:7px;border:1px solid rgba(120,90,40,.28);
+    background:rgba(255,255,255,.55)}
+  .bp.on{border-color:#b8862f;background:rgba(212,168,81,.14)}
+  .bp-h{display:flex;align-items:center;justify-content:space-between;gap:9px}
+  .bp-h .t{font-family:'Noto Serif KR',serif;font-size:12.5px;font-weight:700;color:#2f2109}
+  .bp-sw{width:38px;height:21px;border-radius:12px;background:#d6c8a8;position:relative;flex-shrink:0;
+    border:none;padding:0;cursor:pointer;transition:background .2s}
+  .bp-sw::after{content:"";position:absolute;top:2.5px;left:2.5px;width:16px;height:16px;border-radius:50%;
+    background:#fffdf5;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .2s}
+  .bp.on .bp-sw{background:#5a8c4a}
+  .bp.on .bp-sw::after{left:19.5px}
+  .bp-sw:disabled{cursor:not-allowed;background:#ddd0b4}
+  .bp-cr{margin-top:11px;display:flex;flex-direction:column;gap:8px}
+  .bp-cr > div{display:flex;align-items:flex-start;gap:7px;font-family:'Noto Serif KR',serif;
+    font-size:10px;line-height:1.6;color:#8a6d3c}
+  .bp-cr i{font-style:normal;flex-shrink:0;width:14px;height:14px;border-radius:50%;font-size:8px;
+    display:flex;align-items:center;justify-content:center;font-weight:700;margin-top:1px}
+  .bp-cr .y{color:#4a6b3e} .bp-cr .y i{background:#5a8c4a;color:#fff}
+  .bp-cr .n i{background:#ddd0b4;color:#8a7556}
+  .bp-n{font-family:'Noto Serif KR',serif;font-size:9px;color:#a89066;font-style:italic;margin-top:10px;
+    line-height:1.7}
+  .bp-n .u{font-family:ui-monospace,Menlo,monospace;font-style:normal;color:#8a5f14;word-break:break-all}
 </style>
 </head>
 <body>
@@ -948,6 +972,123 @@ async function unpublishDay(uid, handle, date, rec) {
   await fbDb.collection("publicPages").doc(id).delete().catch(e => console.warn("unpublish:", e));
   await fbDb.collection("feed").doc(id).delete().catch(e => console.warn("unpublish:", e));
   await setPhotosVisibility(dayEpisodes(rec).map(t => t.photoId), "private");
+}
+
+// ── 책 내보내기 ──────────────────────────────────────────────
+// 성취 = D-DAY 지남 + 표 60% + 글 2편 · 습관 = 표 70% + 글 2편
+const BOOK_MIN_POSTS = 2;
+
+function postIsEmpty(p) {
+  if ((p.title || "").trim()) return false;
+  if (Array.isArray(p.blocks)) {
+    return !p.blocks.some(b => b.t === "q" || String(b.v || "").trim());
+  }
+  return !String(p.body || "").trim();
+}
+
+function bookPublishChecks(book) {
+  const isHabit = taskTypeOf(book) === "habit";
+  const span = bookSpan(book);
+  const dur = span.duration;
+  const filled = new Set(((book[span.key] || {}).done) || []).size;
+  const pct = dur ? Math.round(filled / dur * 100) : 0;
+  const needPct = isHabit ? 70 : 60;
+  const posts = (book.posts || []).filter(p => !postIsEmpty(p)).length;
+  const checks = [];
+
+  if (!isHabit) {
+    const dl = (book.ach || {}).deadline || "";
+    const passed = dl ? daysBetween(dl, todayStr()) >= 2 : false;   // 데드라인 다음 날부터
+    checks.push({ok: passed,
+      text: dl ? (passed ? `D-DAY가 지났습니다 (${dl})` : `D-DAY가 지나야 합니다 (${dl})`)
+               : "데드라인을 먼저 정해 주세요"});
+  }
+  checks.push({ok: pct >= needPct,
+    text: `${isHabit ? "습관 일정표" : "D-DAY 표"}를 ${needPct}% 이상 — 현재 ${pct}%`});
+  checks.push({ok: posts >= BOOK_MIN_POSTS,
+    text: posts >= BOOK_MIN_POSTS
+      ? `Write에 글 ${BOOK_MIN_POSTS}편 이상 — 현재 ${posts}편`
+      : `Write에 글 ${BOOK_MIN_POSTS}편 이상 — 현재 ${posts}편, ${BOOK_MIN_POSTS - posts}편 더 필요합니다`});
+
+  return {checks, ok: checks.every(c => c.ok)};
+}
+
+// 글 안의 인용은 원본 기록을 가리키고 있다 → 내보낼 땐 그 자리에서 풀어 담는다
+function resolvePostForPublic(book, post, records, span) {
+  const blocks = Array.isArray(post.blocks) ? post.blocks : (() => {
+    const out = [];
+    String(post.body || "").split(/(\[\[q:\d{4}-\d{2}-\d{2}\]\])/g).forEach(seg => {
+      const m = seg.match(/^\[\[q:(\d{4}-\d{2}-\d{2})\]\]$/);
+      if (m) out.push({t: "q", d: m[1]});
+      else { const v = seg.replace(/^\n+|\n+$/g, ""); if (v) out.push({t: "p", v}); }
+    });
+    return out;
+  })();
+
+  const photoIds = [];
+  const resolved = blocks.map(b => {
+    if (b.t !== "q") return {t: "p", v: String(b.v || "")};
+    const rec = (records || {})[b.d];
+    const t = rec && (rec.tasks || []).find(x => x.done && x.sourceTaskId === book.id);
+    if (!t) return {t: "p", v: ""};
+    if (t.photoId) photoIds.push(t.photoId);
+    return {t: "q", d: b.d, day: span.start ? daysBetween(span.start, b.d) : 0,
+            photoId: t.photoId || null, memo: t.memo || ""};
+  }).filter(b => b.t === "q" || b.v.trim());
+
+  return {block: {id: post.id, title: post.title || "", blocks: resolved, ts: post.ts || null}, photoIds};
+}
+
+async function publishBook(uid, profile, book, records) {
+  const handle = (profile && profile.handle) || "";
+  if (!FIREBASE_READY || !uid || uid === "local-user" || !handle) return;
+  const isHabit = taskTypeOf(book) === "habit";
+  const span = bookSpan(book);
+  const sub = book[span.key] || {};
+  const posts = (book.posts || []).filter(p => !postIsEmpty(p));
+
+  const photoIds = [];
+  const pubPosts = posts.map(p => {
+    const r = resolvePostForPublic(book, p, records, span);
+    photoIds.push(...r.photoIds);
+    return r.block;
+  });
+
+  const id = handle + "_b" + book.id;
+  const now = Date.now();
+  const common = {
+    ownerUid: uid, handle, penName: (profile && profile.penName) || "",
+    bookId: String(book.id), title: book.text || "", cat: book.cat || "C",
+    type: isHabit ? "habit" : "achievement",
+    visibility: "public", publishedAt: now,
+  };
+
+  await fbDb.collection("publicBooks").doc(id).set({
+    ...common,
+    start: span.start || "", duration: span.duration || 0,
+    done: (sub.done || []).slice(),
+    info: isHabit
+      ? {freq: sub.freq || "", time: sub.time || ""}
+      : {criteria: (book.ach || {}).criteria || "", deadline: (book.ach || {}).deadline || "",
+         steps: (book.ach || {}).steps || ""},
+    posts: pubPosts,
+  });
+
+  await fbDb.collection("feed").doc(id).set({
+    ...common, kind: "book",
+    keyPhotoId: photoIds[0] || null,
+    postCount: pubPosts.length,
+    filled: (sub.done || []).length, total: span.duration || 0,
+  });
+
+  await setPhotosVisibility(photoIds, "public");
+}
+
+async function unpublishBook(uid, handle, book) {
+  if (!FIREBASE_READY || !uid || uid === "local-user" || !handle) return;
+  const id = handle + "_b" + book.id;
+  await fbDb.collection("publicBooks").doc(id).delete().catch(e => console.warn("unpublish book:", e));
+  await fbDb.collection("feed").doc(id).delete().catch(e => console.warn("unpublish book:", e));
 }
 
 // ── 지은이 (필명 · 책장 주소) ────────────────────────────────
@@ -1873,7 +2014,7 @@ const CASH4 = ["C","A","S","H"];
 
 // 책 상세 (표지 탭 → 전체화면 오버레이. Portal로 body에 렌더 → 캐러셀 transform 영향 X)
 // Story = 책의 정보 + 표(습관 일정표 / D-DAY 표) · Write = 그 경험을 엮은 연재
-function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleStatus}) {
+function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleStatus, uid, profile, onNeedHandle}) {
   const isHabit = taskTypeOf(book) === "habit";
   const h = book.habit || {};
   const a = book.ach || {};
@@ -1972,6 +2113,32 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
 
   const editing = editId ? posts.find(p => p.id === editId) : null;
   const peek = openDay ? recordOfDay(openDay) : null;
+
+  // ── 공개 ──
+  const [pubBusy, setPubBusy] = useState(false);
+  const pub = bookPublishChecks(book);
+  const published = !!book.published;
+  const handle = (profile && profile.handle) || "";
+
+  const togglePublish = async () => {
+    if (pubBusy) return;
+    if (!published && !pub.ok) return;
+    if (!published && !handle) { onNeedHandle && onNeedHandle(); return; }
+    setPubBusy(true);
+    try {
+      if (published) {
+        await unpublishBook(uid, handle, book);
+        updateBook(book.id, t => ({...t, published: false}));
+      } else {
+        await publishBook(uid, profile, book, records);
+        updateBook(book.id, t => ({...t, published: true}));
+      }
+    } catch (e) {
+      console.warn("book publish:", e);
+      alert("잘 안 됐어요. 잠시 뒤 다시 해주세요.");
+    }
+    setPubBusy(false);
+  };
 
   const overlay = (
     <div className="mb-ov" onClick={onClose}>
@@ -2124,6 +2291,38 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
           )}
 
           {!editing && (
+            <div className={"bp" + (published ? " on" : "")}>
+              <div className="bp-h">
+                <span className="t">이 책을 공개하기</span>
+                <button className="bp-sw" onClick={togglePublish}
+                  disabled={pubBusy || (!published && !pub.ok)}
+                  title={published ? "책장에서 내리기" : "책장에 올리기"}/>
+              </div>
+              {published ? (
+                <div className="bp-n">
+                  공개 중 · <span className="u">pullstory.net/book/{handle}/{book.id}</span><br/>
+                  내리면 진열만 그만두고 책은 그대로 남습니다
+                </div>
+              ) : (
+                <div>
+                  <div className="bp-cr">
+                    {pub.checks.map((c, i) => (
+                      <div key={i} className={c.ok ? "y" : "n"}>
+                        <i>{c.ok ? "✓" : "·"}</i><span>{c.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="bp-n">
+                    {pubBusy ? "잠시만요…"
+                      : pub.ok ? "이제 공개할 수 있어요"
+                      : "기준을 채우면 스위치가 열립니다"}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!editing && (
             <div className="mb-foot">
               <button className="mb-fbtn done" onClick={()=>toggleStatus(book.id)}>{done?"진행중으로":"✓ 완료로 표시"}</button>
               <button className="mb-fbtn del" onClick={()=>{ if(confirm("이 책을 삭제할까요?")) deleteBook(book.id); }}>삭제</button>
@@ -2136,7 +2335,7 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
   return ReactDOM.createPortal(overlay, document.body);
 }
 
-function HomePage({data, setData}) {
+function HomePage({data, setData, user, profile, onNeedHandle}) {
   const nowYear = new Date().getFullYear();
   const [viewYear, setViewYear] = useState(nowYear);
   const [detailId, setDetailId] = useState(null);
@@ -2236,7 +2435,8 @@ function HomePage({data, setData}) {
 
       {detail && <BookDetail key={detail.id} book={detail} bc={BC[detail.cat]||BC.C} records={data.pageRecords||{}}
         onClose={()=>setDetailId(null)}
-        updateBook={updateBook} deleteBook={deleteBook} toggleStatus={toggleStatus}/>}
+        updateBook={updateBook} deleteBook={deleteBook} toggleStatus={toggleStatus}
+        uid={user && user.uid} profile={profile} onNeedHandle={onNeedHandle}/>}
     </div>
   );
 }
@@ -3604,7 +3804,8 @@ function PageBook({data, setData, onLogout, user, profile, onSaveProfile}) {
     switch(key) {
       case "future":   return <FuturePage   data={data} setData={setData}/>;
       case "climax":   return <GoalsPage    data={data} setData={setData}/>;
-      case "chapters": return <HomePage     data={data} setData={setData}/>;
+      case "chapters": return <HomePage     data={data} setData={setData} user={user}
+                                profile={profile} onNeedHandle={()=>setNeedHandle(true)}/>;
       case "writing":  return <EpisodePage  data={data} setData={setData} user={user}
                                 profile={profile} onNeedHandle={()=>setNeedHandle(true)}/>;
       case "now":      return <HistoryPage  data={data} setData={setData} user={user}
