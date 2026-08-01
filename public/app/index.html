@@ -650,6 +650,106 @@
   .bp-n{font-family:'Noto Serif KR',serif;font-size:9px;color:#a89066;font-style:italic;margin-top:10px;
     line-height:1.7}
   .bp-n .u{font-family:ui-monospace,Menlo,monospace;font-style:normal;color:#8a5f14;word-break:break-all}
+
+  /* ===== Desk ===== */
+  .dk-plate{display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:4px;margin-bottom:18px;
+    background:rgba(255,253,244,.85);border:1px solid rgba(156,116,32,.35);position:relative}
+  .dk-plate::before{content:"";position:absolute;inset:3px;border:1px solid rgba(156,116,32,.16);border-radius:2px}
+  .dk-av{width:34px;height:34px;border-radius:50%;flex-shrink:0;position:relative;
+    background:radial-gradient(circle at 35% 30%,#e7c98a,#9c7420);color:#3a2610;
+    display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-weight:700;font-size:15px}
+  .dk-who{flex:1;min-width:0;position:relative}
+  .dk-nm{background:none;border:none;padding:0;cursor:pointer;font-family:'Noto Serif KR',serif;
+    font-size:12.5px;font-weight:700;color:#2f2109;display:flex;align-items:center;gap:5px}
+  .dk-nm i{font-style:normal;font-size:9px;color:#b09a6e}
+  .dk-u{font-family:ui-monospace,Menlo,monospace;font-size:9px;color:#a8894e;margin-top:2px;
+    word-break:break-all;text-align:left}
+  .dk-u.set{background:none;border:none;padding:0;cursor:pointer;color:#8a5f14;text-decoration:underline;
+    font-family:'Noto Serif KR',serif;font-size:9.5px;font-weight:700}
+  .dk-go{margin-left:auto;flex-shrink:0;position:relative;font-family:'Noto Serif KR',serif;font-size:9.5px;
+    font-weight:700;color:#8a5f14;border:1px solid rgba(156,116,32,.5);border-radius:20px;padding:5px 10px;
+    background:transparent;cursor:pointer}
+
+  .dk-sect{display:flex;align-items:baseline;gap:8px;margin:0 0 11px}
+  .dk-sect .k{font-family:'Cormorant Garamond',Georgia,serif;font-size:12px;letter-spacing:.2em;color:#9c7420;
+    text-transform:uppercase;font-weight:700;white-space:nowrap}
+  .dk-sect .s{font-family:'Noto Serif KR',serif;font-size:9.5px;color:#a89066}
+  .dk-sect .l{flex:1;height:1px;background:rgba(120,90,40,.22)}
+
+  .dk-shelf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-bottom:20px}
+  .dk-bk{position:relative;aspect-ratio:3/4.2;border-radius:3px 6px 6px 3px;overflow:hidden;display:flex;
+    box-shadow:0 6px 13px rgba(0,0,0,.3);cursor:pointer;padding:0;border:none;min-width:0}
+  .dk-sp{width:6px;flex-shrink:0}
+  .dk-in{flex:1;position:relative;padding:8px 7px;display:flex;flex-direction:column;min-width:0;text-align:left}
+  .dk-fr{position:absolute;inset:5px;border:1px solid rgba(255,248,220,.35);border-radius:2px}
+  .dk-ty{position:relative;font-family:'Noto Serif KR',serif;font-size:7px;font-weight:700;
+    letter-spacing:.05em;color:rgba(255,248,220,.85)}
+  .dk-tt{position:relative;font-family:'Noto Serif KR',serif;font-size:10.5px;font-weight:700;color:#fff8e5;
+    line-height:1.3;margin-top:auto;text-shadow:0 1px 4px rgba(0,0,0,.5);
+    overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+  .dk-st{position:relative;font-family:'Cormorant Garamond',Georgia,serif;font-size:8px;font-style:italic;
+    color:rgba(255,248,220,.82);margin-top:3px;line-height:1.3}
+  .dk-bd{position:absolute;top:5px;right:5px;z-index:3;font-family:'Cormorant Garamond',Georgia,serif;
+    font-size:8px;font-weight:700;letter-spacing:.04em;padding:1px 4px;border-radius:2px}
+  .dk-bd.on{background:rgba(212,168,81,.95);color:#3a2610}
+  .dk-bd.off{background:rgba(20,12,4,.42);color:rgba(255,248,220,.72)}
+  .dk-story .dk-in{background:linear-gradient(150deg,#3f2e1c,#241812)}
+  .dk-story .dk-fr{border-color:rgba(226,190,110,.55)}
+  .dk-story .dk-tt{font-family:'Cormorant Garamond',Georgia,serif;letter-spacing:.03em;font-size:12px}
+
+  .dk-acts{display:flex;gap:7px;margin-bottom:10px}
+  .dk-new{flex:1;padding:10px;border:1px dashed rgba(150,115,50,.5);border-radius:5px;cursor:pointer;
+    background:rgba(212,168,81,.07);color:#8a6a3a;font-family:'Noto Serif KR',serif;font-size:11.5px;
+    font-weight:700}
+  .dk-bind{flex:0 0 84px;padding:10px;border:1px solid rgba(150,115,50,.35);border-radius:5px;cursor:pointer;
+    background:transparent;color:#8a6a3a;font-family:'Noto Serif KR',serif;font-size:11.5px;font-weight:700}
+  .dk-bind:disabled{opacity:.4;cursor:not-allowed}
+
+  .dk-sh{position:relative;background:#fffdf6;border:1px solid rgba(120,90,40,.2);border-radius:2px;
+    padding:11px 12px;margin-bottom:9px;box-shadow:0 2px 5px rgba(60,40,15,.13);
+    display:flex;align-items:center;gap:9px;width:100%;text-align:left;cursor:pointer;font-family:inherit}
+  .dk-sh.pick{border-color:#b8862f;background:rgba(212,168,81,.12)}
+  .dk-shn{flex:1;min-width:0}
+  .dk-sht{font-family:'Noto Serif KR',serif;font-size:12px;font-weight:700;color:#2f2109;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dk-shd{font-family:'Cormorant Garamond',Georgia,serif;font-size:9.5px;color:#a8894e;margin-top:2px}
+  .dk-chk{width:16px;height:16px;border-radius:3px;border:1.5px solid #d8c79a;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff8ea}
+  .dk-chk.on{background:#b8862f;border-color:#b8862f}
+  .dk-sw{width:34px;height:19px;border-radius:11px;background:#d6c8a8;position:relative;flex-shrink:0;
+    border:none;padding:0;cursor:pointer;transition:background .2s}
+  .dk-sw::after{content:"";position:absolute;top:2.5px;left:2.5px;width:14px;height:14px;border-radius:50%;
+    background:#fffdf5;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .2s}
+  .dk-sw.on{background:#5a8c4a} .dk-sw.on::after{left:17.5px}
+  .dk-tag{font-family:'Cormorant Garamond',Georgia,serif;font-size:9px;letter-spacing:.05em;border-radius:2px;
+    padding:2px 6px;flex-shrink:0;font-weight:700}
+  .dk-tag.on{background:#5a8c4a;color:#fff8ea}
+  .dk-tag.off{background:rgba(120,90,40,.14);color:#8a7556}
+  .dk-foot{text-align:center;font-family:'Noto Serif KR',serif;font-size:9.5px;color:#a89066;
+    font-style:italic;margin-top:15px;line-height:1.75}
+  .dk-empty{text-align:center;font-family:'Noto Serif KR',serif;font-size:11px;color:#b09a6e;
+    font-style:italic;padding:18px 10px;line-height:1.7}
+  .dk-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .dk-back{background:none;border:none;font-family:'Noto Serif KR',serif;font-size:11.5px;font-weight:700;
+    color:#8a6a3a;cursor:pointer;padding:0}
+  .dk-save{font-family:'Noto Serif KR',serif;font-size:9.5px;font-weight:700;padding:3px 11px;border-radius:20px;
+    background:rgba(90,140,74,.2);color:#4a7c3a}
+  .dk-tin{width:100%;box-sizing:border-box;border:none;border-bottom:1px solid rgba(120,90,40,.3);
+    background:transparent;outline:none;font-family:'Noto Serif KR',serif;font-size:16px;font-weight:700;
+    color:#2f2109;padding:6px 2px 8px}
+  .dk-bin{width:100%;box-sizing:border-box;margin-top:12px;background:transparent;border:none;resize:none;
+    outline:none;overflow:hidden;display:block;font-family:'Noto Serif KR',serif;font-size:12.5px;
+    line-height:24px;color:#3a2818;padding:0 2px;
+    background-image:linear-gradient(rgba(120,90,40,.13) 1px,transparent 1px);
+    background-size:100% 24px;background-position:0 22px}
+  .dk-pub{margin-top:15px;padding:11px;border-radius:6px;border:1px solid rgba(120,90,40,.28);
+    background:rgba(255,255,255,.5);display:flex;align-items:center;justify-content:space-between}
+  .dk-pub.on{border-color:#b8862f;background:rgba(212,168,81,.14)}
+  .dk-pub .t{font-family:'Noto Serif KR',serif;font-size:12px;font-weight:700;color:#2f2109}
+  .dk-mk{width:100%;margin-top:13px;padding:12px;border:none;border-radius:6px;cursor:pointer;
+    background:linear-gradient(135deg,#e0bd6e,#a8792a);color:#fff8ea;
+    font-family:'Noto Serif KR',serif;font-size:13px;font-weight:700}
+  .dk-mk:disabled{background:#ddd0b4;color:#fff;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -904,6 +1004,33 @@ async function loadPhoto(id) {
   } catch (e) { console.warn("Photo load failed:", e); return null; }
 }
 
+// 글 정렬 기준 — 새 글은 숫자 ts, 옛 노트는 serverTimestamp
+function noteTs(n) {
+  if (!n) return 0;
+  if (typeof n.ts === "number") return n.ts;
+  const c = n.createdAt;
+  if (c && typeof c.seconds === "number") return c.seconds * 1000;
+  return 0;
+}
+
+// 글 본문 → 블록. 옛 글은 body 문자열, 새 글은 blocks 배열
+function noteBlocks(n) {
+  if (n && Array.isArray(n.blocks)) return n.blocks;
+  const out = [];
+  String((n && n.body) || "").split(/(\[\[q:\d{4}-\d{2}-\d{2}\]\])/g).forEach(seg => {
+    const m = seg.match(/^\[\[q:(\d{4}-\d{2}-\d{2})\]\]$/);
+    if (m) out.push({t: "q", d: m[1]});
+    else { const v = seg.replace(/^\n+|\n+$/g, ""); if (v) out.push({t: "p", v}); }
+  });
+  if (!out.length || out[out.length - 1].t !== "p") out.push({t: "p", v: ""});
+  return out;
+}
+
+function noteIsEmpty(n) {
+  if (((n && n.title) || "").trim()) return false;
+  return !noteBlocks(n).some(b => b.t === "q" || String(b.v || "").trim());
+}
+
 // ── 하루 한 장 내보내기 ──────────────────────────────────────
 // publicPages = 그 하루 전체(방문자가 열어 보는 것) · feed = 진열대 카드 한 장.
 // 원본 기록은 그대로 두고 사본만 만든다. 내리면 사본만 지운다.
@@ -987,6 +1114,8 @@ function postIsEmpty(p) {
 }
 
 function bookPublishChecks(book) {
+  // 묶음 책은 표도 데드라인도 없다 — 기준 없이 바로 내보낼 수 있다
+  if (book.type === "collection") return {checks: [], ok: true};
   const isHabit = taskTypeOf(book) === "habit";
   const span = bookSpan(book);
   const dur = span.duration;
@@ -2014,8 +2143,9 @@ const CASH4 = ["C","A","S","H"];
 
 // 책 상세 (표지 탭 → 전체화면 오버레이. Portal로 body에 렌더 → 캐러셀 transform 영향 X)
 // Story = 책의 정보 + 표(습관 일정표 / D-DAY 표) · Write = 그 경험을 엮은 연재
-function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleStatus, uid, profile, onNeedHandle}) {
+function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleStatus, uid, profile, onNeedHandle, notes, noteApi}) {
   const isHabit = taskTypeOf(book) === "habit";
+  const isColl = book.type === "collection";
   const h = book.habit || {};
   const a = book.ach || {};
   const done = book.status === "완료";
@@ -2028,7 +2158,24 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
   const dur = span.duration;
   const doneSet = new Set((book[span.key] || {}).done || []);
   const pct = dur ? Math.round(doneSet.size / dur * 100) : 0;
-  const posts = book.posts || [];
+  // 이 책에 묶인 글 — notes 한 곳에서 bookId로 찾는다
+  const posts = (notes || []).filter(n => String(n.bookId) === String(book.id));
+
+  // 예전에 책 안에 담겨 있던 글은 한 번만 notes로 옮긴다
+  useEffect(() => {
+    const old = book.posts;
+    if (!old || !old.length || !noteApi || !noteApi.live) return;
+    (async () => {
+      for (const p of old) {
+        await noteApi.create({
+          title: p.title || "", blocks: Array.isArray(p.blocks) ? p.blocks : noteBlocks(p),
+          bookId: String(book.id), ts: p.ts || Date.now(), visibility: "private",
+        });
+      }
+      updateBook(book.id, t => ({...t, posts: []}));
+    })();
+  // eslint-disable-next-line
+  }, [book.id]);
 
   // 그 날 이 책으로 인증한 에피소드 찾기 — 사진을 복사하지 않고 원본을 가리킨다
   const recordOfDay = (day) => {
@@ -2040,38 +2187,31 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
     return t ? {date: k, task: t} : null;
   };
 
-  const setPosts = (fn) => updateBook(book.id, t => ({...t, posts: fn(t.posts || [])}));
 
   // 글은 문단과 인용이 번갈아 놓인 블록으로 이뤄진다.
   // 예전 글은 body 문자열에 [[q:날짜]] 마커가 섞여 있어서 읽을 때 블록으로 바꾼다.
-  const toBlocks = (post) => {
-    if (Array.isArray(post.blocks)) return post.blocks;
-    const out = [];
-    String(post.body || "").split(/(\[\[q:\d{4}-\d{2}-\d{2}\]\])/g).forEach(seg => {
-      const m = seg.match(/^\[\[q:(\d{4}-\d{2}-\d{2})\]\]$/);
-      if (m) out.push({t:"q", d:m[1]});
-      else { const v = seg.replace(/^\n+|\n+$/g, ""); if (v) out.push({t:"p", v}); }
-    });
-    if (!out.length || out[out.length-1].t !== "p") out.push({t:"p", v:""});
-    return out;
-  };
+  const toBlocks = noteBlocks;
 
-  const addPost = () => {
-    const p = {id: Date.now() + Math.random(), title: "", blocks: [{t:"p", v:""}], body: "", ts: Date.now()};
-    setPosts(ps => [...ps, p]);
-    setEditId(p.id);
-    setTab("write");
+  const addPost = async () => {
+    if (!noteApi || !noteApi.live) { alert("글을 쓰려면 Google 로그인이 필요해요."); return; }
+    const id = await noteApi.create({bookId: String(book.id), blocks: [{t:"p", v:""}]});
+    if (id) { setEditId(id); setTab("write"); }
   };
-  const updatePost = (id, patch) =>
-    setPosts(ps => ps.map(p => p.id === id ? {...p, ...patch, ts: p.ts || Date.now()} : p));
-  const deletePost = (id) => {
+  const updatePost = (id, patch) => noteApi && noteApi.update(id, patch);
+  const deletePost = async (id) => {
     if (!confirm("이 글을 삭제할까요?")) return;
-    setPosts(ps => ps.filter(p => p.id !== id));
+    await (noteApi && noteApi.remove(id));
+    setEditId(null);
+  };
+  // 묶음 풀기 — 글을 지우지 않고 낱장으로 되돌린다
+  const unbindPost = async (id) => {
+    if (!confirm("이 글을 책에서 빼고 낱장으로 되돌릴까요?")) return;
+    await (noteApi && noteApi.update(id, {bookId: null}));
     setEditId(null);
   };
 
   // Story의 기록을 Write에 인용 — 날짜만 가리키고 사진은 원본을 그대로 쓴다
-  const quoteToWrite = (day) => {
+  const quoteToWrite = async (day) => {
     const r = recordOfDay(day);
     if (!r) return;
     const target = editId ? posts.find(p => p.id === editId) : posts[posts.length - 1];
@@ -2082,10 +2222,10 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
       updatePost(target.id, {blocks: bs, body: ""});
       setEditId(target.id);
     } else {
-      const p = {id: Date.now() + Math.random(), title: "",
-                 blocks: [{t:"q", d:r.date}, {t:"p", v:""}], body: "", ts: Date.now()};
-      setPosts(ps => [...ps, p]);
-      setEditId(p.id);
+      if (!noteApi || !noteApi.live) return;
+      const id = await noteApi.create({bookId: String(book.id),
+        blocks: [{t:"q", d:r.date}, {t:"p", v:""}]});
+      if (id) setEditId(id);
     }
     setOpenDay(null);
     setTab("write");
@@ -2153,7 +2293,7 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
           <div className="mb-mini"><div className="mb-mspine" style={{background:bc.sp}}/><div className="mb-mbody" style={{background:bc.g}}>{book.cat}</div></div>
           <div>
             <div className="mb-dtitle">{book.text||"(제목 없음)"}</div>
-            <div className="mb-dmeta">{isHabit?"🔁 습관":"🏆 성취"} · {book.cat} {bc.cat}</div>
+            <div className="mb-dmeta">{isColl?"✍️ 묶음":isHabit?"🔁 습관":"🏆 성취"} · {book.cat} {bc.cat}</div>
           </div>
         </div>
 
@@ -2165,7 +2305,19 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
 
           {tab === "story" ? (
             <div>
-              {isHabit ? (
+              {isColl ? (
+                <div>
+                  <div className="mb-fld"><div className="mb-fl">이 책은 <span style={{color:"#b89a68",fontWeight:400}}>· 무엇을 묶은 책인지 적어 두세요</span></div>
+                    <textarea className="input" rows={4} value={book.intro || ""}
+                      placeholder={"쓰다 보니 한 갈래로 모인 글들입니다.\n무엇에 대한 책인지 한두 줄로 적어 두면\n읽는 사람이 첫 장을 열기 쉬워집니다."}
+                      onChange={e=>updateBook(book.id, t=>({...t, intro: e.target.value}))}
+                      style={{fontSize:"12px",fontFamily:"inherit",lineHeight:1.7}}/>
+                  </div>
+                  <div className="bd-none" style={{marginTop:"14px"}}>
+                    묶음 책은 표가 없습니다 · <b style={{color:"#8a5f14"}}>Write</b>에 모인 글이 곧 이 책입니다
+                  </div>
+                </div>
+              ) : isHabit ? (
                 <div>
                   <div className="mb-fld" style={{marginBottom:"11px"}}><div className="mb-fl">시작일</div><input type="date" className="input" value={h.start||""} onChange={e=>updateBook(book.id, t=>({...t,habit:{...(t.habit||{}),start:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px",width:"100%",boxSizing:"border-box"}}/></div>
                   <div className="mb-g2">
@@ -2186,7 +2338,8 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
                 </div>
               )}
 
-              {/* 표 — 습관 일정표 / D-DAY 표 */}
+              {/* 표 — 습관 일정표 / D-DAY 표 (묶음 책엔 없다) */}
+              {!isColl && (<div>
               <div className="mb-callbl">
                 <span>{isHabit ? "습관 일정표" : "D-DAY 표"} <span style={{color:"#b89a68",fontWeight:400}}>· Page에서 완료하면 자동 체크</span></span>
                 <span style={{color:"#5a8c4a"}}>{doneSet.size}/{dur || 0} <b style={{fontSize:"13px"}}>{pct}%</b></span>
@@ -2216,8 +2369,10 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
                 </div>
               )}
 
+              </div>)}
+
               {/* 표에서 고른 날의 인증 기록 */}
-              {openDay && (
+              {!isColl && openDay && (
                 <div className="bd-peek">
                   <div className="bd-pkh">
                     <span>DAY {openDay} · {dayKeyOf(span.start, openDay)}</span>
@@ -2272,13 +2427,15 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
               ) : (
                 posts.slice().reverse().map((p, i) => {
                   const no = posts.length - i;
-                  const d = new Date(p.ts || Date.now());
+                  const d = new Date(noteTs(p) || Date.now());
                   const dt = `${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`;
                   return (
                     <div className="bd-post" key={p.id}>
                       <span className="bd-pno">{no}</span>
                       <span className="bd-ptt" onClick={()=>setEditId(p.id)}>{p.title || "(제목 없음)"}</span>
                       <span className="bd-pdt">{dt}</span>
+                      <button className="bd-pdel" onClick={()=>unbindPost(p.id)}
+                        style={{color:"#8a6a3a",borderColor:"rgba(156,116,32,.4)"}}>풀기</button>
                       <button className="bd-pdel" onClick={()=>deletePost(p.id)}>삭제</button>
                     </div>
                   );
@@ -2335,13 +2492,20 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
   return ReactDOM.createPortal(overlay, document.body);
 }
 
-function HomePage({data, setData, user, profile, onNeedHandle}) {
+function HomePage({data, setData, user, profile, onNeedHandle, notes, noteApi, openBookId, onOpenedBook}) {
   const nowYear = new Date().getFullYear();
   const [viewYear, setViewYear] = useState(nowYear);
   const [detailId, setDetailId] = useState(null);
   const [nbText, setNbText] = useState("");
   const [nbCat, setNbCat] = useState("C");
   const [nbType, setNbType] = useState("habit");
+
+  // Desk에서 책을 눌러 들어온 경우 그 책을 펼쳐 준다
+  useEffect(() => {
+    if (openBookId == null) return;
+    setDetailId(openBookId);
+    onOpenedBook && onOpenedBook();
+  }, [openBookId]);
 
   const chapters = data.chapters || {};
   const yearBooks = (chapters[viewYear] || {}).tasks || [];
@@ -2436,7 +2600,8 @@ function HomePage({data, setData, user, profile, onNeedHandle}) {
       {detail && <BookDetail key={detail.id} book={detail} bc={BC[detail.cat]||BC.C} records={data.pageRecords||{}}
         onClose={()=>setDetailId(null)}
         updateBook={updateBook} deleteBook={deleteBook} toggleStatus={toggleStatus}
-        uid={user && user.uid} profile={profile} onNeedHandle={onNeedHandle}/>}
+        uid={user && user.uid} profile={profile} onNeedHandle={onNeedHandle}
+        notes={notes} noteApi={noteApi}/>}
     </div>
   );
 }
@@ -3580,7 +3745,7 @@ function CoverPage({data, setData}) {
 // 위계: 현재(출발점) ⊂ 에피소드(일) ⊂ 챕터(월) ⊂ 클라이맥스(연) ⊂ 미래(인생 책)
 // ═════════════════════════════════════════════════════════════════════
 const PAGES = [
-  {key:"workshop", label:"Notes",     title:"Notes",     sub:"노트"},
+  {key:"workshop", label:"Desk",      title:"Desk",      sub:"작업대"},
   {key:"now",      label:"Story",     title:"Story",     sub:"스토리북"},
   {key:"writing",  label:"Page",      title:"Page",      sub:"오늘의 페이지"},
   {key:"chapters", label:"Books",     title:"Books",     sub:"이달의 책"},
@@ -3607,129 +3772,223 @@ function NavIcon({k, size=23}) {
 }
 
 // ═════════════════════════════════════════════════════════════════════
-// 작업실(노트) 페이지 — 노트 작성/발행 (Firestore 'notes' 컬렉션)
-// 각 노트: {ownerUid, title, body, visibility:'public'|'private', createdAt}
+// Desk — 뒷면. 위는 쌓아 온 책, 아래는 아직 어디에도 묶이지 않은 낱장의 글.
+// 책은 각자의 자리에서 내보내고, 여기서는 글만 쓴다.
 // ═════════════════════════════════════════════════════════════════════
-function WorkshopPage({user}) {
-  const uid = user && user.uid;
-  const cloud = FIREBASE_READY && fbDb && uid && uid !== "local-user";
-  const [notes, setNotes] = useState([]);
-  const [editing, setEditing] = useState(null); // {id?, title, body, visibility}
-  const [ready, setReady] = useState(false);
-  const linkBtn = {background:"none",border:"none",padding:0,cursor:"pointer",fontSize:"12px",color:"#9c7a2a",textDecoration:"underline"};
+function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNeedHandle, goPage, goBook}) {
+  const [view, setView] = useState("list");     // list | edit | bind
+  const [editId, setEditId] = useState(null);
+  const [picked, setPicked] = useState([]);
+  const [bindTitle, setBindTitle] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    if (!cloud) { setReady(true); return; }
-    const unsub = fbDb.collection("notes").where("ownerUid","==",uid)
-      .onSnapshot(snap => {
-        const arr = [];
-        snap.forEach(d => arr.push({id:d.id, ...d.data()}));
-        arr.sort((a,b) => (((b.createdAt&&b.createdAt.seconds)||9e15) - ((a.createdAt&&a.createdAt.seconds)||9e15)));
-        setNotes(arr); setReady(true);
-      }, err => { console.warn("notes load:", err); setReady(true); });
-    return () => unsub();
-  }, [cloud, uid]);
+  const year = new Date().getFullYear();
+  const books = ((data.chapters || {})[year] || {}).tasks || [];
+  const records = data.pageRecords || {};
+  const loose = notes.filter(n => !n.bookId);
+  const notesOf = (id) => notes.filter(n => String(n.bookId) === String(id));
+  const publishedDays = Object.keys(records).filter(k => records[k] && records[k].published).length;
 
-  const startNew = () => setEditing({title:"", body:"", visibility:"private"});
-  const startEdit = (n) => setEditing({id:n.id, title:n.title||"", body:n.body||"", visibility:n.visibility||"private"});
+  const penName = (profile && profile.penName) || "작가";
+  const handle = (profile && profile.handle) || "";
 
-  const save = async () => {
-    const t = (editing.title||"").trim(), b = (editing.body||"").trim();
-    if (!t && !b) { setEditing(null); return; }
-    const now = firebase.firestore.FieldValue.serverTimestamp();
-    try {
-      if (editing.id) {
-        await fbDb.collection("notes").doc(editing.id).update({title:t, body:b, visibility:editing.visibility, updatedAt:now});
-      } else {
-        await fbDb.collection("notes").add({ownerUid:uid, title:t, body:b, visibility:editing.visibility, createdAt:now, updatedAt:now});
-      }
-      setEditing(null);
-    } catch(e) { alert("저장 실패: "+e.message); }
-  };
-  const remove = async (n) => {
-    if (!confirm("이 노트를 삭제할까요?")) return;
-    try { await fbDb.collection("notes").doc(n.id).delete(); } catch(e){ alert("삭제 실패: "+e.message); }
-  };
-  const toggleVis = async (n) => {
-    const v = n.visibility==="public" ? "private" : "public";
-    try { await fbDb.collection("notes").doc(n.id).update({visibility:v}); } catch(e){ alert("실패: "+e.message); }
+  const dateOf = (n) => {
+    const d = new Date(noteTs(n) || Date.now());
+    return `${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`;
   };
 
-  if (!cloud) {
+  // ── 글 ──
+  const startNew = async () => {
+    if (!noteApi.live) { alert("글을 쓰려면 Google 로그인이 필요해요."); return; }
+    const id = await noteApi.create({});
+    if (id) { setEditId(id); setView("edit"); }
+  };
+  const toggleVis = (n) =>
+    noteApi.update(n.id, {visibility: n.visibility === "public" ? "private" : "public"});
+
+  const editing = editId ? notes.find(n => n.id === editId) : null;
+  const bodyOf = (n) => noteBlocks(n).filter(b => b.t === "p").map(b => b.v).join("\n");
+
+  // ── 묶기 ──
+  const startBind = () => { setPicked([]); setBindTitle(""); setView("bind"); };
+  const togglePick = (id) =>
+    setPicked(ps => ps.indexOf(id) >= 0 ? ps.filter(x => x !== id) : [...ps, id]);
+
+  const makeBook = async () => {
+    const title = bindTitle.trim();
+    if (!title || picked.length === 0 || busy) return;
+    setBusy(true);
+    const bookId = Date.now() + Math.random();
+    // 묶음 책 — 표도 데드라인도 없다. 글로만 쌓인다
+    const chapters = data.chapters || {};
+    const ch = chapters[year] || {tasks: []};
+    setData({...data, chapters: {...chapters, [year]: {...ch, tasks: [...(ch.tasks || []), {
+      id: bookId, cat: "C", type: "collection", text: title, status: "진행중", ts: Date.now(),
+    }]}}});
+    // 고른 글에 '이 책 소속' 표시만 붙인다 — 옮겨 담지 않는다
+    for (const nid of picked) await noteApi.update(nid, {bookId: String(bookId)});
+    setBusy(false);
+    setView("list");
+  };
+
+  // ── 책 한 권 ──
+  const BookCard = ({b}) => {
+    const t = taskTypeOf(b);
+    const isColl = b.type === "collection";
+    const bc = BC[b.cat] || BC.C;
+    const span = bookSpan(b);
+    const filled = ((b[span.key] || {}).done || []).length;
+    const cnt = notesOf(b.id).filter(n => !noteIsEmpty(n)).length;
+    const st = isColl ? `글 ${cnt}편`
+      : t === "habit" ? `${filled}/${span.duration || 0} · 글 ${cnt}`
+      : `${b.status === "완료" ? "완료" : "진행중"} · 글 ${cnt}`;
     return (
-      <div style={{textAlign:"center",padding:"40px 10px",color:"#6b4f30"}}>
-        <div className="heading-serif" style={{fontSize:"18px",color:"#3a2818",fontWeight:700,marginBottom:"10px"}}>작업실</div>
-        <p style={{fontSize:"13px",lineHeight:1.7}}>노트를 쓰고 발행하려면<br/>Google 로그인이 필요해요.</p>
+      <button className="dk-bk" onClick={()=>goBook(b.id)} title={b.text}>
+        <div className="dk-sp" style={{background: isColl ? "#4a5b7a" : bc.sp}}/>
+        <div className="dk-in" style={{background: isColl ? "linear-gradient(140deg,#5d7192,#3f4f6b)" : bc.g}}>
+          <div className="dk-fr"/>
+          <div className={"dk-bd " + (b.published ? "on" : "off")}>{b.published ? "공개" : "나만"}</div>
+          <div className="dk-ty">{isColl ? "✍️ 묶음" : t === "habit" ? "🔁 습관" : "🏆 성취"}</div>
+          <div className="dk-tt">{b.text || "(제목 없음)"}</div>
+          <div className="dk-st">{st}</div>
+        </div>
+      </button>
+    );
+  };
+
+  // ══ 글 쓰기 ══
+  if (view === "edit" && editing) {
+    return (
+      <div style={{animation:"fadeIn .3s"}}>
+        <div className="dk-bar">
+          <button className="dk-back" onClick={()=>{ setEditId(null); setView("list"); }}>‹ Desk로</button>
+          <span className="dk-save">저장됨</span>
+        </div>
+        <input className="dk-tin" value={editing.title || ""} placeholder="제목"
+          onChange={e=>noteApi.update(editing.id, {title: e.target.value})}/>
+        <AutoTA className="dk-bin" value={bodyOf(editing)} placeholder="자유롭게 써 내려가세요…"
+          onChange={e=>noteApi.update(editing.id, {blocks: [{t:"p", v: e.target.value}], body: ""})}/>
+        <div className={"dk-pub" + (editing.visibility === "public" ? " on" : "")}>
+          <span className="t">이 글 내보내기</span>
+          <button className={"dk-sw" + (editing.visibility === "public" ? " on" : "")}
+            onClick={()=>{ if (editing.visibility !== "public" && !handle) { onNeedHandle(); return; } toggleVis(editing); }}/>
+        </div>
+        <div className="mb-foot">
+          <button className="mb-fbtn done" onClick={()=>{ setEditId(null); setView("list"); }}>✓ 다 썼어요</button>
+          <button className="mb-fbtn del" onClick={async ()=>{
+            if (!confirm("이 글을 삭제할까요?")) return;
+            await noteApi.remove(editing.id); setEditId(null); setView("list");
+          }}>삭제</button>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
-        <div>
-          <div className="heading-serif" style={{fontSize:"20px",color:"#3a2818",fontWeight:700}}>작업실</div>
-          <div style={{fontSize:"11px",color:"#9c7a2a"}}>노트를 써서 나의 책을 채워요</div>
+  // ══ 낱장을 묶어 책으로 ══
+  if (view === "bind") {
+    return (
+      <div style={{animation:"fadeIn .3s"}}>
+        <div className="dk-bar">
+          <button className="dk-back" onClick={()=>setView("list")}>‹ 그만두기</button>
+          <span style={{fontSize:"9.5px",color:"#a89066"}}>{picked.length}편 고름</span>
         </div>
-        {!editing && <button className="btn-gold" onClick={startNew}>+ 새 노트</button>}
+        <div className="dk-sect"><span className="k">묶을 글</span><span className="l"/></div>
+        {loose.length === 0 ? (
+          <div className="dk-empty">묶을 낱장이 없어요.</div>
+        ) : loose.map(n => {
+          const on = picked.indexOf(n.id) >= 0;
+          return (
+            <button key={n.id} className={"dk-sh" + (on ? " pick" : "")} onClick={()=>togglePick(n.id)}>
+              <span className={"dk-chk" + (on ? " on" : "")}>{on ? "✓" : ""}</span>
+              <span className="dk-shn">
+                <span className="dk-sht">{n.title || "(제목 없음)"}</span>
+                <span className="dk-shd">{dateOf(n)}</span>
+              </span>
+            </button>
+          );
+        })}
+        <div style={{marginTop:"15px"}}>
+          <div style={{fontSize:"9px",fontWeight:700,color:"#9c7f4e",marginBottom:"5px"}}>책 제목</div>
+          <input className="input" value={bindTitle} maxLength={40} placeholder="이 글들을 무엇이라 부를까요"
+            onChange={e=>setBindTitle(e.target.value)} style={{fontSize:"14px",fontWeight:700}}/>
+        </div>
+        <button className="dk-mk" disabled={!bindTitle.trim() || picked.length === 0 || busy} onClick={makeBook}>
+          {busy ? "묶는 중…" : `이 ${picked.length}편으로 책 만들기`}
+        </button>
+        <div className="dk-foot">묶인 글은 낱장 목록에서 빠져 책 안으로 들어갑니다<br/>언제든 다시 풀 수 있어요</div>
+      </div>
+    );
+  }
+
+  // ══ Desk ══
+  return (
+    <div style={{animation:"fadeIn .4s"}}>
+      <div className="sf-head">
+        <div className="sf-title">Desk</div>
+        <div className="sf-desc">무엇을 내보낼지 여기서 정합니다</div>
       </div>
 
-      {editing && (
-        <div style={{background:"rgba(255,253,245,.6)",border:"1px solid #d8c79a",borderRadius:"8px",padding:"12px",marginBottom:"16px"}}>
-          <input className="input" style={{marginBottom:"8px",fontWeight:700}} placeholder="제목"
-            value={editing.title} onChange={e=>setEditing({...editing,title:e.target.value})}/>
-          <textarea className="input" rows={8} style={{marginBottom:"8px",resize:"vertical",fontFamily:"'Noto Serif KR',serif",lineHeight:1.7}} placeholder="본문을 써보세요…"
-            value={editing.body} onChange={e=>setEditing({...editing,body:e.target.value})}/>
-          <div style={{display:"flex",gap:"8px",marginBottom:"10px"}}>
-            {["private","public"].map(v=>(
-              <button key={v} onClick={()=>setEditing({...editing,visibility:v})} style={{
-                flex:1,padding:"8px",borderRadius:"6px",cursor:"pointer",fontSize:"12px",fontWeight:700,
-                border:"1px solid "+(editing.visibility===v?"#b8862f":"#d8c79a"),
-                background:editing.visibility===v?"rgba(212,168,81,.18)":"transparent",
-                color:editing.visibility===v?"#9c7a2a":"#b89066"
-              }}>{v==="private"?"🔒 나만 보기":"🌐 공개"}</button>
-            ))}
-          </div>
-          <div style={{display:"flex",gap:"8px"}}>
-            <button className="btn-gold" style={{flex:1}} onClick={save}>저장</button>
-            <button onClick={()=>setEditing(null)} style={{flex:1,padding:"10px",borderRadius:"8px",border:"1px solid #d8c79a",background:"transparent",color:"#9c7a2a",cursor:"pointer",fontWeight:700}}>취소</button>
-          </div>
+      <div className="dk-plate">
+        <div className="dk-av">{penName.slice(0,1)}</div>
+        <div className="dk-who">
+          <button className="dk-nm" onClick={onEditPen}>{penName} <i>✎</i></button>
+          {handle
+            ? <div className="dk-u">pullstory.net/u/{handle}</div>
+            : <button className="dk-u set" onClick={onNeedHandle}>책장 주소 정하기</button>}
         </div>
-      )}
+        {handle && <button className="dk-go" onClick={()=>window.open("/u/" + handle, "_blank")}>책장 보기</button>}
+      </div>
 
-      {!ready ? (
-        <div style={{textAlign:"center",color:"#b89066",fontSize:"12px",padding:"20px"}}>불러오는 중…</div>
-      ) : notes.length===0 && !editing ? (
-        <div style={{textAlign:"center",color:"#b89066",fontSize:"13px",padding:"30px 10px",lineHeight:1.7}}>아직 노트가 없어요.<br/>『+ 새 노트』로 첫 글을 써보세요.</div>
-      ) : (
-        <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
-          {notes.map(n=>(
-            <div key={n.id} style={{background:"rgba(255,253,245,.5)",border:"1px solid #e0d3ad",borderRadius:"8px",padding:"12px"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"4px",gap:"8px"}}>
-                <div className="heading-serif" style={{fontSize:"15px",color:"#3a2818",fontWeight:700}}>{n.title||"(제목 없음)"}</div>
-                <span style={{fontSize:"10px",fontWeight:700,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap",
-                  background:n.visibility==="public"?"rgba(90,140,74,.15)":"rgba(107,79,48,.12)",
-                  color:n.visibility==="public"?"#4a7a3a":"#8a6630"}}>{n.visibility==="public"?"공개":"나만"}</span>
-              </div>
-              {n.body && <div style={{fontSize:"12px",color:"#6b4f30",lineHeight:1.6,whiteSpace:"pre-wrap",maxHeight:"3.2em",overflow:"hidden"}}>{n.body}</div>}
-              <div style={{display:"flex",gap:"14px",marginTop:"8px"}}>
-                <button onClick={()=>toggleVis(n)} style={linkBtn}>{n.visibility==="public"?"비공개로":"공개로"}</button>
-                <button onClick={()=>startEdit(n)} style={linkBtn}>편집</button>
-                <button onClick={()=>remove(n)} style={{...linkBtn,color:"#b85450"}}>삭제</button>
-              </div>
+      <div className="dk-sect"><span className="k">Books</span><span className="s">쌓아 온 책</span><span className="l"/></div>
+      <div className="dk-shelf">
+        <button className="dk-bk dk-story" onClick={()=>goPage("now")} title="Story Book">
+          <div className="dk-sp" style={{background:"#8a6a2a"}}/>
+          <div className="dk-in">
+            <div className="dk-fr"/>
+            <div className={"dk-bd " + (publishedDays > 0 ? "on" : "off")}>
+              {publishedDays > 0 ? publishedDays + "장" : "나만"}
             </div>
-          ))}
+            <div className="dk-ty">📖 스토리북</div>
+            <div className="dk-tt">Story<br/>Book</div>
+            <div className="dk-st">{data.pageCount || 0}장</div>
+          </div>
+        </button>
+        {books.map(b => <BookCard key={b.id} b={b}/>)}
+      </div>
+
+      <div className="dk-sect"><span className="k">Notes</span><span className="s">아직 낱장인 글</span><span className="l"/></div>
+      <div className="dk-acts">
+        <button className="dk-new" onClick={startNew}>⊕ 새 글 쓰기</button>
+        <button className="dk-bind" disabled={loose.length === 0} onClick={startBind}>📎 묶기</button>
+      </div>
+
+      {loose.length === 0 ? (
+        <div className="dk-empty">아직 쓴 글이 없어요.<br/>무엇이든 자유롭게 적어보세요.</div>
+      ) : loose.map(n => (
+        <div key={n.id} className="dk-sh" style={{cursor:"default"}}>
+          <span className="dk-shn" style={{cursor:"pointer"}} onClick={()=>{ setEditId(n.id); setView("edit"); }}>
+            <span className="dk-sht">{n.title || "(제목 없음)"}</span>
+            <span className="dk-shd">{dateOf(n)}</span>
+          </span>
+          <span className={"dk-tag " + (n.visibility === "public" ? "on" : "off")}>
+            {n.visibility === "public" ? "공개" : "나만"}
+          </span>
+          <button className={"dk-sw" + (n.visibility === "public" ? " on" : "")}
+            onClick={()=>{ if (n.visibility !== "public" && !handle) { onNeedHandle(); return; } toggleVis(n); }}/>
         </div>
-      )}
+      ))}
+
+      <div className="dk-foot">책은 각자의 자리에서 내보냅니다<br/>여기서는 글만 씁니다</div>
     </div>
   );
 }
 
-function PageBook({data, setData, onLogout, user, profile, onSaveProfile}) {
+function PageBook({data, setData, onLogout, user, profile, onSaveProfile, notes, noteApi}) {
   const [pageIdx, setPageIdx] = useState(() => PAGES.findIndex(p=>p.key==="future"));  // 시작: 미래
   const [menu, setMenu] = useState(false);
   const [editPen, setEditPen] = useState(false);
   const [needHandle, setNeedHandle] = useState(false);
+  const [openBookId, setOpenBookId] = useState(null);   // Desk에서 책을 눌러 들어온 경우
   const [dragDx, setDragDx] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef({active:false, x:0, y:0, moved:false});
@@ -3805,12 +4064,18 @@ function PageBook({data, setData, onLogout, user, profile, onSaveProfile}) {
       case "future":   return <FuturePage   data={data} setData={setData}/>;
       case "climax":   return <GoalsPage    data={data} setData={setData}/>;
       case "chapters": return <HomePage     data={data} setData={setData} user={user}
-                                profile={profile} onNeedHandle={()=>setNeedHandle(true)}/>;
+                                profile={profile} onNeedHandle={()=>setNeedHandle(true)}
+                                notes={notes} noteApi={noteApi}
+                                openBookId={openBookId} onOpenedBook={()=>setOpenBookId(null)}/>;
       case "writing":  return <EpisodePage  data={data} setData={setData} user={user}
                                 profile={profile} onNeedHandle={()=>setNeedHandle(true)}/>;
       case "now":      return <HistoryPage  data={data} setData={setData} user={user}
                                 profile={profile} onNeedHandle={()=>setNeedHandle(true)}/>;
-      case "workshop": return <WorkshopPage user={user}/>;
+      case "workshop": return <DeskPage data={data} setData={setData} user={user} profile={profile}
+                                notes={notes} noteApi={noteApi}
+                                onEditPen={()=>setEditPen(true)} onNeedHandle={()=>setNeedHandle(true)}
+                                goPage={(k)=>setPageIdx(PAGES.findIndex(x=>x.key===k))}
+                                goBook={(id)=>{ setOpenBookId(id); setPageIdx(PAGES.findIndex(x=>x.key==="chapters")); }}/>;
       default: return null;
     }
   };
@@ -3983,6 +4248,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [data, setDataState] = useState(null);
   const [profile, setProfile] = useState(null);   // {penName, handle}
+  const [notes, setNotes] = useState([]);        // 모든 글 — 낱장이든 책에 묶였든 여기 산다
   const [opened, setOpened] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -4022,6 +4288,49 @@ function App() {
       initLocal();
     }
   }, []);
+
+  // ── 글 ──────────────────────────────────────────────────
+  // 낱장이든 책에 묶였든 글은 전부 notes에 있고, bookId로 어디 속하는지만 표시한다.
+  // 묶기는 그 표시를 붙이는 일, 풀기는 떼는 일이 된다.
+  useEffect(() => {
+    const uid = user && user.uid;
+    if (!FIREBASE_READY || !uid || uid === "local-user") { setNotes([]); return; }
+    const unsub = fbDb.collection("notes").where("ownerUid", "==", uid)
+      .onSnapshot(snap => {
+        const arr = [];
+        snap.forEach(d => arr.push({id: d.id, ...d.data()}));
+        arr.sort((a, b) => (noteTs(b) - noteTs(a)));
+        setNotes(arr);
+      }, err => console.warn("notes load:", err));
+    return () => unsub();
+  }, [user]);
+
+  const noteApi = useMemo(() => {
+    const uid = user && user.uid;
+    const live = FIREBASE_READY && fbDb && uid && uid !== "local-user";
+    return {
+      live,
+      create: async (patch) => {
+        if (!live) return null;
+        const now = Date.now();
+        const ref = await fbDb.collection("notes").add({
+          ownerUid: uid, title: "", blocks: [], bookId: null,
+          visibility: "private", ts: now, createdAt: now, updatedAt: now, ...patch,
+        });
+        return ref.id;
+      },
+      update: async (id, patch) => {
+        if (!live || !id) return;
+        try { await fbDb.collection("notes").doc(id).update({...patch, updatedAt: Date.now()}); }
+        catch (e) { console.warn("note update:", e); }
+      },
+      remove: async (id) => {
+        if (!live || !id) return;
+        try { await fbDb.collection("notes").doc(id).delete(); }
+        catch (e) { console.warn("note delete:", e); }
+      },
+    };
+  }, [user]);
 
   const setData = useCallback((d) => {
     setDataState(d);
@@ -4096,7 +4405,7 @@ function App() {
   }
 
   return <PageBook data={data} setData={setData} onLogout={handleLogout} user={user}
-    profile={profile} onSaveProfile={handleSaveProfile}/>;
+    profile={profile} onSaveProfile={handleSaveProfile} notes={notes} noteApi={noteApi}/>;
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
