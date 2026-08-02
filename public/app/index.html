@@ -612,6 +612,20 @@
   .bd-pdt{font-family:'Cormorant Garamond',Georgia,serif;font-size:10px;color:#a89066;flex-shrink:0}
   .bd-pdel{font-size:9.5px;color:#b8756a;border:1px solid rgba(184,117,106,.45);border-radius:3px;
     padding:2px 6px;flex-shrink:0;background:none;cursor:pointer;font-family:inherit}
+  /* 묶음 책은 글 한 편씩 따로 내보낼 수 있다 */
+  .bd-pvis{font-family:'Cormorant Garamond',Georgia,serif;font-size:9px;letter-spacing:.05em;font-weight:700;
+    border-radius:2px;padding:2.5px 7px;flex-shrink:0;border:none;cursor:pointer}
+  .bd-pvis.on{background:#5a8c4a;color:#fff8ea}
+  .bd-pvis.off{background:rgba(120,90,40,.14);color:#8a7556}
+
+  /* 낱장을 고른 책에 넣기 */
+  .dk-into{margin-top:11px;padding:11px;border-radius:6px;border:1px solid rgba(120,90,40,.28);
+    background:rgba(255,255,255,.5)}
+  .dk-into .l{font-family:'Noto Serif KR',serif;font-size:12px;font-weight:700;color:#2f2109}
+  .dk-into select{width:100%;box-sizing:border-box;margin-top:8px;padding:9px 8px;border-radius:5px;
+    border:1px solid #d8c79a;background:rgba(255,253,245,.9);font-family:'Noto Serif KR',serif;
+    font-size:12px;color:#2f2109;outline:none}
+  .dk-into .h{font-size:9.5px;color:#a89066;font-style:italic;margin-top:7px;line-height:1.6}
 
   .bd-edt{width:100%;box-sizing:border-box;border:none;border-bottom:1px solid rgba(120,90,40,.3);
     background:transparent;font-family:'Noto Serif KR',serif;font-size:15px;font-weight:700;color:#2f2109;
@@ -1239,8 +1253,8 @@ async function publishBook(uid, profile, book, records, notes) {
   });
 
   // 책 안의 글도 각자 진열대에 오른다 — 읽고 나서 그 책으로 건너갈 수 있게
-  await Promise.all(pubPosts.map(p => publishNote(uid, profile, p, book)));
-  await pruneBookNoteCards(handle, book.id, pubPosts.map(p => p.id));
+  await Promise.all(posts.map(p => syncNoteCard(uid, profile, p, book, true)));
+  await pruneBookNoteCards(uid, profile, book.id, posts.map(p => p.id), notes);
 
   const sig = photoIds.slice().sort().join(",");
   if (photoSyncSig.get(id) !== sig) {
@@ -1271,26 +1285,48 @@ async function unpublishNote(uid, handle, noteId) {
     .catch(e => console.warn("unpublish note:", e));
 }
 
-// 이 책에서 나온 글 카드들 — keep에 없는 것은 거둬들인다(책에서 풀렸거나 지워진 글)
-async function pruneBookNoteCards(handle, bookId, keep) {
+// 글 카드가 진열대에 있어야 하는 이유는 둘이다 — 글 자체를 내보냈거나, 담긴 책이 나갔거나.
+// 어느 쪽이든 카드는 하나뿐이고, 책 이름은 그 책이 나가 있을 때만 붙는다
+// (나가지 않은 책의 제목을 읽는 사람에게 보일 이유가 없다).
+async function syncNoteCard(uid, profile, note, book, bookPublic) {
+  const handle = (profile && profile.handle) || "";
+  if (!FIREBASE_READY || !uid || uid === "local-user" || !handle || !note) return;
+  const selfPublic = note.visibility === "public";
+  if (!selfPublic && !bookPublic) { await unpublishNote(uid, handle, note.id); return; }
+  await publishNote(uid, profile, note, bookPublic ? book : null);
+}
+
+// 이 책 이름을 달고 있는데 더는 이 책 것이 아닌 카드들 —
+// 글이 아직 스스로 공개 중이면 책 표시만 떼고, 아니면 거둬들인다
+async function pruneBookNoteCards(uid, profile, bookId, keep, notes) {
+  const handle = (profile && profile.handle) || "";
   if (!FIREBASE_READY || !handle) return;
   try {
     const snap = await fbDb.collection("feed")
       .where("handle", "==", handle).where("kind", "==", "note")
       .where("bookId", "==", String(bookId)).get();
     const alive = new Set((keep || []).map(String));
-    await Promise.all(snap.docs
-      .filter(d => !alive.has(String(d.data().noteId)))
-      .map(d => d.ref.delete().catch(e => console.warn("prune note card:", e))));
+    const stale = snap.docs.filter(d => !alive.has(String(d.data().noteId)));
+    await Promise.all(stale.map(d => {
+      const nid = String(d.data().noteId);
+      const note = (notes || []).find(n => String(n.id) === nid);
+      if (note && note.visibility === "public") return syncNoteCard(uid, profile, note, null, false);
+      return d.ref.delete().catch(e => console.warn("prune note card:", e));
+    }));
   } catch (e) { console.warn("prune note cards:", e); }
 }
 
-async function unpublishBook(uid, handle, book, records) {
+async function unpublishBook(uid, profile, book, records, notes) {
+  const handle = (profile && profile.handle) || "";
   if (!FIREBASE_READY || !uid || uid === "local-user" || !handle) return;
   const id = handle + "_b" + book.id;
   await fbDb.collection("publicBooks").doc(id).delete().catch(e => console.warn("unpublish book:", e));
   await fbDb.collection("feed").doc(id).delete().catch(e => console.warn("unpublish book:", e));
-  await pruneBookNoteCards(handle, book.id, []);
+
+  // 책은 내려도 스스로 내보낸 글은 진열대에 남는다 — 책 표시만 뗀다
+  const posts = bookPosts(book, notes);
+  await Promise.all(posts.map(p => syncNoteCard(uid, profile, p, book, false)));
+  await pruneBookNoteCards(uid, profile, book.id, [], notes);
 
   // 이 책 때문에 열어 둔 사진은 다시 닫는다 — 그날 자체가 아직 공개 중이면 그대로 둔다
   const marks = bookDays(book, records, bookSpan(book));
@@ -2403,7 +2439,7 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
     setPubBusy(true);
     try {
       if (published) {
-        await unpublishBook(uid, handle, book, records);
+        await unpublishBook(uid, profile, book, records, notes);
         updateBook(book.id, t => ({...t, published: false}));
       } else {
         await publishBook(uid, profile, book, records, notes);
@@ -2414,6 +2450,15 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
       alert("잘 안 됐어요. 잠시 뒤 다시 해주세요.");
     }
     setPubBusy(false);
+  };
+
+  // 묶음 책은 책을 통째로 내보내지 않아도 글 한 편씩 따로 내보낼 수 있다
+  const togglePostVis = async (p) => {
+    const next = p.visibility === "public" ? "private" : "public";
+    if (next === "public" && !handle) { onNeedHandle && onNeedHandle(); return; }
+    await (noteApi && noteApi.update(p.id, {visibility: next}));
+    try { await syncNoteCard(uid, profile, {...p, visibility: next}, book, published); }
+    catch (e) { console.warn("post feed:", e); }
   };
 
   // 내보낸 뒤에 책이 바뀌면 진열된 사본도 따라 바뀐다 — 하루와 같은 방식.
@@ -2589,6 +2634,13 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
                       <span className="bd-pno">{no}</span>
                       <span className="bd-ptt" onClick={()=>setEditId(p.id)}>{p.title || "(제목 없음)"}</span>
                       <span className="bd-pdt">{dt}</span>
+                      {isColl && (
+                        <button className={"bd-pvis " + (p.visibility === "public" ? "on" : "off")}
+                          onClick={()=>togglePostVis(p)}
+                          title={p.visibility === "public" ? "이 글 내리기" : "이 글만 내보내기"}>
+                          {p.visibility === "public" ? "공개" : "나만"}
+                        </button>
+                      )}
                       <button className="bd-pdel" onClick={()=>unbindPost(p.id)}
                         style={{color:"#8a6a3a",borderColor:"rgba(156,116,32,.4)"}}>풀기</button>
                       <button className="bd-pdel" onClick={()=>deletePost(p.id)}>삭제</button>
@@ -3993,10 +4045,27 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
     const uid = user && user.uid;
     const next = n.visibility === "public" ? "private" : "public";
     await noteApi.update(n.id, {visibility: next});
+    const b = n.bookId ? allBooks.find(x => String(x.id) === String(n.bookId)) : null;
+    try { await syncNoteCard(uid, profile, {...n, visibility: next}, b, !!(b && b.published)); }
+    catch (e) { console.warn("note feed:", e); }
+  };
+
+  // 낱장을 고른 책에 넣거나 다시 빼기 — 글은 옮기지 않고 소속 표시만 바꾼다
+  const moveToBook = async (n, toId) => {
+    const uid = user && user.uid;
+    const from = n.bookId ? allBooks.find(x => String(x.id) === String(n.bookId)) : null;
+    const to = toId ? allBooks.find(x => String(x.id) === String(toId)) : null;
+    await noteApi.update(n.id, {bookId: toId || null});
+    const after = notes.map(x => x.id === n.id ? {...x, bookId: toId || null} : x);
     try {
-      if (next === "public") await publishNote(uid, profile, n);
-      else await unpublishNote(uid, handle, n.id);
-    } catch (e) { console.warn("note feed:", e); }
+      // 나가 있는 책이라면 사본도 바로 따라오게 한다
+      if (from && from.published) await publishBook(uid, profile, from, records, after);
+      if (to && to.published) await publishBook(uid, profile, to, records, after);
+      if (!to || !to.published) {
+        await syncNoteCard(uid, profile, {...n, bookId: toId || null}, to, false);
+      }
+    } catch (e) { console.warn("move note:", e); }
+    if (toId) { setEditId(null); setView("list"); }
   };
 
   const editing = editId ? notes.find(n => n.id === editId) : null;
@@ -4073,6 +4142,16 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
           <button className={"dk-sw" + (editing.visibility === "public" ? " on" : "")}
             onClick={()=>{ if (editing.visibility !== "public" && !handle) { onNeedHandle(); return; } toggleVis(editing); }}/>
         </div>
+        {bound.length > 0 && (
+          <div className="dk-into">
+            <div className="l">이 글을 책에 넣기</div>
+            <select value={editing.bookId || ""} onChange={(e)=>moveToBook(editing, e.target.value)}>
+              <option value="">낱장으로 두기</option>
+              {bound.map(b => <option key={b.id} value={b.id}>{b.text || "(제목 없음)"}</option>)}
+            </select>
+            <div className="h">넣으면 이 글은 그 책의 Write로 옮겨집니다 · 언제든 다시 풀 수 있어요</div>
+          </div>
+        )}
         <div className="mb-foot">
           <button className="mb-fbtn done" onClick={closeEditor}>✓ 다 썼어요</button>
           <button className="mb-fbtn del" onClick={async ()=>{

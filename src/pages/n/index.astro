@@ -214,20 +214,21 @@ import '../../styles/paper.css';
         .then(function (s) {
           if (!s.exists) { notFound(); return; }
           var card = s.data();
-          if (!card.bookId) {
-            // 낱장 — 원본을 그대로 읽는다 (공개 글이라 열린다)
+          // 원본을 그대로 읽는다 — 스스로 내보낸 글이면 열린다
+          function fromNote() {
             return db.collection('notes').doc(noteId).get().then(function (n) {
               if (!n.exists) { notFound(); return; }
               render(n.data(), card, null);
             });
           }
-          // 책에 묶인 글 — 인용이 풀린 사본은 책 안에 있다
+          // 카드에 책 이름이 붙어 있다 = 그 책도 나가 있다 → 책 안의 사본을 쓴다
+          if (!card.bookId) return fromNote();
           return db.collection('publicBooks').doc(handle + '_b' + card.bookId).get()
             .then(function (b) {
-              if (!b.exists) { notFound(); return; }
+              if (!b.exists) return fromNote();
               var book = b.data();
               var post = (book.posts || []).find(function (p) { return String(p.id) === String(noteId); });
-              if (!post) { notFound(); return; }
+              if (!post) return fromNote();
               render(post, card, book);
             });
         })
