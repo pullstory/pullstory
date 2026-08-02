@@ -1118,6 +1118,10 @@ async function unpublishDay(uid, handle, date, rec) {
 // 성취 = D-DAY 지남 + 표 60% + 글 2편 · 습관 = 표 70% + 글 2편
 const BOOK_MIN_POSTS = 2;
 
+// 기준을 잠시 열어 둔다 — 직접 써 보며 다듬는 동안만.
+// true로 되돌리면 위의 기준이 다시 스위치를 잠근다 (기준 자체는 계속 보여 준다).
+const BOOK_GATE = false;
+
 // 이 책에 묶인 글 — 글은 전부 notes에 살고 bookId로 소속만 표시한다.
 // (book.posts는 옛 저장 방식. 아직 이관 전인 책을 위해 뒤에 붙여 둔다)
 function bookPosts(book, notes) {
@@ -1152,7 +1156,7 @@ function bookPublishChecks(book, notes) {
       ? `Write에 글 ${BOOK_MIN_POSTS}편 이상 — 현재 ${posts}편`
       : `Write에 글 ${BOOK_MIN_POSTS}편 이상 — 현재 ${posts}편, ${BOOK_MIN_POSTS - posts}편 더 필요합니다`});
 
-  return {checks, ok: checks.every(c => c.ok)};
+  return {checks, ok: BOOK_GATE ? checks.every(c => c.ok) : true};
 }
 
 // 글 안의 인용은 원본 기록을 가리키고 있다 → 내보낼 땐 그 자리에서 풀어 담는다
@@ -2594,6 +2598,7 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
                   </div>
                   <div className="bp-n">
                     {pubBusy ? "잠시만요…"
+                      : !BOOK_GATE ? "기준은 잠시 열어 두었어요 — 지금은 언제든 공개할 수 있습니다"
                       : pub.ok ? "이제 공개할 수 있어요"
                       : "기준을 채우면 스위치가 열립니다"}
                   </div>
