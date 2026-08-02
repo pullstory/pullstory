@@ -2558,12 +2558,17 @@ function HomePage({data, setData, user, profile, onNeedHandle, notes, noteApi, o
   }, [openBookId]);
 
   const chapters = data.chapters || {};
-  const yearBooks = (chapters[viewYear] || {}).tasks || [];
+  // 묶음 책은 Notes에서 태어나 Notes에 산다 — 여기 책장엔 올라오지 않는다
+  const yearBooks = ((chapters[viewYear] || {}).tasks || []).filter(t => t.type !== "collection");
 
   const setYearBooks = (updater) => {
     const ch = chapters[viewYear] || {tasks:[]};
-    const books = typeof updater === "function" ? updater(ch.tasks||[]) : updater;
-    setData({...data, chapters: {...chapters, [viewYear]: {...ch, tasks: books}}});
+    const all = ch.tasks || [];
+    const mine = all.filter(t => t.type !== "collection");
+    const next = typeof updater === "function" ? updater(mine) : updater;
+    // 묶음 책은 손대지 않고 그대로 둔다
+    setData({...data, chapters: {...chapters, [viewYear]: {...ch,
+      tasks: [...next, ...all.filter(t => t.type === "collection")]}}});
   };
   const addBook = () => {
     const text = nbText.trim(); if (!text) return;
@@ -3834,12 +3839,35 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
   const [bindCat, setBindCat] = useState("C");
   const [busy, setBusy] = useState(false);
 
+  const [collId, setCollId] = useState(null);   // 펼쳐 본 묶음 책
+
   const year = new Date().getFullYear();
-  const books = ((data.chapters || {})[year] || {}).tasks || [];
+  const allBooks = ((data.chapters || {})[year] || {}).tasks || [];
+  const books = allBooks.filter(b => b.type !== "collection");        // Books에서 만든 책
+  const bound = allBooks.filter(b => b.type === "collection");        // Notes에서 묶은 책
+
+  // 묶음 책은 Desk가 직접 건사한다
+  const setBooks = (fn) => {
+    const chapters = data.chapters || {};
+    const ch = chapters[year] || {tasks: []};
+    setData({...data, chapters: {...chapters, [year]: {...ch, tasks: fn(ch.tasks || [])}}});
+  };
+  const updateColl = (id, up) => setBooks(bs => bs.map(b => b.id === id ? up(b) : b));
+  const toggleCollStatus = (id) =>
+    updateColl(id, b => ({...b, status: b.status === "완료" ? "진행중" : "완료"}));
+  const deleteColl = async (id) => {
+    // 책만 없애고 글은 낱장으로 되돌린다 — 묶은 걸 푸는 것이지 지우는 게 아니다
+    for (const n of notes.filter(x => String(x.bookId) === String(id))) {
+      await noteApi.update(n.id, {bookId: null});
+    }
+    setBooks(bs => bs.filter(b => b.id !== id));
+    setCollId(null);
+  };
   const records = data.pageRecords || {};
   const loose = notes.filter(n => !n.bookId);
   const notesOf = (id) => notes.filter(n => String(n.bookId) === String(id));
   const publishedDays = Object.keys(records).filter(k => records[k] && records[k].published).length;
+  const collBook = collId != null ? bound.find(b => b.id === collId) : null;
 
   const penName = (profile && profile.penName) || "작가";
   const handle = (profile && profile.handle) || "";
@@ -3891,7 +3919,7 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
   };
 
   // ── 책 한 권 ──
-  const BookCard = ({b}) => {
+  const BookCard = ({b, onOpen}) => {
     const t = taskTypeOf(b);
     const isColl = b.type === "collection";
     const bc = BC[b.cat] || BC.C;
@@ -3902,7 +3930,7 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
       : t === "habit" ? `${filled}/${span.duration || 0} · 글 ${cnt}`
       : `${b.status === "완료" ? "완료" : "진행중"} · 글 ${cnt}`;
     return (
-      <button className="dk-bk" onClick={()=>goBook(b.id)} title={b.text}>
+      <button className="dk-bk" onClick={onOpen || (()=>goBook(b.id))} title={b.text}>
         <div className="dk-sp" style={{background: bc.sp}}/>
         <div className="dk-in" style={{background: bc.g}}>
           <div className="dk-fr"/>
@@ -4031,7 +4059,14 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
         {books.map(b => <BookCard key={b.id} b={b}/>)}
       </div>
 
-      <div className="dk-sect"><span className="k">Notes</span><span className="s">아직 낱장인 글</span><span className="l"/></div>
+      <div className="dk-sect"><span className="k">Notes</span><span className="s">묶은 책과 낱장의 글</span><span className="l"/></div>
+
+      {bound.length > 0 && (
+        <div className="dk-shelf">
+          {bound.map(b => <BookCard key={b.id} b={b} onOpen={()=>setCollId(b.id)}/>)}
+        </div>
+      )}
+
       <div className="dk-acts">
         <button className="dk-new" onClick={startNew}>⊕ 새 글 쓰기</button>
         <button className="dk-bind" disabled={loose.length === 0} onClick={startBind}>📎 묶기</button>
@@ -4053,7 +4088,16 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
         </div>
       ))}
 
-      <div className="dk-foot">책은 각자의 자리에서 내보냅니다<br/>여기서는 글만 씁니다</div>
+      <div className="dk-foot">Books의 책은 각자의 자리에서 내보냅니다<br/>여기서는 글을 쓰고 묶습니다</div>
+
+      {collBook && (
+        <BookDetail key={collBook.id} book={collBook} bc={BC[collBook.cat] || BC.C}
+          records={data.pageRecords || {}} backLabel="‹ Desk로"
+          onClose={()=>setCollId(null)}
+          updateBook={updateColl} deleteBook={deleteColl} toggleStatus={toggleCollStatus}
+          uid={user && user.uid} profile={profile} onNeedHandle={onNeedHandle}
+          notes={notes} noteApi={noteApi}/>
+      )}
     </div>
   );
 }
