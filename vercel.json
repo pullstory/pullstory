@@ -14,6 +14,14 @@
     {
       "source": "/book/:handle/:bookId",
       "destination": "/book/index.html"
+    },
+    {
+      "source": "/n/:handle/:noteId",
+      "destination": "/n/index.html"
+    },
+    {
+      "source": "/story/:handle",
+      "destination": "/story/index.html"
     }
   ]
 }

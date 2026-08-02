@@ -1,0 +1,246 @@
+---
+// 글 한 편 — /n/{handle}/{noteId}
+// 낱장이면 notes 원본을 읽고, 책에 묶인 글이면 책의 공개 사본에서 꺼낸다
+// (인용이 그 사본에만 풀려 있으므로).
+import Base from '../../layouts/Base.astro';
+import '../../styles/paper.css';
+---
+
+<Base title="글 — PULLSTORY" description="누군가 나눈 글 한 편.">
+  <div id="note-root" class="paper">
+    <p class="loading">글을 펴는 중…</p>
+  </div>
+
+  <style is:global>
+    #note-root .sheet {
+      background: linear-gradient(#fffdf4, #faf3e2);
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      padding: 30px 21px 26px;
+      box-shadow: 0 4px 14px rgba(60,40,15,.13);
+    }
+    #note-root .when {
+      font-family: Georgia, serif;
+      font-size: 10.5px;
+      letter-spacing: .1em;
+      color: var(--faint);
+      font-variant-numeric: tabular-nums;
+    }
+    #note-root .title {
+      font-size: 21px;
+      font-weight: 700;
+      color: var(--deep);
+      line-height: 1.45;
+      margin-top: 5px;
+      text-wrap: balance;
+    }
+    #note-root .rule {
+      height: 1px;
+      background: linear-gradient(90deg, rgba(156,116,32,.45), transparent);
+      margin: 15px 0 4px;
+    }
+    #note-root .p {
+      font-size: 13.5px;
+      line-height: 2;
+      color: var(--ink);
+      margin-top: 13px;
+      white-space: pre-wrap;
+    }
+    /* 인용 — 그날의 기록 */
+    #note-root .quote {
+      margin: 15px 0 15px 2px;
+      padding: 11px 0 5px 13px;
+      border-left: 2px solid rgba(156,116,32,.45);
+    }
+    #note-root .quote .d {
+      font-family: Georgia, serif;
+      font-size: 9.5px;
+      letter-spacing: .13em;
+      color: var(--gold);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    #note-root .quote .shot { margin-top: 7px; }
+    #note-root .quote .memo { font-size: 16px; }
+
+    /* 이 글이 실린 책 */
+    #note-root .from {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      margin-top: 18px;
+      padding: 12px 13px;
+      border-radius: 5px;
+      border: 1px solid rgba(156,116,32,.3);
+      background: rgba(255,255,255,.5);
+      text-decoration: none;
+    }
+    #note-root .from .sp { flex-shrink: 0; width: 8px; height: 40px; border-radius: 2px; }
+    #note-root .from .m { flex: 1; min-width: 0; }
+    #note-root .from .k {
+      display: block;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 10px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--faint);
+      font-weight: 700;
+    }
+    #note-root .from .v {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--deep);
+      line-height: 1.4;
+      margin-top: 2px;
+    }
+    #note-root .from .go { flex-shrink: 0; color: var(--gold); font-size: 15px; }
+  </style>
+
+  <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <script is:inline>
+    (function () {
+      var root = document.getElementById('note-root');
+      var db = firebase.firestore();
+
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
+      }
+
+      // /n/pullstory/abc123 → handle, noteId  (?u=&n= 로도 받는다)
+      var parts = location.pathname.split('/').filter(Boolean);
+      var qs = new URLSearchParams(location.search);
+      var handle = decodeURIComponent(qs.get('u') || parts[1] || '').toLowerCase();
+      var noteId = decodeURIComponent(qs.get('n') || parts[2] || '');
+
+      if (!handle || !noteId) {
+        root.innerHTML = '<p class="empty">어느 글인지 알 수 없습니다.<br/>책장에서 다시 눌러 주세요.</p>';
+        return;
+      }
+
+      var CAT = { C: '#c98f22', A: '#9c332e', S: '#315b86', H: '#3a6e3e' };
+      var shelf = '/u/' + encodeURIComponent(handle);
+
+      function shortDate(d) {
+        var p = String(d || '').split('-');
+        if (p.length < 3) return d || '';
+        return parseInt(p[1], 10) + '월 ' + parseInt(p[2], 10) + '일';
+      }
+      function tsDate(ms) {
+        if (!ms) return '';
+        var t = new Date(ms);
+        return isNaN(t) ? '' : t.getFullYear() + '. ' + (t.getMonth() + 1) + '. ' + t.getDate() + '.';
+      }
+      function noteTs(n) {
+        if (!n) return 0;
+        if (typeof n.ts === 'number') return n.ts;
+        var c = n.createdAt;
+        if (c && typeof c.seconds === 'number') return c.seconds * 1000;
+        return 0;
+      }
+      // 옛 글은 body 문자열, 새 글은 blocks 배열
+      function blocksOf(n) {
+        if (n && Array.isArray(n.blocks)) return n.blocks;
+        var out = [];
+        String((n && n.body) || '').split(/(\[\[q:\d{4}-\d{2}-\d{2}\]\])/g).forEach(function (seg) {
+          var m = seg.match(/^\[\[q:(\d{4}-\d{2}-\d{2})\]\]$/);
+          if (m) out.push({ t: 'q', d: m[1] });
+          else { var v = seg.replace(/^\n+|\n+$/g, ''); if (v) out.push({ t: 'p', v: v }); }
+        });
+        return out;
+      }
+
+      function block(b) {
+        if (b.t !== 'q') {
+          var v = String(b.v || '');
+          return v.trim() ? '<div class="p">' + esc(v) + '</div>' : '';
+        }
+        // 낱장 글의 인용은 원본 기록을 가리키기만 한다 — 풀린 사본이 있을 때만 그린다
+        if (!b.photoId && !b.memo) return '';
+        return '<div class="quote">' +
+          '<div class="d">' + (b.day > 0 ? 'DAY ' + b.day + ' · ' : '') + esc(shortDate(b.d)) + '</div>' +
+          (b.photoId ? '<div class="shot" data-photo="' + esc(b.photoId) + '"></div>' : '') +
+          (b.memo ? '<div class="memo">' + esc(b.memo) + '</div>' : '') +
+        '</div>';
+      }
+
+      function render(note, card, book) {
+        var pen = (card && card.penName) || (book && book.penName) || '이름 없는 지은이';
+        var when = tsDate(noteTs(note) || (card && card.publishedAt));
+        var bs = blocksOf(note);
+        var body = bs.map(block).join('');
+
+        var html =
+          '<div class="bar"><a href="' + shelf + '">‹ ' + esc(pen) + '의 책장</a><span>나눈 글</span></div>' +
+          '<div class="sheet">' +
+            (when ? '<div class="when">' + when + '</div>' : '') +
+            '<div class="title">' + esc(note.title || '(제목 없음)') + '</div>' +
+            '<div class="rule"></div>' +
+            (body || '<p class="empty" style="background:none">아직 본문이 없습니다.</p>') +
+          '</div>';
+
+        if (book) {
+          html += '<a class="from" href="/book/' + esc(handle) + '/' + esc(book.bookId) + '">' +
+            '<span class="sp" style="background:' + (CAT[book.cat] || CAT.C) + '"></span>' +
+            '<span class="m"><span class="k">이 글이 실린 책</span>' +
+              '<span class="v">' + esc(book.title || '(제목 없음)') + '</span></span>' +
+            '<span class="go">→</span></a>';
+        }
+
+        html += '<div class="foot">' + esc(pen) + '이 나눈 글입니다<br/>' +
+          '<a href="' + shelf + '">책장에서 다른 글도 보기 →</a></div>';
+
+        root.innerHTML = html;
+        loadPhotos();
+      }
+
+      function loadPhotos() {
+        Array.prototype.forEach.call(root.querySelectorAll('.shot[data-photo]'), function (el) {
+          var id = el.getAttribute('data-photo');
+          db.collection('photos').doc(id).get().then(function (s) {
+            if (!s.exists) { el.remove(); return; }
+            var data = s.data().data;
+            if (!data) { el.remove(); return; }
+            var img = document.createElement('img');
+            img.src = data;
+            img.alt = '';
+            el.appendChild(img);
+          }).catch(function () { el.remove(); });
+        });
+      }
+
+      function notFound() {
+        root.innerHTML = '<p class="empty">이 글은 아직 나누지 않았습니다.<br/>' +
+          '<a href="' + shelf + '" style="color:#9c7420">책장으로 돌아가기</a></p>';
+      }
+
+      // 진열대 카드가 이 글이 어디서 왔는지 알고 있다
+      db.collection('feed').doc(handle + '_n' + noteId).get()
+        .then(function (s) {
+          if (!s.exists) { notFound(); return; }
+          var card = s.data();
+          if (!card.bookId) {
+            // 낱장 — 원본을 그대로 읽는다 (공개 글이라 열린다)
+            return db.collection('notes').doc(noteId).get().then(function (n) {
+              if (!n.exists) { notFound(); return; }
+              render(n.data(), card, null);
+            });
+          }
+          // 책에 묶인 글 — 인용이 풀린 사본은 책 안에 있다
+          return db.collection('publicBooks').doc(handle + '_b' + card.bookId).get()
+            .then(function (b) {
+              if (!b.exists) { notFound(); return; }
+              var book = b.data();
+              var post = (book.posts || []).find(function (p) { return String(p.id) === String(noteId); });
+              if (!post) { notFound(); return; }
+              render(post, card, book);
+            });
+        })
+        .catch(function (e) {
+          root.innerHTML = '<p class="empty">글을 펴지 못했습니다.<br/>' + esc(e.message) + '</p>';
+        });
+    })();
+  </script>
+</Base>

@@ -1220,19 +1220,26 @@ async function publishBook(uid, profile, book, records, notes) {
     total: isColl ? 0 : (span.duration || 0),
   });
 
+  // 책 안의 글도 각자 진열대에 오른다 — 읽고 나서 그 책으로 건너갈 수 있게
+  await Promise.all(pubPosts.map(p => publishNote(uid, profile, p, book)));
+  await pruneBookNoteCards(handle, book.id, pubPosts.map(p => p.id));
+
   await setPhotosVisibility(photoIds, "public");
 }
 
-// 글도 진열대에 오른다 — 원본은 notes에 그대로 있고 카드만 만든다
-async function publishNote(uid, profile, note) {
+// 글도 진열대에 오른다 — 원본은 notes에 그대로 있고 카드만 만든다.
+// 책에 묶인 글이면 어느 책에서 왔는지 카드에 적어 둔다(읽는 사람이 그 책으로 건너갈 수 있게).
+async function publishNote(uid, profile, note, book) {
   const handle = (profile && profile.handle) || "";
   if (!FIREBASE_READY || !uid || uid === "local-user" || !handle) return;
   const text = noteBlocks(note).filter(b => b.t === "p").map(b => b.v).join("\n").trim();
   await fbDb.collection("feed").doc(handle + "_n" + note.id).set({
     kind: "note", ownerUid: uid, handle, penName: (profile && profile.penName) || "",
-    noteId: note.id, title: note.title || "",
+    noteId: String(note.id), title: note.title || "",
     excerpt: text.slice(0, 120),
-    visibility: "public", publishedAt: Date.now(),
+    bookId: book ? String(book.id) : null,
+    bookTitle: book ? (book.text || "") : null,
+    visibility: "public", publishedAt: noteTs(note) || Date.now(),
   });
 }
 
@@ -1242,11 +1249,26 @@ async function unpublishNote(uid, handle, noteId) {
     .catch(e => console.warn("unpublish note:", e));
 }
 
+// 이 책에서 나온 글 카드들 — keep에 없는 것은 거둬들인다(책에서 풀렸거나 지워진 글)
+async function pruneBookNoteCards(handle, bookId, keep) {
+  if (!FIREBASE_READY || !handle) return;
+  try {
+    const snap = await fbDb.collection("feed")
+      .where("handle", "==", handle).where("kind", "==", "note")
+      .where("bookId", "==", String(bookId)).get();
+    const alive = new Set((keep || []).map(String));
+    await Promise.all(snap.docs
+      .filter(d => !alive.has(String(d.data().noteId)))
+      .map(d => d.ref.delete().catch(e => console.warn("prune note card:", e))));
+  } catch (e) { console.warn("prune note cards:", e); }
+}
+
 async function unpublishBook(uid, handle, book) {
   if (!FIREBASE_READY || !uid || uid === "local-user" || !handle) return;
   const id = handle + "_b" + book.id;
   await fbDb.collection("publicBooks").doc(id).delete().catch(e => console.warn("unpublish book:", e));
   await fbDb.collection("feed").doc(id).delete().catch(e => console.warn("unpublish book:", e));
+  await pruneBookNoteCards(handle, book.id, []);
 }
 
 // ── 지은이 (필명 · 책장 주소) ────────────────────────────────
@@ -2362,6 +2384,24 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
     }
     setPubBusy(false);
   };
+
+  // 내보낸 뒤에 책이 바뀌면 진열된 사본도 따라 바뀐다 — 하루와 같은 방식.
+  // (소개를 나중에 적거나 글을 더 쓰는 일이 흔하다)
+  const bookSig = published
+    ? JSON.stringify([
+        book.text, book.cat, book.type, book.intro || "",
+        book.habit || null, book.ach || null,
+        posts.map(p => [p.id, p.title || "", noteTs(p), noteBlocks(p)]),
+      ])
+    : "";
+  useEffect(() => {
+    if (!published || !bookSig || !handle) return;
+    const t = setTimeout(() => {
+      publishBook(uid, profile, book, records, notes).catch(e => console.warn("book resync:", e));
+    }, 900);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line
+  }, [bookSig, published, handle]);
 
   const overlay = (
     <div className="mb-ov" onClick={onClose}>

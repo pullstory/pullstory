@@ -93,12 +93,18 @@ import Base from '../../layouts/Base.astro';
     #shelf-root .day .ep { display: block; font-family: Georgia, serif; font-size: 9px; color: #b09a6e;
       margin-top: 5px; font-style: italic; }
 
-    /* 글 */
-    #shelf-root .sheet { background: #fffdf6; border: 1px solid rgba(120,90,40,.18); border-radius: 2px;
-      padding: 12px 13px; margin-bottom: 9px; box-shadow: 0 2px 5px rgba(60,40,15,.11); }
-    #shelf-root .sheet .t { font-size: 13px; font-weight: 700; color: var(--deep); }
-    #shelf-root .sheet .d { font-family: Georgia, serif; font-size: 10px; color: #a8894e; margin-top: 3px; }
-    #shelf-root .sheet .x { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.7; white-space: pre-wrap; }
+    /* 글 — 제목과 날짜만. 본문은 열어야 나온다 */
+    #shelf-root .sheet { display: flex; align-items: center; gap: 11px;
+      background: #fffdf6; border: 1px solid rgba(120,90,40,.18); border-radius: 2px;
+      padding: 12px 13px; margin-bottom: 8px; box-shadow: 0 2px 5px rgba(60,40,15,.11);
+      text-decoration: none; }
+    #shelf-root .sheet .m { flex: 1; min-width: 0; }
+    #shelf-root .sheet .t { display: block; font-size: 13px; font-weight: 700; color: var(--deep); line-height: 1.5; }
+    #shelf-root .sheet .d { display: block; font-family: Georgia, serif; font-size: 10px; color: #a8894e;
+      margin-top: 3px; font-variant-numeric: tabular-nums; }
+    #shelf-root .sheet .d b { font-weight: 400; color: var(--gold); font-family: 'Noto Serif KR', serif; }
+    #shelf-root .sheet .go { flex-shrink: 0; color: #c7ae7a; font-size: 14px; }
+    #shelf-root .sheet:hover .go { color: var(--gold); }
 
     #shelf-root .foot { text-align: center; font-size: 10px; color: var(--faint); font-style: italic;
       margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); line-height: 1.8; }
@@ -178,7 +184,7 @@ import Base from '../../layouts/Base.astro';
       }
 
       function storyCard(n) {
-        return '<a class="bk story" href="#pages">' +
+        return '<a class="bk story" href="/story/' + esc(handle) + '">' +
           '<span class="sp" style="background:#8a6a2a"></span>' +
           '<span class="in"><span class="fr"></span>' +
             '<span class="ty">📖 스토리북</span>' +
@@ -198,11 +204,14 @@ import Base from '../../layouts/Base.astro';
       }
 
       function noteCard(c) {
-        return '<div class="sheet">' +
-          '<div class="t">' + esc(c.title || '(제목 없음)') + '</div>' +
-          '<div class="d">' + esc(new Date(c.publishedAt || Date.now()).toLocaleDateString('ko-KR')) + '</div>' +
-          (c.excerpt ? '<div class="x">' + esc(c.excerpt) + '</div>' : '') +
-        '</div>';
+        var when = new Date(c.publishedAt || Date.now());
+        var d = when.getFullYear() + '. ' + (when.getMonth() + 1) + '. ' + when.getDate() + '.';
+        return '<a class="sheet" href="/n/' + esc(handle) + '/' + esc(c.noteId) + '">' +
+          '<span class="m">' +
+            '<span class="t">' + esc(c.title || '(제목 없음)') + '</span>' +
+            '<span class="d">' + d + (c.bookTitle ? ' · <b>' + esc(c.bookTitle) + '</b>' : '') + '</span>' +
+          '</span>' +
+          '<span class="go">→</span></a>';
       }
 
       function render(profile, cards) {
@@ -259,7 +268,7 @@ import Base from '../../layouts/Base.astro';
         }
 
         if (notes.length) {
-          html += '<div class="sect"><b>Notes</b><i>낱장의 글</i><u></u></div>' + notes.map(noteCard).join('');
+          html += '<div class="sect"><b>Notes</b><i>쓴 글</i><u></u></div>' + notes.map(noteCard).join('');
         }
 
         html += '<div class="foot">' + esc(pen) + '이 나눈 것들입니다<br/>나머지는 아직 그의 책 안에 있습니다</div>';

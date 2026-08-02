@@ -1,0 +1,343 @@
+---
+// Story Book — /story/{handle}
+// 앱의 Story 페이지(펼쳐진 책: 표제지 → 세 지표 → 목차 → 챕터)를 방문자용으로.
+// 방문자에게는 나눈 하루만 있다 — 챕터는 그달의 달력과 펼친 장으로 이루어진다.
+import Base from '../../layouts/Base.astro';
+import '../../styles/paper.css';
+---
+
+<Base title="Story Book — PULLSTORY" description="누군가 나눈 하루가 모여 만든 책.">
+  <div id="story-root" class="paper">
+    <p class="loading">책을 펴는 중…</p>
+  </div>
+
+  <style is:global>
+    /* 펼쳐진 책 — 앱의 Story와 같은 종이 */
+    #story-root .book {
+      position: relative;
+      border-radius: 3px;
+      padding: 0 13px;
+      box-shadow: 0 14px 34px rgba(0,0,0,.34);
+      background: linear-gradient(90deg,
+        #8a6636 0px, #c8ab74 3px, #9d7a45 6px, #d8bd88 9px,
+        #fffdf4 13px, #fffdf4 calc(100% - 13px),
+        #d8bd88 calc(100% - 9px), #9d7a45 calc(100% - 6px), #c8ab74 calc(100% - 3px), #8a6636 100%);
+    }
+    #story-root .leaf {
+      position: relative;
+      background: linear-gradient(#fffdf4, #f7efdb);
+      padding: 22px 15px 24px;
+      box-shadow: inset 13px 0 20px -14px rgba(90,60,25,.5), inset -13px 0 20px -14px rgba(90,60,25,.5);
+    }
+
+    /* 표제지 */
+    #story-root .tp { text-align: center; padding-bottom: 15px; }
+    #story-root .tp .om {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 10px; letter-spacing: .42em; color: #b09355;
+      text-transform: uppercase; font-weight: 700;
+    }
+    #story-root .tp h2 {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 33px; font-weight: 700; color: var(--deep);
+      line-height: 1.02; margin: 7px 0 0; letter-spacing: .01em;
+    }
+    #story-root .tp .rule {
+      width: 46px; height: 1px; margin: 11px auto 10px;
+      background: linear-gradient(90deg, transparent, #b8862f, transparent);
+    }
+    #story-root .tp p { font-size: 11px; color: var(--muted); line-height: 1.75; margin: 0; }
+
+    /* 세 지표 */
+    #story-root .stats { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; margin: 16px 0 4px; }
+    #story-root .stat {
+      position: relative; border: 1px solid rgba(156,116,32,.42); border-radius: 3px;
+      padding: 11px 4px 9px; text-align: center; background: rgba(255,255,255,.42); min-width: 0;
+    }
+    #story-root .stat::before { content: ""; position: absolute; inset: 3px; border: 1px solid rgba(156,116,32,.2); border-radius: 2px; }
+    #story-root .stat .n {
+      position: relative; font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 27px; font-weight: 700; line-height: 1; color: var(--gold);
+      font-variant-numeric: tabular-nums;
+    }
+    #story-root .stat .k {
+      position: relative; font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 10px; letter-spacing: .14em; color: var(--muted); font-weight: 700; margin-top: 4px;
+    }
+    #story-root .stat .d { position: relative; font-size: 8.5px; color: var(--faint); margin-top: 3px; }
+
+    /* 구역 · 연도 */
+    #story-root .sect { display: flex; align-items: center; gap: 9px; margin: 24px 0 12px; }
+    #story-root .sect .k {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 11px; letter-spacing: .28em; color: var(--gold); text-transform: uppercase; font-weight: 700;
+    }
+    #story-root .sect .l { flex: 1; height: 1px; background: rgba(120,90,40,.24); }
+
+    #story-root .yr { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 6px; }
+    #story-root .yr b {
+      font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px; font-weight: 700;
+      color: var(--deep); font-variant-numeric: tabular-nums;
+    }
+    #story-root .yr button {
+      width: 24px; height: 24px; border-radius: 50%; border: 1px solid #d6bc85;
+      color: #a8894e; background: transparent; cursor: pointer; font-size: 10px; line-height: 1;
+    }
+    #story-root .yr button:disabled { opacity: .35; cursor: default; }
+
+    /* 목차 */
+    #story-root .tr {
+      display: flex; align-items: baseline; gap: 6px; padding: 7px 3px; width: 100%;
+      background: transparent; border: none; border-bottom: 1px solid transparent;
+      cursor: pointer; text-align: left; font-family: inherit;
+    }
+    #story-root .tr .c {
+      font-family: 'Cormorant Garamond', Georgia, serif; font-size: 12px; font-weight: 700;
+      color: var(--gold); white-space: nowrap;
+    }
+    #story-root .tr .t { font-size: 12.5px; color: var(--ink); white-space: nowrap; }
+    #story-root .tr .dots { flex: 1; border-bottom: 1px dotted rgba(120,90,40,.42); transform: translateY(-3px); min-width: 12px; }
+    #story-root .tr .p {
+      font-family: 'Cormorant Garamond', Georgia, serif; font-size: 12px; font-weight: 700;
+      color: var(--faint); font-variant-numeric: tabular-nums;
+    }
+    #story-root .tr.on { border-radius: 3px; background: rgba(156,116,32,.1); }
+    #story-root .tr.on .t { font-weight: 700; color: var(--deep); }
+    #story-root .tr.on .c { color: #8a5f14; }
+    #story-root .tr.off { cursor: default; }
+    #story-root .tr.off .c, #story-root .tr.off .t, #story-root .tr.off .p { color: #c3b291; }
+    #story-root .tr.off .t { font-style: italic; }
+
+    /* 펼친 챕터 */
+    #story-root .ch { margin-top: 8px; border-top: 2px solid rgba(156,116,32,.3); padding-top: 16px; }
+    #story-root .chh { text-align: center; margin-bottom: 15px; }
+    #story-root .chn {
+      font-family: 'Cormorant Garamond', Georgia, serif; font-size: 30px; font-weight: 700;
+      color: var(--gold); line-height: 1;
+    }
+    #story-root .cht { font-family: 'Nanum Pen Script', cursive; font-size: 23px; color: #8a5f14; margin-top: 3px; }
+
+    /* 달력 */
+    #story-root .calh { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 4px; margin-bottom: 5px; }
+    #story-root .calh div {
+      text-align: center; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 10px;
+      color: var(--faint); font-weight: 700;
+    }
+    #story-root .cal { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 4px; }
+    #story-root .cell {
+      aspect-ratio: 1; min-width: 0; border-radius: 4px; display: flex; align-items: center; justify-content: center;
+      border: 1px solid rgba(120,90,40,.16); background: rgba(255,255,255,.42);
+      font-family: Georgia, serif; font-size: 10px; color: #b6a279;
+      text-decoration: none; font-variant-numeric: tabular-nums;
+    }
+    #story-root .cell.on {
+      background: linear-gradient(140deg, #d9b25c, #a8792a); border-color: #8a6420; color: #fff8ea; font-weight: 700;
+    }
+    #story-root .cell.pad { border: none; background: none; }
+
+    /* 그달에 펼친 장 */
+    #story-root .days { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+    #story-root .day {
+      border-radius: 5px; overflow: hidden; background: #fffdf6; text-decoration: none;
+      box-shadow: 0 3px 10px rgba(60,40,15,.16); border: 1px solid rgba(120,90,40,.14); display: block;
+    }
+    #story-root .day .im { display: block; height: 78px; background: rgba(120,90,40,.1); background-size: cover; background-position: center; }
+    #story-root .day .bd { display: block; padding: 8px 9px 10px; }
+    #story-root .day .dt { display: block; font-family: Georgia, serif; font-size: 10px; color: #a08a5e; }
+    #story-root .day .cp {
+      font-size: 10.5px; color: var(--ink); margin-top: 4px; line-height: 1.55;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    #story-root .day .ep { display: block; font-family: Georgia, serif; font-size: 9px; color: #b09a6e; margin-top: 5px; font-style: italic; }
+
+    #story-root .none { text-align: center; font-size: 10.5px; color: var(--faint); font-style: italic; padding: 26px 8px; line-height: 1.9; }
+  </style>
+
+  <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <script is:inline>
+    (function () {
+      var root = document.getElementById('story-root');
+      var db = firebase.firestore();
+
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
+      }
+
+      // /story/pullstory → pullstory  (?u= 로도 받는다)
+      var parts = location.pathname.split('/').filter(Boolean);
+      var qs = new URLSearchParams(location.search);
+      var handle = decodeURIComponent(qs.get('u') || parts[1] || '').toLowerCase();
+
+      if (!handle) {
+        root.innerHTML = '<p class="empty">누구의 책인지 알 수 없습니다.<br/>pullstory.net/story/이름 형태로 들어와 주세요.</p>';
+        return;
+      }
+
+      var MON = ['January','February','March','April','May','June',
+                 'July','August','September','October','November','December'];
+      var DOW = ['S','M','T','W','T','F','S'];
+      var shelf = '/u/' + encodeURIComponent(handle);
+
+      var state = { profile: null, pages: [], year: 0, month: 0, years: [] };
+
+      function byMonth(year, month) {
+        return state.pages.filter(function (p) {
+          var d = String(p.date || '');
+          return parseInt(d.slice(0, 4), 10) === year && parseInt(d.slice(5, 7), 10) === month;
+        });
+      }
+
+      function calendar(year, month) {
+        var first = new Date(year, month - 1, 1).getDay();
+        var last = new Date(year, month, 0).getDate();
+        var shared = {};
+        byMonth(year, month).forEach(function (p) { shared[parseInt(String(p.date).slice(8, 10), 10)] = p.date; });
+
+        var cells = '';
+        for (var i = 0; i < first; i++) cells += '<div class="cell pad"></div>';
+        for (var d = 1; d <= last; d++) {
+          cells += shared[d]
+            ? '<a class="cell on" href="/p/' + esc(handle) + '/' + esc(shared[d]) + '">' + d + '</a>'
+            : '<div class="cell">' + d + '</div>';
+        }
+        return '<div class="calh">' + DOW.map(function (x) { return '<div>' + x + '</div>'; }).join('') + '</div>' +
+          '<div class="cal">' + cells + '</div>';
+      }
+
+      function dayCard(c) {
+        var d = String(c.date || '');
+        return '<a class="day" href="/p/' + esc(handle) + '/' + esc(d) + '" data-photo="' + esc(c.keyPhotoId || '') + '">' +
+          '<span class="im"></span>' +
+          '<span class="bd">' +
+            '<span class="dt">' + parseInt(d.slice(5, 7), 10) + '. ' + parseInt(d.slice(8, 10), 10) + '</span>' +
+            (c.caption ? '<span class="cp">' + esc(c.caption) + '</span>' : '') +
+            '<span class="ep">에피소드 ' + (c.count || 0) + '</span>' +
+          '</span></a>';
+      }
+
+      function render() {
+        var p = state.profile || {};
+        var pen = p.penName || '이름 없는 지은이';
+        var st = p.stats || {};
+        var y = state.year, m = state.month;
+        var yi = state.years.indexOf(y);
+
+        var html =
+          '<div class="bar"><a href="' + shelf + '">‹ ' + esc(pen) + '의 책장</a><span>스토리북</span></div>' +
+          '<div class="book"><div class="leaf">' +
+            '<div class="tp">' +
+              '<div class="om">' + esc(pen) + '</div>' +
+              '<h2>Story Book</h2>' +
+              '<div class="rule"></div>' +
+              '<p>하루하루 채운 페이지가 모여 만든 한 권<br/>— 그중 펼쳐 보인 장이 여기에 있습니다</p>' +
+            '</div>' +
+            '<div class="stats">' +
+              '<div class="stat"><div class="n">' + (st.day || 0) + '</div><div class="k">DAY</div><div class="d">시작한 날부터</div></div>' +
+              '<div class="stat"><div class="n">' + (st.page || 0) + '</div><div class="k">PAGE</div><div class="d">다 채운 하루</div></div>' +
+              '<div class="stat"><div class="n">' + (st.cash || 0) + '</div><div class="k">C.A.S.H</div><div class="d">실행한 스토리</div></div>' +
+            '</div>';
+
+        if (!state.pages.length) {
+          html += '<div class="none">아직 펼쳐 보인 장이 없습니다.<br/>' + esc(pen) + '의 하루는 아직 책 안에 있습니다.</div>' +
+            '</div></div>' +
+            '<div class="foot"><a href="' + shelf + '">책장으로 돌아가기 →</a></div>';
+          root.innerHTML = html;
+          return;
+        }
+
+        html += '<div class="sect"><span class="k">Contents</span><span class="l"></span></div>' +
+          '<div class="yr">' +
+            '<button type="button" data-year="' + (y - 1) + '"' + (yi <= 0 ? ' disabled' : '') + '>◀</button>' +
+            '<b>' + y + '</b>' +
+            '<button type="button" data-year="' + (y + 1) + '"' + (yi >= state.years.length - 1 ? ' disabled' : '') + '>▶</button>' +
+          '</div><div class="toc">';
+
+        for (var i = 1; i <= 12; i++) {
+          var n = byMonth(y, i).length;
+          html += '<button type="button" class="tr ' + (n === 0 ? 'off' : i === m ? 'on' : '') + '"' +
+            (n === 0 ? ' disabled' : ' data-month="' + i + '"') + '>' +
+            '<span class="c">Ch. ' + i + '</span>' +
+            '<span class="t">' + i + '월</span>' +
+            '<span class="dots"></span>' +
+            '<span class="p">' + (n === 0 ? '—' : n) + '</span>' +
+          '</button>';
+        }
+        html += '</div>';
+
+        var list = byMonth(y, m).slice().sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+        html += '<div class="ch">' +
+          '<div class="chh"><div class="chn">Ch. ' + m + '</div><div class="cht">' + MON[m - 1] + '</div></div>' +
+          calendar(y, m) +
+          (list.length
+            ? '<div class="days">' + list.map(dayCard).join('') + '</div>'
+            : '<div class="none">이 달엔 펼쳐 보인 장이 없습니다.</div>') +
+        '</div>';
+
+        html += '</div></div>' +
+          '<div class="foot">' + esc(pen) + '이 펼쳐 보인 장들입니다<br/>' +
+          '<a href="' + shelf + '">책장에서 다른 것도 보기 →</a></div>';
+
+        root.innerHTML = html;
+        wire();
+        loadPhotos();
+      }
+
+      function wire() {
+        Array.prototype.forEach.call(root.querySelectorAll('.tr[data-month]'), function (b) {
+          b.addEventListener('click', function () { state.month = parseInt(b.getAttribute('data-month'), 10); render(); });
+        });
+        Array.prototype.forEach.call(root.querySelectorAll('.yr button[data-year]'), function (b) {
+          if (b.disabled) return;
+          b.addEventListener('click', function () {
+            state.year = parseInt(b.getAttribute('data-year'), 10);
+            state.month = firstMonthOf(state.year);
+            render();
+          });
+        });
+      }
+
+      function firstMonthOf(year) {
+        var ms = state.pages
+          .filter(function (p) { return parseInt(String(p.date).slice(0, 4), 10) === year; })
+          .map(function (p) { return parseInt(String(p.date).slice(5, 7), 10); });
+        return ms.length ? Math.max.apply(null, ms) : 1;
+      }
+
+      function loadPhotos() {
+        Array.prototype.forEach.call(root.querySelectorAll('.day[data-photo]'), function (el) {
+          var id = el.getAttribute('data-photo');
+          if (!id) return;
+          db.collection('photos').doc(id).get().then(function (s) {
+            if (!s.exists) return;
+            var d = s.data().data;
+            if (d) el.querySelector('.im').style.backgroundImage = 'url("' + d + '")';
+          }).catch(function () {});
+        });
+      }
+
+      db.collection('users').where('handle', '==', handle).limit(1).get()
+        .then(function (snap) {
+          if (snap.empty) {
+            root.innerHTML = '<p class="empty">이 주소의 책을 찾지 못했습니다.<br/>주소를 다시 확인해 주세요.</p>';
+            return;
+          }
+          state.profile = snap.docs[0].data();
+          return db.collection('feed').where('handle', '==', handle).where('kind', '==', 'page').get()
+            .then(function (fs) {
+              fs.forEach(function (d) { state.pages.push(d.data()); });
+              var years = {};
+              state.pages.forEach(function (p) { years[parseInt(String(p.date).slice(0, 4), 10)] = 1; });
+              state.years = Object.keys(years).map(Number).sort();
+              state.year = state.years.length ? state.years[state.years.length - 1] : new Date().getFullYear();
+              state.month = state.pages.length ? firstMonthOf(state.year) : new Date().getMonth() + 1;
+              render();
+            });
+        })
+        .catch(function (e) {
+          root.innerHTML = '<p class="empty">책을 펴지 못했습니다.<br/>' + esc(e.message) + '</p>';
+        });
+    })();
+  </script>
+</Base>
