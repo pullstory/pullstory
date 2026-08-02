@@ -4567,7 +4567,10 @@ function App() {
   const [user, setUser] = useState(null);
   const [data, setDataState] = useState(null);
   const [profile, setProfile] = useState(null);   // {penName, handle}
+  const profileRef = useRef(null);                // noteApi가 다시 만들어지지 않게 참조로만 본다
+  useEffect(() => { profileRef.current = profile; }, [profile]);
   const [notes, setNotes] = useState([]);        // 모든 글 — 낱장이든 책에 묶였든 여기 산다
+  const [notesLoaded, setNotesLoaded] = useState(false);
   const [opened, setOpened] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -4620,9 +4623,26 @@ function App() {
         snap.forEach(d => arr.push({id: d.id, ...d.data()}));
         arr.sort((a, b) => (noteTs(b) - noteTs(a)));
         setNotes(arr);
+        setNotesLoaded(true);
       }, err => console.warn("notes load:", err));
     return () => unsub();
   }, [user]);
+
+  // 주인 없는 카드 거두기 — 예전에 글을 지웠는데 카드만 남은 것들.
+  // 글이 다 실려 온 뒤에 한 번만 훑는다(빈 목록으로 지워버리는 일이 없게).
+  const sweptRef = useRef(false);
+  useEffect(() => {
+    const uid = user && user.uid;
+    const handle = (profile && profile.handle) || "";
+    if (!notesLoaded || !handle || !uid || sweptRef.current) return;
+    sweptRef.current = true;
+    const alive = new Set(notes.map(n => String(n.id)));
+    fbDb.collection("feed").where("handle", "==", handle).where("kind", "==", "note").get()
+      .then(snap => Promise.all(snap.docs
+        .filter(d => !alive.has(String(d.data().noteId)))
+        .map(d => d.ref.delete().catch(e => console.warn("sweep note card:", e)))))
+      .catch(e => console.warn("sweep note cards:", e));
+  }, [notesLoaded, notes, user, profile]);
 
   const noteApi = useMemo(() => {
     const uid = user && user.uid;
@@ -4643,10 +4663,14 @@ function App() {
         try { await fbDb.collection("notes").doc(id).update({...patch, updatedAt: Date.now()}); }
         catch (e) { console.warn("note update:", e); }
       },
+      // 글을 지우면 진열대에 내건 카드도 같이 거둔다 —
+      // 안 그러면 목록엔 남고 눌러 들어가면 없는 글이 된다
       remove: async (id) => {
         if (!live || !id) return;
         try { await fbDb.collection("notes").doc(id).delete(); }
         catch (e) { console.warn("note delete:", e); }
+        const h = (profileRef.current && profileRef.current.handle) || "";
+        if (h) await unpublishNote(uid, h, id);
       },
     };
   }, [user]);
