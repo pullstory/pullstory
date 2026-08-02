@@ -152,18 +152,11 @@ import '../../styles/paper.css';
         return out;
       }
 
+      // 쓴 것만 — 인용해 둔 그날의 기록은 책의 표에서 본다
       function block(b) {
-        if (b.t !== 'q') {
-          var v = String(b.v || '');
-          return v.trim() ? '<div class="p">' + esc(v) + '</div>' : '';
-        }
-        // 낱장 글의 인용은 원본 기록을 가리키기만 한다 — 풀린 사본이 있을 때만 그린다
-        if (!b.photoId && !b.memo) return '';
-        return '<div class="quote">' +
-          '<div class="d">' + (b.day > 0 ? 'DAY ' + b.day + ' · ' : '') + esc(shortDate(b.d)) + '</div>' +
-          (b.photoId ? '<div class="shot" data-photo="' + esc(b.photoId) + '"></div>' : '') +
-          (b.memo ? '<div class="memo">' + esc(b.memo) + '</div>' : '') +
-        '</div>';
+        if (b.t === 'q') return '';
+        var v = String(b.v || '');
+        return v.trim() ? '<div class="p">' + esc(v) + '</div>' : '';
       }
 
       function render(note, card, book) {

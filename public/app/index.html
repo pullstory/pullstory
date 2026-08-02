@@ -1159,22 +1159,37 @@ function bookPublishChecks(book, notes) {
   return {checks, ok: BOOK_GATE ? checks.every(c => c.ok) : true};
 }
 
-// 글 안의 인용은 원본 기록을 가리키고 있다 → 내보낼 땐 그 자리에서 풀어 담는다
+// Write는 Write에서 쓴 것만 내보낸다.
+// 인용은 앱에서 글을 쓸 때 곁에 두고 보는 것이지 읽는 사람에게 낼 것이 아니다 —
+// 그날의 사진과 메모는 Story의 표에서 그 칸을 눌러 보게 된다.
 function resolvePostForPublic(book, post, records, span) {
-  const blocks = noteBlocks(post);
-  const photoIds = [];
-  const resolved = blocks.map(b => {
-    if (b.t !== "q") return {t: "p", v: String(b.v || "")};
-    const rec = (records || {})[b.d];
-    const t = rec && (rec.tasks || []).find(x => x.done && x.sourceTaskId === book.id);
-    if (!t) return {t: "p", v: ""};
-    if (t.photoId) photoIds.push(t.photoId);
-    return {t: "q", d: b.d, day: span.start ? daysBetween(span.start, b.d) : 0,
-            photoId: t.photoId || null, memo: t.memo || ""};
-  }).filter(b => b.t === "q" || b.v.trim());
-
-  return {block: {id: post.id, title: post.title || "", blocks: resolved, ts: noteTs(post) || null}, photoIds};
+  const resolved = noteBlocks(post)
+    .filter(b => b.t !== "q")
+    .map(b => ({t: "p", v: String(b.v || "")}))
+    .filter(b => b.v.trim());
+  return {block: {id: post.id, title: post.title || "", blocks: resolved, ts: noteTs(post) || null}};
 }
+
+// 표의 각 칸이 품고 있는 그날 — 사진은 photos에 그대로 두고 이름표만 담는다.
+// 30칸이면 몇 KB, 100칸이라도 문서 한도에 한참 못 미친다.
+function bookDays(book, records, span) {
+  const days = {};
+  const photoIds = [];
+  const dur = span.duration || 0;
+  for (let n = 1; n <= dur; n++) {
+    const k = dayKeyOf(span.start, n);
+    if (!k) continue;
+    const rec = (records || {})[k];
+    const t = rec && (rec.tasks || []).find(x => x.done && String(x.sourceTaskId) === String(book.id));
+    if (!t) continue;
+    days[n] = {date: k, photoId: t.photoId || null, memo: t.memo || ""};
+    if (t.photoId) photoIds.push(t.photoId);
+  }
+  return {days, photoIds};
+}
+
+// 사진 공개 여부는 바뀔 때만 쓴다 — 책을 고칠 때마다 수십 장을 다시 쓸 일이 없게
+const photoSyncSig = new Map();
 
 async function publishBook(uid, profile, book, records, notes) {
   const handle = (profile && profile.handle) || "";
@@ -1185,12 +1200,9 @@ async function publishBook(uid, profile, book, records, notes) {
   const sub = book[span.key] || {};
   const posts = bookPosts(book, notes);
 
-  const photoIds = [];
-  const pubPosts = posts.map(p => {
-    const r = resolvePostForPublic(book, p, records, span);
-    photoIds.push(...r.photoIds);
-    return r.block;
-  });
+  const pubPosts = posts.map(p => resolvePostForPublic(book, p, records, span).block);
+  const marks = isColl ? {days: {}, photoIds: []} : bookDays(book, records, span);
+  const photoIds = marks.photoIds;
 
   const id = handle + "_b" + book.id;
   const now = Date.now();
@@ -1213,6 +1225,7 @@ async function publishBook(uid, profile, book, records, notes) {
       ? {freq: sub.freq || "", time: sub.time || ""}
       : {criteria: (book.ach || {}).criteria || "", deadline: (book.ach || {}).deadline || "",
          steps: (book.ach || {}).steps || ""},
+    days: marks.days,
     posts: pubPosts,
   });
 
@@ -1228,7 +1241,11 @@ async function publishBook(uid, profile, book, records, notes) {
   await Promise.all(pubPosts.map(p => publishNote(uid, profile, p, book)));
   await pruneBookNoteCards(handle, book.id, pubPosts.map(p => p.id));
 
-  await setPhotosVisibility(photoIds, "public");
+  const sig = photoIds.slice().sort().join(",");
+  if (photoSyncSig.get(id) !== sig) {
+    await setPhotosVisibility(photoIds, "public");
+    photoSyncSig.set(id, sig);
+  }
 }
 
 // 글도 진열대에 오른다 — 원본은 notes에 그대로 있고 카드만 만든다.
@@ -1267,12 +1284,21 @@ async function pruneBookNoteCards(handle, bookId, keep) {
   } catch (e) { console.warn("prune note cards:", e); }
 }
 
-async function unpublishBook(uid, handle, book) {
+async function unpublishBook(uid, handle, book, records) {
   if (!FIREBASE_READY || !uid || uid === "local-user" || !handle) return;
   const id = handle + "_b" + book.id;
   await fbDb.collection("publicBooks").doc(id).delete().catch(e => console.warn("unpublish book:", e));
   await fbDb.collection("feed").doc(id).delete().catch(e => console.warn("unpublish book:", e));
   await pruneBookNoteCards(handle, book.id, []);
+
+  // 이 책 때문에 열어 둔 사진은 다시 닫는다 — 그날 자체가 아직 공개 중이면 그대로 둔다
+  const marks = bookDays(book, records, bookSpan(book));
+  const close = Object.keys(marks.days)
+    .filter(n => marks.days[n].photoId)
+    .filter(n => !((records || {})[marks.days[n].date] || {}).published)
+    .map(n => marks.days[n].photoId);
+  await setPhotosVisibility(close, "private");
+  photoSyncSig.delete(id);
 }
 
 // ── 지은이 (필명 · 책장 주소) ────────────────────────────────
@@ -2376,7 +2402,7 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
     setPubBusy(true);
     try {
       if (published) {
-        await unpublishBook(uid, handle, book);
+        await unpublishBook(uid, handle, book, records);
         updateBook(book.id, t => ({...t, published: false}));
       } else {
         await publishBook(uid, profile, book, records, notes);
@@ -2396,6 +2422,7 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
         book.text, book.cat, book.type, book.intro || "",
         book.habit || null, book.ach || null,
         posts.map(p => [p.id, p.title || "", noteTs(p), noteBlocks(p)]),
+        isColl ? null : bookDays(book, records, span).days,   // 표 칸의 사진·메모까지
       ])
     : "";
   useEffect(() => {

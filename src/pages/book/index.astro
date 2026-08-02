@@ -138,6 +138,34 @@ import '../../styles/paper.css';
       font-variant-numeric: tabular-nums;
     }
     #book-root .tally .c.on { background: #5a8c4a; border-color: #4a7c3a; color: #fff; }
+    /* 눌러 볼 수 있는 칸 — 그날의 기록이 딸려 있다 */
+    #book-root .tally button.c { cursor: pointer; font-family: Georgia, serif; }
+    #book-root .tally button.c::after {
+      content: ""; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
+      width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,.75);
+    }
+    #book-root .tally .c { position: relative; overflow: hidden; padding: 0; }
+    #book-root .tally button.c.sel { box-shadow: 0 0 0 2px #b8862f; }
+
+    /* 펼쳐 본 그날 */
+    #book-root .peek {
+      margin-top: 11px; border: 1px solid #c9a85a; border-radius: 7px; overflow: hidden;
+      background: linear-gradient(#fffdf5, #f5ecd9);
+    }
+    #book-root .peek .h {
+      background: linear-gradient(180deg, #d4a851, #b8862f); padding: 6px 11px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    #book-root .peek .h span {
+      font-family: 'Cormorant Garamond', Georgia, serif; font-size: 10.5px; letter-spacing: .16em;
+      color: #fff8e5; font-weight: 700;
+    }
+    #book-root .peek .h a { color: #fff8e5; font-size: 10px; text-decoration: none; opacity: .9; }
+    #book-root .peek .h a:hover { text-decoration: underline; }
+    #book-root .peek .b { padding: 11px 12px 13px; }
+    #book-root .peek .shot { margin-top: 0; }
+    #book-root .peek .memo { font-size: 16px; }
+    #book-root .peek .none { font-size: 11px; color: var(--faint); font-style: italic; }
     #book-root .tally .c.dd {
       background: linear-gradient(140deg, #c04a44, #9c332e);
       border-color: #8f2f2a; color: #fff8ea; font-size: 7.5px;
@@ -278,30 +306,61 @@ import '../../styles/paper.css';
         var done = {};
         (d.done || []).forEach(function (n) { done[n] = 1; });
         var isAch = d.type === 'achievement';
+        var marks = d.days || {};
         var cells = '';
         for (var n = 1; n <= dur; n++) {
           var last = isAch && n === dur;
-          cells += '<div class="c' + (done[n] ? ' on' : '') + (last ? ' dd' : '') + '">' +
-            (last ? 'D-DAY' : n) + '</div>';
+          var cls = 'c' + (done[n] ? ' on' : '') + (last ? ' dd' : '');
+          var label = last ? 'D-DAY' : n;
+          // 그날의 기록이 남아 있는 칸만 눌린다
+          cells += marks[n]
+            ? '<button type="button" class="' + cls + '" data-day="' + n + '">' + label + '</button>'
+            : '<div class="' + cls + '">' + label + '</div>';
         }
         var filled = (d.done || []).length;
         var pct = Math.round(filled / dur * 100);
         return '<div class="tally">' +
           '<div class="pct"><span>' + esc((KIND[d.type] || KIND.achievement).label) + '</span>' +
             '<span><b>' + pct + '%</b> · ' + filled + '/' + dur + '일</span></div>' +
-          '<div class="grid">' + cells + '</div></div>';
+          '<div class="grid">' + cells + '</div>' +
+          '<div class="peekhost"></div></div>';
       }
 
+      // 표 칸을 누르면 그날이 열린다. 사진은 그때 한 장만 가져온다 —
+      // 문서에는 사진의 이름표만 들어 있다.
+      function wireTally(d) {
+        var host = root.querySelector('.peekhost');
+        var btns = root.querySelectorAll('.tally button[data-day]');
+        if (!host) return;
+        Array.prototype.forEach.call(btns, function (b) {
+          b.addEventListener('click', function () {
+            var n = b.getAttribute('data-day');
+            if (b.classList.contains('sel')) {          // 다시 누르면 닫힌다
+              b.classList.remove('sel');
+              host.innerHTML = '';
+              return;
+            }
+            Array.prototype.forEach.call(btns, function (x) { x.classList.remove('sel'); });
+            b.classList.add('sel');
+            var m = (d.days || {})[n] || {};
+            host.innerHTML = '<div class="peek">' +
+              '<div class="h"><span>DAY ' + esc(n) + '</span>' +
+                '<a href="/p/' + esc(handle) + '/' + esc(m.date) + '">' + esc(shortDate(m.date)) + ' →</a></div>' +
+              '<div class="b">' +
+                (m.photoId ? '<div class="shot" data-photo="' + esc(m.photoId) + '"></div>' : '') +
+                (m.memo ? '<div class="memo">' + esc(m.memo) + '</div>'
+                        : (m.photoId ? '' : '<div class="none">남긴 메모가 없습니다.</div>')) +
+              '</div></div>';
+            loadPhotos();
+          });
+        });
+      }
+
+      // Write에 쓴 것만 — 인용해 둔 그날의 기록은 Story의 표에서 본다
       function block(b) {
-        if (b.t !== 'q') {
-          var v = String(b.v || '');
-          return v.trim() ? '<div class="p">' + esc(v) + '</div>' : '';
-        }
-        return '<div class="quote">' +
-          '<div class="d">' + (b.day > 0 ? 'DAY ' + b.day + ' · ' : '') + esc(shortDate(b.d)) + '</div>' +
-          (b.photoId ? '<div class="shot" data-photo="' + esc(b.photoId) + '"></div>' : '') +
-          (b.memo ? '<div class="memo">' + esc(b.memo) + '</div>' : '') +
-        '</div>';
+        if (b.t === 'q') return '';
+        var v = String(b.v || '');
+        return v.trim() ? '<div class="p">' + esc(v) + '</div>' : '';
       }
 
       function post(p) {
@@ -356,6 +415,7 @@ import '../../styles/paper.css';
 
         root.innerHTML = html;
         wireTabs();
+        wireTally(d);
         loadPhotos();
       }
 
