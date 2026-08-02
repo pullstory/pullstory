@@ -4563,17 +4563,40 @@ function App() {
 
   // 책장에 내걸 숫자 — scashbook 문서는 본인만 읽을 수 있어서 남의 책장에선 못 본다.
   // 그래서 이미 공개로 열어 둔 users 문서에 이 셋만 따로 얹는다.
+  // 챕터 제목도 같이 — 방문자의 Story Book 목차가 내 목차와 같은 이름을 부르도록.
+  // 지도(map)가 아니라 목록으로 두는 건 merge 저장이 맵 안의 키를 지우지 않기 때문이다
+  // (제목을 지웠는데 남의 책장엔 옛 제목이 남는 일을 막는다).
   useEffect(() => {
     if (!data || !user || !profile || !profile.handle) return;
     const t = setTimeout(() => {
       const start = data.startDate || todayStr();
       const day = Math.max(1, daysBetween(start, todayStr()));
       const page = data.pageCount || 0;
-      const cash = Object.values(data.pageRecords || {}).reduce((sum, r) =>
+      const records = data.pageRecords || {};
+      const cash = Object.values(records).reduce((sum, r) =>
         sum + ((r.tasks || []).filter(x => x.done && CASH_KEYS.indexOf(x.cat) >= 0).length), 0);
+
+      // 나눈 하루가 있는 달의 제목만 내건다
+      const shared = new Set(Object.keys(records)
+        .filter(k => records[k] && records[k].published).map(k => k.slice(0, 7)));
+      const chapters = [];
+      Object.keys(data.chapters || {}).forEach(y => {
+        const ms = data.chapters[y] || {};
+        Object.keys(ms).forEach(m => {
+          if (m === "tasks") return;                       // 연간 책 목록은 챕터가 아니다
+          const title = ((ms[m] || {}).title || "").trim();
+          if (!title) return;
+          const key = y + "-" + String(m).padStart(2, "0");
+          if (shared.has(key)) chapters.push({k: key, t: title});
+        });
+      });
+      chapters.sort((a, b) => (a.k < b.k ? -1 : 1));
+
       const prev = profile.stats || {};
-      if (prev.day === day && prev.page === page && prev.cash === cash) return;
-      saveProfile(user.uid, profile, {stats: {day, page, cash}})
+      const same = prev.day === day && prev.page === page && prev.cash === cash &&
+        JSON.stringify(profile.chapters || []) === JSON.stringify(chapters);
+      if (same) return;
+      saveProfile(user.uid, profile, {stats: {day, page, cash}, chapters})
         .then(setProfile).catch(e => console.warn("stats:", e));
     }, 1500);
     return () => clearTimeout(t);

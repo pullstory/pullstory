@@ -1,0 +1,169 @@
+---
+// 펴낸 책 전부 — /books/{handle}
+// 책장에서는 최신 몇 권만 한 줄에 내놓는다. 여기가 그 나머지까지 다 꽂힌 자리.
+import Base from '../../layouts/Base.astro';
+import '../../styles/paper.css';
+---
+
+<Base title="펴낸 책 — PULLSTORY" description="누군가 펴낸 책이 모두 꽂힌 책장.">
+  <div id="books-root" class="paper">
+    <p class="loading">책장을 펴는 중…</p>
+  </div>
+
+  <style is:global>
+    #books-root .head { text-align: center; padding-bottom: 15px; }
+    #books-root .head .om {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 10px; letter-spacing: .34em; color: #b09355; text-transform: uppercase; font-weight: 700;
+    }
+    #books-root .head h1 {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 30px; font-weight: 700; color: var(--deep); margin: 6px 0 0; line-height: 1.05;
+    }
+    #books-root .head p { font-size: 11px; color: var(--muted); margin: 9px 0 0; line-height: 1.75; }
+
+    /* 여러 단짜리 책장 */
+    #books-root .case {
+      padding: 14px 12px 0; border-radius: 5px;
+      background: linear-gradient(160deg, #5a3d22, #33220f 78%);
+      box-shadow: inset 0 0 0 1px rgba(200,160,90,.2);
+    }
+    #books-root .row { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 11px; }
+    #books-root .plank {
+      height: 9px; margin: 13px -12px 0;
+      background: linear-gradient(180deg, #9a6528, #6a441f); box-shadow: 0 4px 7px rgba(0,0,0,.45);
+    }
+    #books-root .plank:not(:last-child) { margin-bottom: 15px; }
+
+    #books-root .bk {
+      position: relative; aspect-ratio: 3/4.2; border-radius: 3px 6px 6px 3px; overflow: hidden;
+      display: flex; box-shadow: 0 6px 13px rgba(0,0,0,.4); text-decoration: none; min-width: 0;
+    }
+    #books-root .bk .sp { width: 6px; flex-shrink: 0; }
+    #books-root .bk .in { flex: 1; position: relative; padding: 8px 7px; display: flex; flex-direction: column; min-width: 0; }
+    #books-root .bk .fr { position: absolute; inset: 5px; border: 1px solid rgba(255,248,220,.35); border-radius: 2px; }
+    #books-root .bk .ty { display: block; position: relative; font-size: 7px; font-weight: 700; color: rgba(255,248,220,.85); }
+    #books-root .bk .tt {
+      position: relative; font-size: 10.5px; font-weight: 700; color: #fff8e5; line-height: 1.3;
+      margin-top: auto; text-shadow: 0 1px 4px rgba(0,0,0,.5);
+      overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    }
+    #books-root .bk .st {
+      display: block; position: relative; font-family: Georgia, serif; font-size: 8px;
+      font-style: italic; color: rgba(255,248,220,.82); margin-top: 3px;
+    }
+    #books-root .bk.story .in { background: linear-gradient(150deg, #3f2e1c, #241812); }
+    #books-root .bk.story .fr { border-color: rgba(226,190,110,.55); }
+    #books-root .bk.story .tt { font-family: Georgia, serif; font-size: 12px; }
+  </style>
+
+  <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <script is:inline>
+    (function () {
+      var root = document.getElementById('books-root');
+      var db = firebase.firestore();
+
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
+      }
+
+      // /books/pullstory → pullstory  (?u= 로도 받는다)
+      var parts = location.pathname.split('/').filter(Boolean);
+      var qs = new URLSearchParams(location.search);
+      var handle = decodeURIComponent(qs.get('u') || parts[1] || '').toLowerCase();
+
+      if (!handle) {
+        root.innerHTML = '<p class="empty">누구의 책장인지 알 수 없습니다.<br/>pullstory.net/books/이름 형태로 들어와 주세요.</p>';
+        return;
+      }
+
+      var CAT = {
+        C: { sp: '#c98f22', g: 'linear-gradient(140deg,#e3ad35,#c8901f)' },
+        A: { sp: '#9c332e', g: 'linear-gradient(140deg,#c04a44,#a3352f)' },
+        S: { sp: '#315b86', g: 'linear-gradient(140deg,#487eb2,#325f8c)' },
+        H: { sp: '#3a6e3e', g: 'linear-gradient(140deg,#4f9354,#37703c)' }
+      };
+      var shelf = '/u/' + encodeURIComponent(handle);
+
+      function typeIcon(t) { return t === 'habit' ? '🔁 습관' : t === 'collection' ? '✍️ 묶음' : '🏆 성취'; }
+
+      function bookCard(c) {
+        var cat = CAT[c.cat] || CAT.C;
+        var st = c.type === 'habit' ? ((c.filled || 0) + '/' + (c.total || 0))
+                                    : ('글 ' + (c.postCount || 0) + '편');
+        return '<a class="bk" href="/book/' + esc(handle) + '/' + esc(c.bookId) + '">' +
+          '<span class="sp" style="background:' + cat.sp + '"></span>' +
+          '<span class="in" style="background:' + cat.g + '">' +
+            '<span class="fr"></span>' +
+            '<span class="ty">' + typeIcon(c.type) + '</span>' +
+            '<span class="tt">' + esc(c.title || '(제목 없음)') + '</span>' +
+            '<span class="st">' + esc(st) + '</span>' +
+          '</span></a>';
+      }
+
+      function storyCard(n) {
+        return '<a class="bk story" href="/story/' + esc(handle) + '">' +
+          '<span class="sp" style="background:#8a6a2a"></span>' +
+          '<span class="in"><span class="fr"></span>' +
+            '<span class="ty">📖 스토리북</span>' +
+            '<span class="tt">Story<br/>Book</span>' +
+            '<span class="st">' + n + '장</span>' +
+          '</span></a>';
+      }
+
+      function render(profile, books, pageCount) {
+        var pen = profile.penName || '이름 없는 지은이';
+        var cards = (pageCount ? [storyCard(pageCount)] : []).concat(books.map(bookCard));
+
+        var html =
+          '<div class="bar"><a href="' + shelf + '">‹ ' + esc(pen) + '의 책장</a><span>펴낸 책</span></div>' +
+          '<div class="head">' +
+            '<div class="om">' + esc(pen) + '</div>' +
+            '<h1>Books</h1>' +
+            '<p>' + esc(pen) + '이 펴낸 책 ' + books.length + '권' +
+              (pageCount ? ' · 스토리북 1권' : '') + '</p>' +
+          '</div>';
+
+        if (!cards.length) {
+          html += '<p class="empty">아직 펴낸 책이 없습니다.</p>';
+        } else {
+          html += '<div class="case">';
+          for (var i = 0; i < cards.length; i += 3) {
+            html += '<div class="row">' + cards.slice(i, i + 3).join('') + '</div><div class="plank"></div>';
+          }
+          html += '</div>';
+        }
+
+        html += '<div class="foot">' + esc(pen) + '이 펴낸 책들입니다<br/>' +
+          '<a href="' + shelf + '">책장으로 돌아가기 →</a></div>';
+
+        root.innerHTML = html;
+      }
+
+      db.collection('users').where('handle', '==', handle).limit(1).get()
+        .then(function (snap) {
+          if (snap.empty) {
+            root.innerHTML = '<p class="empty">이 주소의 책장을 찾지 못했습니다.<br/>주소를 다시 확인해 주세요.</p>';
+            return;
+          }
+          var profile = snap.docs[0].data();
+          return db.collection('feed').where('handle', '==', handle).get()
+            .then(function (fs) {
+              var books = [], pageCount = 0;
+              fs.forEach(function (d) {
+                var x = d.data();
+                if (x.kind === 'book') books.push(x);
+                else if (x.kind === 'page') pageCount++;
+              });
+              books.sort(function (a, b) { return (b.publishedAt || 0) - (a.publishedAt || 0); });
+              render(profile, books, pageCount);
+            });
+        })
+        .catch(function (e) {
+          root.innerHTML = '<p class="empty">책장을 열지 못했습니다.<br/>' + esc(e.message) + '</p>';
+        });
+    })();
+  </script>
+</Base>

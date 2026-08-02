@@ -22,6 +22,10 @@
     {
       "source": "/story/:handle",
       "destination": "/story/index.html"
+    },
+    {
+      "source": "/books/:handle",
+      "destination": "/books/index.html"
     }
   ]
 }

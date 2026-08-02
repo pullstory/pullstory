@@ -55,12 +55,32 @@ import Base from '../../layouts/Base.astro';
       text-transform: uppercase; font-weight: 700; white-space: nowrap; }
     #shelf-root .sect i { font-style: normal; font-size: 10px; color: var(--faint); }
     #shelf-root .sect u { flex: 1; height: 1px; background: var(--line); text-decoration: none; }
+    /* 구역 끝의 손잡이 — 좌우로 밀거나, 전부 펼쳐 보거나 */
+    #shelf-root .sect .nav { display: flex; align-items: center; gap: 4px; flex-shrink: 0; align-self: center; }
+    #shelf-root .sect .nav button {
+      width: 21px; height: 21px; border-radius: 50%; border: 1px solid #d6bc85; background: rgba(255,255,255,.5);
+      color: #a8894e; cursor: pointer; font-size: 9px; line-height: 1; padding: 0;
+    }
+    #shelf-root .sect .nav button:disabled { opacity: .3; cursor: default; }
+    #shelf-root .sect .more {
+      font-size: 10px; color: var(--gold); text-decoration: none; font-weight: 700;
+      white-space: nowrap; margin-left: 3px;
+    }
+    #shelf-root .sect .more:hover { text-decoration: underline; }
+
+    /* 좌우로 미는 한 줄 — 스크롤바는 감춘다 */
+    #shelf-root .rail {
+      display: flex; gap: 10px; overflow-x: auto; scroll-behavior: smooth;
+      scroll-snap-type: x proximity; scrollbar-width: none; -ms-overflow-style: none;
+    }
+    #shelf-root .rail::-webkit-scrollbar { display: none; }
+    #shelf-root .rail > * { scroll-snap-align: start; flex: 0 0 auto; }
 
     /* 책장 */
     #shelf-root .case { padding: 13px 11px 0; border-radius: 5px;
       background: linear-gradient(160deg, #5a3d22, #33220f 75%);
       box-shadow: inset 0 0 0 1px rgba(200,160,90,.2); }
-    #shelf-root .books { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+    #shelf-root .books > .bk { width: 92px; }
     #shelf-root .plank { height: 9px; margin: 12px -11px 0;
       background: linear-gradient(180deg, #9a6528, #6a441f); box-shadow: 0 4px 7px rgba(0,0,0,.45); }
     #shelf-root .bk { position: relative; aspect-ratio: 3/4.2; border-radius: 3px 6px 6px 3px; overflow: hidden;
@@ -79,9 +99,7 @@ import Base from '../../layouts/Base.astro';
     #shelf-root .bk.story .tt { font-family: Georgia, serif; font-size: 12px; }
 
     /* 하루 */
-    #shelf-root .mon { font-family: Georgia, serif; font-size: 10px; letter-spacing: .14em; color: #a8894e;
-      font-weight: 700; margin: 16px 0 9px; }
-    #shelf-root .days { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    #shelf-root .days > .day { width: 152px; }
     #shelf-root .day { border-radius: 5px; overflow: hidden; background: #fffdf6; text-decoration: none;
       box-shadow: 0 3px 10px rgba(60,40,15,.16); border: 1px solid rgba(120,90,40,.14); display: block; }
     #shelf-root .day .im { display: block; height: 84px; background: rgba(120,90,40,.1);
@@ -157,7 +175,7 @@ import Base from '../../layouts/Base.astro';
         S: { sp: '#315b86', g: 'linear-gradient(140deg,#487eb2,#325f8c)' },
         H: { sp: '#3a6e3e', g: 'linear-gradient(140deg,#4f9354,#37703c)' }
       };
-      var MON = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+      var RAIL = 5;   // 한 줄에 내놓는 최신 개수
 
       // 2026-08-01 → 8. 1
       function shortDate(d) {
@@ -246,27 +264,32 @@ import Base from '../../layouts/Base.astro';
           return;
         }
 
+        // 한 줄에 최신 것만 내놓고, 나머지는 '전부 보기'가 맡는다
+        function sect(id, name, sub, count, more) {
+          return '<div class="sect" id="' + id + '"><b>' + name + '</b><i>' + sub + '</i><u></u>' +
+            (count > RAIL ? '<span class="nav">' +
+              '<button type="button" data-rail="' + id + '" data-dir="-1">◀</button>' +
+              '<button type="button" data-rail="' + id + '" data-dir="1">▶</button>' +
+              '<a class="more" href="' + more + '">전부 보기 →</a></span>' : '') +
+          '</div>';
+        }
+
         if (books.length || pages.length) {
-          html += '<div class="sect"><b>Books</b><i>펴낸 책</i><u></u></div><div class="case"><div class="books">';
-          if (pages.length) html += storyCard(pages.length);
-          html += books.map(bookCard).join('');
-          html += '</div><div class="plank"></div></div>';
+          var shown = books.slice(0, RAIL);
+          html += sect('books', 'Books', '펴낸 책', books.length, '/books/' + encodeURIComponent(handle)) +
+            '<div class="case"><div class="rail books" data-rail-body="books">' +
+            (pages.length ? storyCard(pages.length) : '') +
+            shown.map(bookCard).join('') +
+            '</div><div class="plank"></div></div>';
         }
 
         if (pages.length) {
-          html += '<div class="sect" id="pages"><b>Pages</b><i>나눈 하루</i><u></u></div>';
-          var byMon = {};
-          pages.forEach(function (c) {
-            var k = (c.date || '').slice(0, 7);
-            (byMon[k] = byMon[k] || []).push(c);
-          });
-          Object.keys(byMon).sort().reverse().forEach(function (k) {
-            var y = k.slice(0, 4), m = parseInt(k.slice(5, 7), 10);
-            html += '<div class="mon">' + y + ' · ' + (MON[m - 1] || '') + '</div><div class="days">' +
-              byMon[k].map(dayCard).join('') + '</div>';
-          });
+          html += sect('pages', 'Pages', '나눈 하루', pages.length, '/story/' + encodeURIComponent(handle)) +
+            '<div class="rail days" data-rail-body="pages">' +
+            pages.slice(0, RAIL).map(dayCard).join('') + '</div>';
         }
 
+        // 글은 밀지 않고 쌓인다 — 최신이 위
         if (notes.length) {
           html += '<div class="sect"><b>Notes</b><i>쓴 글</i><u></u></div>' + notes.map(noteCard).join('');
         }
@@ -274,7 +297,19 @@ import Base from '../../layouts/Base.astro';
         html += '<div class="foot">' + esc(pen) + '이 나눈 것들입니다<br/>나머지는 아직 그의 책 안에 있습니다</div>';
         root.innerHTML = html;
         markOwner();
+        wireRails();
         loadPhotos();
+      }
+
+      // ◀▶ 는 한 화면씩 민다
+      function wireRails() {
+        Array.prototype.forEach.call(root.querySelectorAll('.sect button[data-rail]'), function (b) {
+          b.addEventListener('click', function () {
+            var body = root.querySelector('[data-rail-body="' + b.getAttribute('data-rail') + '"]');
+            if (!body) return;
+            body.scrollBy({ left: body.clientWidth * 0.8 * parseInt(b.getAttribute('data-dir'), 10), behavior: 'smooth' });
+          });
+        });
       }
 
       // 대표 사진은 카드마다 한 장씩 따로 불러온다

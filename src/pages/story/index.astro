@@ -115,7 +115,11 @@ import '../../styles/paper.css';
       font-family: 'Cormorant Garamond', Georgia, serif; font-size: 30px; font-weight: 700;
       color: var(--gold); line-height: 1;
     }
-    #story-root .cht { font-family: 'Nanum Pen Script', cursive; font-size: 23px; color: #8a5f14; margin-top: 3px; }
+    #story-root .cht { font-family: 'Nanum Pen Script', cursive; font-size: 23px; color: #8a5f14; margin-top: 3px; line-height: 1.3; }
+    #story-root .chm {
+      font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic;
+      font-size: 11px; letter-spacing: .12em; color: var(--faint); margin-top: 2px;
+    }
 
     /* 달력 */
     #story-root .calh { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 4px; margin-bottom: 5px; }
@@ -180,7 +184,12 @@ import '../../styles/paper.css';
       var DOW = ['S','M','T','W','T','F','S'];
       var shelf = '/u/' + encodeURIComponent(handle);
 
-      var state = { profile: null, pages: [], year: 0, month: 0, years: [] };
+      var state = { profile: null, pages: [], year: 0, month: 0, years: [], titles: {} };
+
+      // 지은이가 그 달에 붙인 이름 — 없으면 그냥 '8월'
+      function chapterTitle(year, month) {
+        return state.titles[year + '-' + String(month).padStart(2, '0')] || (month + '월');
+      }
 
       function byMonth(year, month) {
         return state.pages.filter(function (p) {
@@ -259,7 +268,7 @@ import '../../styles/paper.css';
           html += '<button type="button" class="tr ' + (n === 0 ? 'off' : i === m ? 'on' : '') + '"' +
             (n === 0 ? ' disabled' : ' data-month="' + i + '"') + '>' +
             '<span class="c">Ch. ' + i + '</span>' +
-            '<span class="t">' + i + '월</span>' +
+            '<span class="t">' + esc(n === 0 ? i + '월' : chapterTitle(y, i)) + '</span>' +
             '<span class="dots"></span>' +
             '<span class="p">' + (n === 0 ? '—' : n) + '</span>' +
           '</button>';
@@ -268,7 +277,9 @@ import '../../styles/paper.css';
 
         var list = byMonth(y, m).slice().sort(function (a, b) { return a.date < b.date ? -1 : 1; });
         html += '<div class="ch">' +
-          '<div class="chh"><div class="chn">Ch. ' + m + '</div><div class="cht">' + MON[m - 1] + '</div></div>' +
+          '<div class="chh"><div class="chn">Ch. ' + m + '</div>' +
+            '<div class="cht">' + esc(chapterTitle(y, m)) + '</div>' +
+            '<div class="chm">' + MON[m - 1] + '</div></div>' +
           calendar(y, m) +
           (list.length
             ? '<div class="days">' + list.map(dayCard).join('') + '</div>'
@@ -324,6 +335,7 @@ import '../../styles/paper.css';
             return;
           }
           state.profile = snap.docs[0].data();
+          (state.profile.chapters || []).forEach(function (c) { if (c && c.k) state.titles[c.k] = c.t || ''; });
           return db.collection('feed').where('handle', '==', handle).where('kind', '==', 'page').get()
             .then(function (fs) {
               fs.forEach(function (d) { state.pages.push(d.data()); });
