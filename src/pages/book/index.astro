@@ -62,8 +62,22 @@ import '../../styles/paper.css';
       margin-top: 7px;
     }
 
+    /* STORY · WRITE — 앱에서 책을 펼쳤을 때와 같은 두 장 */
+    #book-root .tabs { display: flex; margin: 18px 0 16px; border-bottom: 1.5px solid rgba(120,90,40,.22); }
+    #book-root .tabs button {
+      flex: 1; background: none; border: none; padding: 9px 0 8px; cursor: pointer; position: relative;
+      font-family: 'Cormorant Garamond', Georgia, serif; font-size: 14px; font-weight: 700;
+      letter-spacing: .16em; color: #b09a6e;
+    }
+    #book-root .tabs button.on { color: #8a5f14; }
+    #book-root .tabs button.on::after {
+      content: ""; position: absolute; left: 0; right: 0; bottom: -1.5px; height: 2.5px; background: #b8862f;
+    }
+    #book-root .panel[hidden] { display: none; }
+
     /* 구역 이름 */
     #book-root .sect { display: flex; align-items: baseline; gap: 8px; margin: 26px 0 11px; }
+    #book-root .panel > .sect:first-child { margin-top: 0; }
     #book-root .sect b {
       font-family: 'Cormorant Garamond', Georgia, serif;
       font-size: 12.5px;
@@ -103,30 +117,31 @@ import '../../styles/paper.css';
 
     /* 표 — 며칠을 채웠나. 읽기만 한다 */
     #book-root .tally { margin-top: 12px; }
+    /* 표 — 앱의 일정표와 같은 눈금 */
     #book-root .tally .grid {
       display: grid;
-      grid-template-columns: repeat(10, minmax(0, 1fr));
-      gap: 4px;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 3px;
     }
     #book-root .tally .c {
       aspect-ratio: 1;
-      border-radius: 2px;
-      border: 1px solid rgba(120,90,40,.25);
-      background: rgba(255,255,255,.5);
+      border-radius: 3px;
+      border: 1px solid #ddcb9f;
+      background: rgba(245,236,217,.85);
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: Georgia, serif;
-      font-size: 8px;
-      color: #bfa877;
+      font-size: 9px;
+      font-weight: 700;
+      color: #a08a5e;
       font-variant-numeric: tabular-nums;
     }
-    #book-root .tally .c.on {
-      background: linear-gradient(140deg, #d9b45f, #a67d21);
-      border-color: #8f6a1a;
-      color: #fff8e5;
+    #book-root .tally .c.on { background: #5a8c4a; border-color: #4a7c3a; color: #fff; }
+    #book-root .tally .c.dd {
+      background: linear-gradient(140deg, #c04a44, #9c332e);
+      border-color: #8f2f2a; color: #fff8ea; font-size: 7.5px;
     }
-    #book-root .tally .c.last { border-style: dashed; border-color: var(--gold); color: var(--gold); font-size: 6.5px; }
     #book-root .tally .pct {
       display: flex;
       justify-content: space-between;
@@ -266,7 +281,7 @@ import '../../styles/paper.css';
         var cells = '';
         for (var n = 1; n <= dur; n++) {
           var last = isAch && n === dur;
-          cells += '<div class="c' + (done[n] ? ' on' : '') + (last && !done[n] ? ' last' : '') + '">' +
+          cells += '<div class="c' + (done[n] ? ' on' : '') + (last ? ' dd' : '') + '">' +
             (last ? 'D-DAY' : n) + '</div>';
         }
         var filled = (d.done || []).length;
@@ -317,19 +332,46 @@ import '../../styles/paper.css';
             '</div>' +
           '</div>';
 
-        var about = infoCard(d) + tally(d);
-        if (about) html += '<div class="sect"><b>About</b><i>이 책은</i><u></u></div>' + about;
+        // 앱에서 책을 펼쳤을 때처럼 두 장으로 — 무엇을 한 책인지(STORY), 그 안에 쓴 글(WRITE)
+        html += '<div class="tabs">' +
+            '<button type="button" class="on" data-tab="story">STORY</button>' +
+            '<button type="button" data-tab="write">WRITE</button>' +
+          '</div>';
 
-        html += '<div class="sect"><b>Writing</b><i>이 책에 쓴 글</i><u></u></div>';
-        html += posts.length
-          ? posts.map(post).join('')
-          : '<p class="empty">아직 이 책에 실린 글이 없습니다.</p>';
+        var about = infoCard(d) + tally(d);
+        html += '<div class="panel" data-panel="story">' +
+          (about
+            ? '<div class="sect"><b>About</b><i>이 책은</i><u></u></div>' + about
+            : '<p class="empty">이 책에 적어 둔 것이 없습니다.</p>') +
+        '</div>';
+
+        html += '<div class="panel" data-panel="write" hidden>' +
+          (posts.length
+            ? '<div class="sect"><b>Writing</b><i>이 책에 쓴 글</i><u></u></div>' + posts.map(post).join('')
+            : '<p class="empty">아직 이 책에 실린 글이 없습니다.</p>') +
+        '</div>';
 
         html += '<div class="foot">' + esc(pen) + '이 펴낸 책입니다<br/>' +
           '<a href="' + shelf + '">책장에서 다른 책도 보기 →</a></div>';
 
         root.innerHTML = html;
+        wireTabs();
         loadPhotos();
+      }
+
+      function wireTabs() {
+        var btns = root.querySelectorAll('.tabs button[data-tab]');
+        Array.prototype.forEach.call(btns, function (b) {
+          b.addEventListener('click', function () {
+            var want = b.getAttribute('data-tab');
+            Array.prototype.forEach.call(btns, function (x) {
+              x.classList.toggle('on', x === b);
+            });
+            Array.prototype.forEach.call(root.querySelectorAll('.panel[data-panel]'), function (p) {
+              p.hidden = p.getAttribute('data-panel') !== want;
+            });
+          });
+        });
       }
 
       // 사진은 한 장씩 따로 — 한 문서에 몰아 담지 않는다
