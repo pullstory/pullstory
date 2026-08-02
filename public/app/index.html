@@ -2055,6 +2055,50 @@ function DayShare({date, rec, updateRec, uid, profile, onNeedHandle, todayLabel}
   );
 }
 
+// 서버에 저장하는 입력칸 — 치는 동안에는 서버 값을 되돌려 넣지 않는다.
+// 한글은 조합 중에 값이 갈아끼워지면 자모가 풀려서 '행복해'가 'ㅎ해행ㅂ보복ㅎ해'가 된다.
+function useBuffered(remote, save, delay) {
+  const [v, setV] = useState(remote || "");
+  const typing = useRef(false);
+  const timer = useRef(null);
+  const latest = useRef({v: remote || "", typing: false, save});
+  latest.current = {v, typing: typing.current, save};
+
+  useEffect(() => { if (!typing.current) setV(remote || ""); }, [remote]);
+  // 화면을 떠날 때 아직 안 보낸 게 있으면 마저 보낸다
+  useEffect(() => () => {
+    clearTimeout(timer.current);
+    const st = latest.current;
+    if (st.typing) st.save(st.v);
+  }, []);
+
+  const onChange = (nv) => {
+    typing.current = true;
+    setV(nv);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => { typing.current = false; latest.current.save(nv); }, delay || 700);
+  };
+  const flush = () => {
+    clearTimeout(timer.current);
+    if (typing.current) { typing.current = false; save(v); }
+  };
+  return [v, onChange, flush];
+}
+
+function BufferedInput({value, onSave, ...rest}) {
+  const [v, onChange, flush] = useBuffered(value, onSave);
+  return <input {...rest} value={v} onChange={e=>onChange(e.target.value)} onBlur={flush}/>;
+}
+
+function BufferedTA({value, onSave, className, placeholder}) {
+  const [v, onChange, flush] = useBuffered(value, onSave);
+  const ref = useRef(null);
+  const resize = () => { const el = ref.current; if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; } };
+  useEffect(() => { resize(); }, [v]);
+  return <textarea ref={ref} className={className} rows={1} value={v} placeholder={placeholder}
+    onChange={e=>{ onChange(e.target.value); resize(); }} onInput={resize} onBlur={flush}/>;
+}
+
 function Spine({b}) {
   return <div className="sf-sp" style={{width:b.w+"px",height:b.h+"px",background:b.c}}>{b.d ? <span className={b.d}/> : null}</div>;
 }
@@ -2395,15 +2439,15 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
           ) : editing ? (
             /* ─── 글 쓰기 ─── */
             <div>
-              <input className="bd-edt" value={editing.title} placeholder="제목"
-                onChange={e=>updatePost(editing.id,{title:e.target.value})}/>
+              <BufferedInput className="bd-edt" value={editing.title || ""} placeholder="제목"
+                onSave={(v)=>updatePost(editing.id,{title:v})}/>
               {(() => {
                 const bs = toBlocks(editing);
                 const write = (nbs) => updatePost(editing.id, {blocks: nbs, body: ""});
                 return bs.map((b, i) => b.t === "p" ? (
-                  <AutoTA key={"p"+i} className="bd-edb" value={b.v}
+                  <BufferedTA key={"p"+i} className="bd-edb" value={b.v}
                     placeholder={i === 0 ? "여기에 경험과 정보를 엮어 써 내려가 보세요…" : ""}
-                    onChange={e=>write(bs.map((x,j)=> j===i ? {...x, v:e.target.value} : x))}/>
+                    onSave={(v)=>write(bs.map((x,j)=> j===i ? {...x, v} : x))}/>
                 ) : quoteCard(b.d, i, () => {
                   const nbs = bs.filter((_,j)=>j!==i);
                   if (!nbs.length || nbs[nbs.length-1].t !== "p") nbs.push({t:"p", v:""});
@@ -3809,6 +3853,13 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
   const editing = editId ? notes.find(n => n.id === editId) : null;
   const bodyOf = (n) => noteBlocks(n).filter(b => b.t === "p").map(b => b.v).join("\n");
 
+  // 아무것도 안 쓰고 나가면 빈 글을 남기지 않는다
+  const closeEditor = async () => {
+    const n = editId ? notes.find(x => x.id === editId) : null;
+    setEditId(null); setView("list");
+    if (n && noteIsEmpty(n)) await noteApi.remove(n.id);
+  };
+
   // ── 묶기 ──
   const startBind = () => { setPicked([]); setBindTitle(""); setView("bind"); };
   const togglePick = (id) =>
@@ -3861,20 +3912,20 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
     return (
       <div style={{animation:"fadeIn .3s"}}>
         <div className="dk-bar">
-          <button className="dk-back" onClick={()=>{ setEditId(null); setView("list"); }}>‹ Desk로</button>
+          <button className="dk-back" onClick={closeEditor}>‹ Desk로</button>
           <span className="dk-save">저장됨</span>
         </div>
-        <input className="dk-tin" value={editing.title || ""} placeholder="제목"
-          onChange={e=>noteApi.update(editing.id, {title: e.target.value})}/>
-        <AutoTA className="dk-bin" value={bodyOf(editing)} placeholder="자유롭게 써 내려가세요…"
-          onChange={e=>noteApi.update(editing.id, {blocks: [{t:"p", v: e.target.value}], body: ""})}/>
+        <BufferedInput className="dk-tin" value={editing.title || ""} placeholder="제목"
+          onSave={(v)=>noteApi.update(editing.id, {title: v})}/>
+        <BufferedTA className="dk-bin" value={bodyOf(editing)} placeholder="자유롭게 써 내려가세요…"
+          onSave={(v)=>noteApi.update(editing.id, {blocks: [{t:"p", v}], body: ""})}/>
         <div className={"dk-pub" + (editing.visibility === "public" ? " on" : "")}>
           <span className="t">이 글 내보내기</span>
           <button className={"dk-sw" + (editing.visibility === "public" ? " on" : "")}
             onClick={()=>{ if (editing.visibility !== "public" && !handle) { onNeedHandle(); return; } toggleVis(editing); }}/>
         </div>
         <div className="mb-foot">
-          <button className="mb-fbtn done" onClick={()=>{ setEditId(null); setView("list"); }}>✓ 다 썼어요</button>
+          <button className="mb-fbtn done" onClick={closeEditor}>✓ 다 썼어요</button>
           <button className="mb-fbtn del" onClick={async ()=>{
             if (!confirm("이 글을 삭제할까요?")) return;
             await noteApi.remove(editing.id); setEditId(null); setView("list");
@@ -3936,7 +3987,6 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
             ? <div className="dk-u">pullstory.net/u/{handle}</div>
             : <button className="dk-u set" onClick={onNeedHandle}>책장 주소 정하기</button>}
         </div>
-        {handle && <button className="dk-go" onClick={()=>window.open("/u/" + handle, "_blank")}>책장 보기</button>}
       </div>
 
       <div className="dk-sect"><span className="k">Books</span><span className="s">쌓아 온 책</span><span className="l"/></div>
