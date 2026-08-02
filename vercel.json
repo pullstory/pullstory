@@ -6,6 +6,14 @@
     {
       "source": "/u/:handle",
       "destination": "/u/index.html"
+    },
+    {
+      "source": "/p/:handle/:date",
+      "destination": "/p/index.html"
+    },
+    {
+      "source": "/book/:handle/:bookId",
+      "destination": "/book/index.html"
     }
   ]
 }

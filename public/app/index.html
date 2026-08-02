@@ -1118,15 +1118,15 @@ async function unpublishDay(uid, handle, date, rec) {
 // 성취 = D-DAY 지남 + 표 60% + 글 2편 · 습관 = 표 70% + 글 2편
 const BOOK_MIN_POSTS = 2;
 
-function postIsEmpty(p) {
-  if ((p.title || "").trim()) return false;
-  if (Array.isArray(p.blocks)) {
-    return !p.blocks.some(b => b.t === "q" || String(b.v || "").trim());
-  }
-  return !String(p.body || "").trim();
+// 이 책에 묶인 글 — 글은 전부 notes에 살고 bookId로 소속만 표시한다.
+// (book.posts는 옛 저장 방식. 아직 이관 전인 책을 위해 뒤에 붙여 둔다)
+function bookPosts(book, notes) {
+  const mine = (notes || []).filter(n => String(n.bookId) === String(book.id));
+  const src = mine.length ? mine : (book.posts || []);
+  return src.filter(p => !noteIsEmpty(p)).slice().sort((a, b) => noteTs(a) - noteTs(b));
 }
 
-function bookPublishChecks(book) {
+function bookPublishChecks(book, notes) {
   // 묶음 책은 표도 데드라인도 없다 — 기준 없이 바로 내보낼 수 있다
   if (book.type === "collection") return {checks: [], ok: true};
   const isHabit = taskTypeOf(book) === "habit";
@@ -1135,7 +1135,7 @@ function bookPublishChecks(book) {
   const filled = new Set(((book[span.key] || {}).done) || []).size;
   const pct = dur ? Math.round(filled / dur * 100) : 0;
   const needPct = isHabit ? 70 : 60;
-  const posts = (book.posts || []).filter(p => !postIsEmpty(p)).length;
+  const posts = bookPosts(book, notes).length;
   const checks = [];
 
   if (!isHabit) {
@@ -1157,16 +1157,7 @@ function bookPublishChecks(book) {
 
 // 글 안의 인용은 원본 기록을 가리키고 있다 → 내보낼 땐 그 자리에서 풀어 담는다
 function resolvePostForPublic(book, post, records, span) {
-  const blocks = Array.isArray(post.blocks) ? post.blocks : (() => {
-    const out = [];
-    String(post.body || "").split(/(\[\[q:\d{4}-\d{2}-\d{2}\]\])/g).forEach(seg => {
-      const m = seg.match(/^\[\[q:(\d{4}-\d{2}-\d{2})\]\]$/);
-      if (m) out.push({t: "q", d: m[1]});
-      else { const v = seg.replace(/^\n+|\n+$/g, ""); if (v) out.push({t: "p", v}); }
-    });
-    return out;
-  })();
-
+  const blocks = noteBlocks(post);
   const photoIds = [];
   const resolved = blocks.map(b => {
     if (b.t !== "q") return {t: "p", v: String(b.v || "")};
@@ -1178,16 +1169,17 @@ function resolvePostForPublic(book, post, records, span) {
             photoId: t.photoId || null, memo: t.memo || ""};
   }).filter(b => b.t === "q" || b.v.trim());
 
-  return {block: {id: post.id, title: post.title || "", blocks: resolved, ts: post.ts || null}, photoIds};
+  return {block: {id: post.id, title: post.title || "", blocks: resolved, ts: noteTs(post) || null}, photoIds};
 }
 
-async function publishBook(uid, profile, book, records) {
+async function publishBook(uid, profile, book, records, notes) {
   const handle = (profile && profile.handle) || "";
   if (!FIREBASE_READY || !uid || uid === "local-user" || !handle) return;
+  const isColl = book.type === "collection";
   const isHabit = taskTypeOf(book) === "habit";
   const span = bookSpan(book);
   const sub = book[span.key] || {};
-  const posts = (book.posts || []).filter(p => !postIsEmpty(p));
+  const posts = bookPosts(book, notes);
 
   const photoIds = [];
   const pubPosts = posts.map(p => {
@@ -1201,15 +1193,19 @@ async function publishBook(uid, profile, book, records) {
   const common = {
     ownerUid: uid, handle, penName: (profile && profile.penName) || "",
     bookId: String(book.id), title: book.text || "", cat: book.cat || "C",
-    type: isHabit ? "habit" : "achievement",
+    type: isColl ? "collection" : isHabit ? "habit" : "achievement",
     visibility: "public", publishedAt: now,
   };
 
+  // 묶음 책은 표가 없다 — 소개 한 편이 그 자리를 대신한다
   await fbDb.collection("publicBooks").doc(id).set({
     ...common,
-    start: span.start || "", duration: span.duration || 0,
-    done: (sub.done || []).slice(),
-    info: isHabit
+    start: isColl ? "" : (span.start || ""),
+    duration: isColl ? 0 : (span.duration || 0),
+    done: isColl ? [] : (sub.done || []).slice(),
+    info: isColl
+      ? {intro: book.intro || ""}
+      : isHabit
       ? {freq: sub.freq || "", time: sub.time || ""}
       : {criteria: (book.ach || {}).criteria || "", deadline: (book.ach || {}).deadline || "",
          steps: (book.ach || {}).steps || ""},
@@ -1220,7 +1216,8 @@ async function publishBook(uid, profile, book, records) {
     ...common, kind: "book",
     keyPhotoId: photoIds[0] || null,
     postCount: pubPosts.length,
-    filled: (sub.done || []).length, total: span.duration || 0,
+    filled: isColl ? 0 : (sub.done || []).length,
+    total: isColl ? 0 : (span.duration || 0),
   });
 
   await setPhotosVisibility(photoIds, "public");
@@ -2342,7 +2339,7 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
 
   // ── 공개 ──
   const [pubBusy, setPubBusy] = useState(false);
-  const pub = bookPublishChecks(book);
+  const pub = bookPublishChecks(book, notes);
   const published = !!book.published;
   const handle = (profile && profile.handle) || "";
 
@@ -2356,7 +2353,7 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
         await unpublishBook(uid, handle, book);
         updateBook(book.id, t => ({...t, published: false}));
       } else {
-        await publishBook(uid, profile, book, records);
+        await publishBook(uid, profile, book, records, notes);
         updateBook(book.id, t => ({...t, published: true}));
       }
     } catch (e) {

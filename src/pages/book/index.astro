@@ -1,0 +1,365 @@
+---
+// 책 한 권 — /book/{handle}/{bookId}
+// 표지를 넘기면 그 책이 무엇이었는지(표·기준), 그다음 그 안에 쓴 글.
+// 정적 사이트라 주소는 브라우저에서 읽는다 (vercel.json 재작성 규칙이 여기로 보낸다).
+import Base from '../../layouts/Base.astro';
+import '../../styles/paper.css';
+---
+
+<Base title="책 — PULLSTORY" description="누군가 펴낸 책 한 권.">
+  <div id="book-root" class="paper">
+    <p class="loading">책을 펴는 중…</p>
+  </div>
+
+  <style is:global>
+    /* 표지 — 책장에 꽂혀 있던 그 표지를 크게 눕힌 것 */
+    #book-root .cover {
+      display: flex;
+      border-radius: 3px 8px 8px 3px;
+      overflow: hidden;
+      box-shadow: 0 10px 24px rgba(60,40,15,.4);
+      min-height: 172px;
+    }
+    #book-root .cover .sp { width: 11px; flex-shrink: 0; }
+    #book-root .cover .in {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+      padding: 20px 18px 17px;
+      display: flex;
+      flex-direction: column;
+    }
+    #book-root .cover .fr {
+      position: absolute;
+      inset: 9px;
+      border: 1px solid rgba(255,248,220,.38);
+      border-radius: 2px;
+      pointer-events: none;
+    }
+    #book-root .cover .ty {
+      position: relative;
+      font-size: 10px;
+      font-weight: 700;
+      color: rgba(255,248,220,.88);
+      letter-spacing: .04em;
+    }
+    #book-root .cover .tt {
+      position: relative;
+      margin-top: auto;
+      font-size: 21px;
+      font-weight: 700;
+      color: #fff8e5;
+      line-height: 1.35;
+      text-shadow: 0 2px 7px rgba(0,0,0,.45);
+      text-wrap: balance;
+    }
+    #book-root .cover .by {
+      position: relative;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-style: italic;
+      font-size: 12.5px;
+      color: rgba(255,248,220,.85);
+      margin-top: 7px;
+    }
+
+    /* 구역 이름 */
+    #book-root .sect { display: flex; align-items: baseline; gap: 8px; margin: 26px 0 11px; }
+    #book-root .sect b {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 12.5px;
+      letter-spacing: .2em;
+      color: var(--gold);
+      text-transform: uppercase;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    #book-root .sect i { font-style: normal; font-size: 10px; color: var(--faint); }
+    #book-root .sect u { flex: 1; height: 1px; background: var(--line); text-decoration: none; }
+
+    /* 이 책이 무엇이었나 */
+    #book-root .card {
+      background: var(--cream);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 14px 15px;
+      box-shadow: 0 2px 6px rgba(60,40,15,.09);
+    }
+    #book-root .row { display: flex; gap: 11px; padding: 7px 0; font-size: 12px; line-height: 1.7; }
+    #book-root .row + .row { border-top: 1px solid rgba(120,90,40,.12); }
+    #book-root .row .k {
+      flex: 0 0 74px;
+      color: var(--faint);
+      font-size: 10.5px;
+      letter-spacing: .06em;
+      padding-top: 2px;
+    }
+    #book-root .row .v { flex: 1; min-width: 0; color: var(--ink); white-space: pre-wrap; }
+    #book-root .card .intro {
+      font-size: 12.5px;
+      line-height: 1.9;
+      color: var(--ink);
+      white-space: pre-wrap;
+    }
+
+    /* 표 — 며칠을 채웠나. 읽기만 한다 */
+    #book-root .tally { margin-top: 12px; }
+    #book-root .tally .grid {
+      display: grid;
+      grid-template-columns: repeat(10, minmax(0, 1fr));
+      gap: 4px;
+    }
+    #book-root .tally .c {
+      aspect-ratio: 1;
+      border-radius: 2px;
+      border: 1px solid rgba(120,90,40,.25);
+      background: rgba(255,255,255,.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: Georgia, serif;
+      font-size: 8px;
+      color: #bfa877;
+      font-variant-numeric: tabular-nums;
+    }
+    #book-root .tally .c.on {
+      background: linear-gradient(140deg, #d9b45f, #a67d21);
+      border-color: #8f6a1a;
+      color: #fff8e5;
+    }
+    #book-root .tally .c.last { border-style: dashed; border-color: var(--gold); color: var(--gold); font-size: 6.5px; }
+    #book-root .tally .pct {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+      font-size: 10.5px;
+      color: var(--muted);
+    }
+    #book-root .tally .pct b {
+      font-family: Georgia, serif;
+      font-size: 17px;
+      color: var(--gold);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* 글 */
+    #book-root .post { margin-bottom: 16px; }
+    #book-root .post .h {
+      font-size: 15.5px;
+      font-weight: 700;
+      color: var(--deep);
+      line-height: 1.5;
+      text-wrap: balance;
+    }
+    #book-root .post .n {
+      font-family: Georgia, serif;
+      font-size: 10px;
+      letter-spacing: .1em;
+      color: var(--faint);
+      margin-bottom: 4px;
+      font-variant-numeric: tabular-nums;
+    }
+    #book-root .post .p {
+      font-size: 13px;
+      line-height: 1.95;
+      color: var(--ink);
+      margin-top: 9px;
+      white-space: pre-wrap;
+    }
+    /* 인용 — 그날의 기록을 글 안으로 끌어온 자리 */
+    #book-root .quote {
+      margin: 13px 0 13px 2px;
+      padding: 11px 0 5px 13px;
+      border-left: 2px solid rgba(156,116,32,.45);
+    }
+    #book-root .quote .d {
+      font-family: Georgia, serif;
+      font-size: 9.5px;
+      letter-spacing: .13em;
+      color: var(--gold);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    #book-root .quote .shot { margin-top: 7px; }
+    #book-root .quote .memo { font-size: 16px; }
+  </style>
+
+  <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <script is:inline>
+    (function () {
+      var root = document.getElementById('book-root');
+      var db = firebase.firestore();
+
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
+      }
+
+      // /book/pullstory/1785640409100.653 → handle, bookId  (?u=&b= 로도 받는다)
+      var parts = location.pathname.split('/').filter(Boolean);
+      var qs = new URLSearchParams(location.search);
+      var handle = decodeURIComponent(qs.get('u') || parts[1] || '').toLowerCase();
+      var bookId = decodeURIComponent(qs.get('b') || parts[2] || '');
+
+      if (!handle || !bookId) {
+        root.innerHTML = '<p class="empty">어느 책인지 알 수 없습니다.<br/>책장에서 다시 눌러 주세요.</p>';
+        return;
+      }
+
+      var CAT = {
+        C: { sp: '#c98f22', g: 'linear-gradient(140deg,#e3ad35,#c8901f)' },
+        A: { sp: '#9c332e', g: 'linear-gradient(140deg,#c04a44,#a3352f)' },
+        S: { sp: '#315b86', g: 'linear-gradient(140deg,#487eb2,#325f8c)' },
+        H: { sp: '#3a6e3e', g: 'linear-gradient(140deg,#4f9354,#37703c)' }
+      };
+      var KIND = {
+        habit: { ty: '🔁 습관', label: '습관 일정표' },
+        collection: { ty: '✍️ 묶음', label: '' },
+        achievement: { ty: '🏆 성취', label: 'D-DAY 표' }
+      };
+
+      function shortDate(d) {
+        var p = String(d || '').split('-');
+        if (p.length < 3) return d || '';
+        return parseInt(p[1], 10) + '월 ' + parseInt(p[2], 10) + '일';
+      }
+      // 책은 해를 넘길 수 있으니 정보 칸에는 연도까지
+      function fullDate(d) {
+        var p = String(d || '').split('-');
+        if (p.length < 3) return d || '';
+        return p[0] + '. ' + parseInt(p[1], 10) + '. ' + parseInt(p[2], 10) + '.';
+      }
+      function tsDate(ms) {
+        if (!ms) return '';
+        var t = new Date(ms);
+        return isNaN(t) ? '' : t.getFullYear() + '. ' + (t.getMonth() + 1) + '. ' + t.getDate() + '.';
+      }
+
+      function row(k, v) {
+        return v ? '<div class="row"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div></div>' : '';
+      }
+
+      // 이 책이 무엇이었나 — 종류마다 다른 것을 보여 준다
+      function infoCard(d) {
+        var i = d.info || {};
+        if (d.type === 'collection') {
+          return i.intro
+            ? '<div class="card"><div class="intro">' + esc(i.intro) + '</div></div>'
+            : '';
+        }
+        var body = d.type === 'habit'
+          ? row('빈도', i.freq) + row('시간', i.time) +
+            row('기간', d.start ? fullDate(d.start) + ' 부터 ' + (d.duration || 0) + '일' : '')
+          : row('측정 기준', i.criteria) + row('시작', fullDate(d.start)) +
+            row('데드라인', fullDate(i.deadline)) + row('목표 상세', i.steps);
+        return body ? '<div class="card">' + body + '</div>' : '';
+      }
+
+      // 표 — 채운 날이 금박으로 남는다
+      function tally(d) {
+        var dur = d.duration || 0;
+        if (d.type === 'collection' || !dur) return '';
+        var done = {};
+        (d.done || []).forEach(function (n) { done[n] = 1; });
+        var isAch = d.type === 'achievement';
+        var cells = '';
+        for (var n = 1; n <= dur; n++) {
+          var last = isAch && n === dur;
+          cells += '<div class="c' + (done[n] ? ' on' : '') + (last && !done[n] ? ' last' : '') + '">' +
+            (last ? 'D-DAY' : n) + '</div>';
+        }
+        var filled = (d.done || []).length;
+        var pct = Math.round(filled / dur * 100);
+        return '<div class="tally">' +
+          '<div class="pct"><span>' + esc((KIND[d.type] || KIND.achievement).label) + '</span>' +
+            '<span><b>' + pct + '%</b> · ' + filled + '/' + dur + '일</span></div>' +
+          '<div class="grid">' + cells + '</div></div>';
+      }
+
+      function block(b) {
+        if (b.t !== 'q') {
+          var v = String(b.v || '');
+          return v.trim() ? '<div class="p">' + esc(v) + '</div>' : '';
+        }
+        return '<div class="quote">' +
+          '<div class="d">' + (b.day > 0 ? 'DAY ' + b.day + ' · ' : '') + esc(shortDate(b.d)) + '</div>' +
+          (b.photoId ? '<div class="shot" data-photo="' + esc(b.photoId) + '"></div>' : '') +
+          (b.memo ? '<div class="memo">' + esc(b.memo) + '</div>' : '') +
+        '</div>';
+      }
+
+      function post(p) {
+        var when = tsDate(p.ts);
+        return '<div class="post">' +
+          (when ? '<div class="n">' + when + '</div>' : '') +
+          '<div class="h">' + esc(p.title || '(제목 없음)') + '</div>' +
+          (p.blocks || []).map(block).join('') +
+        '</div>';
+      }
+
+      function render(d) {
+        var cat = CAT[d.cat] || CAT.C;
+        var kind = KIND[d.type] || KIND.achievement;
+        var pen = d.penName || '이름 없는 지은이';
+        var posts = d.posts || [];
+        var shelf = '/u/' + encodeURIComponent(handle);
+
+        var html =
+          '<div class="bar"><a href="' + shelf + '">‹ ' + esc(pen) + '의 책장</a><span>펴낸 책</span></div>' +
+          '<div class="cover">' +
+            '<div class="sp" style="background:' + cat.sp + '"></div>' +
+            '<div class="in" style="background:' + cat.g + '">' +
+              '<div class="fr"></div>' +
+              '<div class="ty">' + kind.ty + '</div>' +
+              '<div class="tt">' + esc(d.title || '(제목 없음)') + '</div>' +
+              '<div class="by">' + esc(pen) + '</div>' +
+            '</div>' +
+          '</div>';
+
+        var about = infoCard(d) + tally(d);
+        if (about) html += '<div class="sect"><b>About</b><i>이 책은</i><u></u></div>' + about;
+
+        html += '<div class="sect"><b>Writing</b><i>이 책에 쓴 글</i><u></u></div>';
+        html += posts.length
+          ? posts.map(post).join('')
+          : '<p class="empty">아직 이 책에 실린 글이 없습니다.</p>';
+
+        html += '<div class="foot">' + esc(pen) + '이 펴낸 책입니다<br/>' +
+          '<a href="' + shelf + '">책장에서 다른 책도 보기 →</a></div>';
+
+        root.innerHTML = html;
+        loadPhotos();
+      }
+
+      // 사진은 한 장씩 따로 — 한 문서에 몰아 담지 않는다
+      function loadPhotos() {
+        Array.prototype.forEach.call(root.querySelectorAll('.shot[data-photo]'), function (el) {
+          var id = el.getAttribute('data-photo');
+          db.collection('photos').doc(id).get().then(function (s) {
+            if (!s.exists) { el.remove(); return; }
+            var data = s.data().data;
+            if (!data) { el.remove(); return; }
+            var img = document.createElement('img');
+            img.src = data;
+            img.alt = '';
+            el.appendChild(img);
+          }).catch(function () { el.remove(); });
+        });
+      }
+
+      db.collection('publicBooks').doc(handle + '_b' + bookId).get()
+        .then(function (s) {
+          if (!s.exists) {
+            root.innerHTML = '<p class="empty">이 책은 아직 펴내지 않았습니다.<br/>' +
+              '<a href="/u/' + encodeURIComponent(handle) + '" style="color:#9c7420">책장으로 돌아가기</a></p>';
+            return;
+          }
+          render(s.data());
+        })
+        .catch(function (e) {
+          root.innerHTML = '<p class="empty">책을 펴지 못했습니다.<br/>' + esc(e.message) + '</p>';
+        });
+    })();
+  </script>
+</Base>

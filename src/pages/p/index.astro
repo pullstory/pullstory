@@ -1,0 +1,226 @@
+---
+// 하루 한 장 — /p/{handle}/{date}
+// 앱의 Today가 '책상 위 종이'였다면, 여기는 그 종이를 다 쓴 뒤 남의 손에 건넨 것.
+// 정적 사이트라 주소는 브라우저에서 읽는다 (vercel.json 재작성 규칙이 여기로 보낸다).
+import Base from '../../layouts/Base.astro';
+import '../../styles/paper.css';
+---
+
+<Base title="하루 — PULLSTORY" description="누군가 나눈 하루 한 장.">
+  <div id="page-root" class="paper">
+    <p class="loading">종이를 펴는 중…</p>
+  </div>
+
+  <style is:global>
+    /* 호두나무 책상 */
+    #page-root .desk {
+      padding: 20px 13px 26px;
+      border-radius: 8px;
+      background:
+        repeating-linear-gradient(93deg, rgba(0,0,0,.05) 0 2px, transparent 2px 7px),
+        linear-gradient(158deg, #5f4126 0%, #402a14 55%, #2c1c0c 100%);
+      box-shadow: inset 0 0 60px rgba(0,0,0,.4);
+    }
+
+    /* 크림 종이 한 장 */
+    #page-root .sheet {
+      position: relative;
+      background: linear-gradient(#fffdf4, #f7edd7);
+      border-radius: 2px;
+      padding: 30px 19px 26px;
+      box-shadow: 0 12px 26px rgba(0,0,0,.42), 0 1px 0 rgba(255,255,255,.5) inset;
+    }
+    /* 브라스 클립 */
+    #page-root .clip {
+      position: absolute;
+      top: -9px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 46px;
+      height: 20px;
+      border-radius: 3px 3px 9px 9px;
+      background: linear-gradient(180deg, #e6c983, #a97f2c 55%, #7d5a17);
+      box-shadow: 0 2px 5px rgba(0,0,0,.4);
+    }
+    #page-root .clip::after {
+      content: '';
+      position: absolute;
+      inset: 4px 9px 5px;
+      border-radius: 2px;
+      background: rgba(255,255,255,.22);
+    }
+
+    /* 종이 머리 — 날짜가 제목이다 */
+    #page-root .head { text-align: center; }
+    #page-root .head .dow {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-style: italic;
+      font-size: 12px;
+      letter-spacing: .18em;
+      color: var(--faint);
+    }
+    #page-root .head .date {
+      font-family: Georgia, serif;
+      font-size: 27px;
+      font-weight: 700;
+      color: var(--deep);
+      line-height: 1.2;
+      margin-top: 3px;
+      font-variant-numeric: tabular-nums;
+    }
+    #page-root .head .cap {
+      font-family: 'Nanum Pen Script', cursive;
+      font-size: 22px;
+      color: #6b5326;
+      line-height: 1.5;
+      margin-top: 9px;
+      text-wrap: balance;
+    }
+    #page-root .rule {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(156,116,32,.5), transparent);
+      margin: 17px 0 4px;
+    }
+
+    /* 에피소드 — 위에서 아래로 그날의 시간 */
+    #page-root .ep { padding: 15px 0; }
+    #page-root .ep + .ep { border-top: 1px dashed rgba(120,90,40,.2); }
+    #page-root .ep .t { display: flex; align-items: center; gap: 8px; }
+    #page-root .ep .tx {
+      flex: 1;
+      min-width: 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--deep);
+      line-height: 1.5;
+    }
+    #page-root .ep .at {
+      flex-shrink: 0;
+      font-family: Georgia, serif;
+      font-size: 10.5px;
+      color: var(--faint);
+      font-variant-numeric: tabular-nums;
+    }
+
+    #page-root .count {
+      text-align: center;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-style: italic;
+      font-size: 11px;
+      color: var(--faint);
+      margin-top: 16px;
+      padding-top: 13px;
+      border-top: 1px solid var(--line);
+    }
+  </style>
+
+  <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <script is:inline>
+    (function () {
+      var root = document.getElementById('page-root');
+      var db = firebase.firestore();
+
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
+      }
+
+      // /p/pullstory/2026-08-01 → handle, date  (?u=&d= 로도 받는다 — 로컬 확인용)
+      var parts = location.pathname.split('/').filter(Boolean);
+      var qs = new URLSearchParams(location.search);
+      var handle = decodeURIComponent(qs.get('u') || parts[1] || '').toLowerCase();
+      var date = decodeURIComponent(qs.get('d') || parts[2] || '');
+
+      if (!handle || !date) {
+        root.innerHTML = '<p class="empty">어느 하루인지 알 수 없습니다.<br/>책장에서 다시 눌러 주세요.</p>';
+        return;
+      }
+
+      var CAT = { C: '#e3ad35', A: '#b23f39', S: '#3d6fa0', H: '#46834a' };
+      var DOW = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+
+      function longDate(d) {
+        var p = String(d || '').split('-');
+        if (p.length < 3) return d || '';
+        return parseInt(p[1], 10) + '월 ' + parseInt(p[2], 10) + '일';
+      }
+      function dowOf(d) {
+        var t = new Date(d + 'T00:00:00');
+        return isNaN(t) ? '' : DOW[t.getDay()];
+      }
+      function timeOf(ms) {
+        if (!ms) return '';
+        var t = new Date(ms);
+        return ('0' + t.getHours()).slice(-2) + ':' + ('0' + t.getMinutes()).slice(-2);
+      }
+
+      function episode(e, i) {
+        var c = CAT[e.cat] || CAT.C;
+        return '<div class="ep">' +
+          '<div class="t">' +
+            '<span class="cat" style="background:' + c + '">' + esc(e.cat || 'C') + '</span>' +
+            '<span class="tx">' + esc(e.text || '(제목 없음)') + '</span>' +
+            (e.doneAt ? '<span class="at">' + timeOf(e.doneAt) + '</span>' : '') +
+          '</div>' +
+          (e.photoId ? '<div class="shot" data-photo="' + esc(e.photoId) + '"></div>' : '') +
+          (e.memo ? '<div class="memo">' + esc(e.memo) + '</div>' : '') +
+        '</div>';
+      }
+
+      function render(d) {
+        var eps = d.episodes || [];
+        var pen = d.penName || '이름 없는 지은이';
+        var shelf = '/u/' + encodeURIComponent(handle);
+
+        root.innerHTML =
+          '<div class="bar"><a href="' + shelf + '">‹ ' + esc(pen) + '의 책장</a><span>나눈 하루</span></div>' +
+          '<div class="desk"><div class="sheet"><div class="clip"></div>' +
+            '<div class="head">' +
+              '<div class="dow">' + dowOf(d.date) + '</div>' +
+              '<div class="date">' + esc(longDate(d.date)) + '</div>' +
+              (d.caption ? '<div class="cap">' + esc(d.caption) + '</div>' : '') +
+            '</div>' +
+            '<div class="rule"></div>' +
+            (eps.length
+              ? eps.map(episode).join('')
+              : '<p class="empty" style="background:none">이 하루엔 적힌 것이 없습니다.</p>') +
+            '<div class="count">' + eps.length + (eps.length === 1 ? ' episode' : ' episodes') + '</div>' +
+          '</div></div>' +
+          '<div class="foot">' + esc(pen) + '이 나눈 하루입니다<br/>' +
+            '<a href="' + shelf + '">책장에서 다른 날도 보기 →</a></div>';
+
+        loadPhotos();
+      }
+
+      // 사진은 한 장씩 따로 — 한 문서에 몰아 담지 않는다
+      function loadPhotos() {
+        Array.prototype.forEach.call(root.querySelectorAll('.shot[data-photo]'), function (el) {
+          var id = el.getAttribute('data-photo');
+          db.collection('photos').doc(id).get().then(function (s) {
+            if (!s.exists) { el.remove(); return; }
+            var data = s.data().data;
+            if (!data) { el.remove(); return; }
+            var img = document.createElement('img');
+            img.src = data;
+            img.alt = '';
+            el.appendChild(img);
+          }).catch(function () { el.remove(); });
+        });
+      }
+
+      db.collection('publicPages').doc(handle + '_' + date).get()
+        .then(function (s) {
+          if (!s.exists) {
+            root.innerHTML = '<p class="empty">이 하루는 아직 나누지 않았습니다.<br/>' +
+              '<a href="/u/' + encodeURIComponent(handle) + '" style="color:#9c7420">책장으로 돌아가기</a></p>';
+            return;
+          }
+          render(s.data());
+        })
+        .catch(function (e) {
+          root.innerHTML = '<p class="empty">종이를 펴지 못했습니다.<br/>' + esc(e.message) + '</p>';
+        });
+    })();
+  </script>
+</Base>
