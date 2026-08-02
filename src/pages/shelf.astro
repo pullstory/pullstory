@@ -1,102 +1,57 @@
 ---
-// My shelf = 공개 진열장. 누구나 프로필 + 연재/공개 노트를 봄.
-// CASH Room 입구 + 비공개 노트는 "주인(로그인)"에게만. 로그인은 상단 nav 버튼(Base).
-import { marked } from 'marked';
+// My shelf = 내 책장으로 가는 문. 진짜 책장은 /u/{handle}에 있다.
+// 로그인해 있으면 곧장 자기 책장으로 보내고, 아직 주소가 없으면 작업실로 안내한다.
 import Base from '../layouts/Base.astro';
-import PostList from '../components/PostList.astro';
-import { getPage, getPublishedPosts } from '../lib/notion.js';
-
-const md = await getPage('shelf');
-const profileHtml = md ? marked.parse(md) : '';
-const posts = await getPublishedPosts();
 ---
-<Base title="My shelf · PULLSTORY" description="PULLSTORY 책장 — 연재하고 출간한 이야기를 진열하는 곳.">
-  {profileHtml
-    ? <section class="profile" set:html={profileHtml} />
-    : <section class="profile"><h1>My shelf</h1></section>}
+<Base title="My shelf · PULLSTORY" description="PULLSTORY 책장 — 내가 나눈 하루와 책이 놓인 자리.">
+  <div id="door">
+    <p class="lede">책장을 찾는 중…</p>
+  </div>
 
-  <!-- CASH Room 입구 — 주인(로그인)에게만 -->
-  <section id="owner-only" hidden>
-    <hr />
+  <!-- 로그인 안 한 사람 -->
+  <template id="t-guest">
+    <p class="lede">책장은 내가 나눈 하루와 책이 놓이는 자리입니다.<br />로그인하면 내 책장으로 갑니다.</p>
+    <button class="app-open" type="button" id="go-login">로그인하고 내 책장 열기</button>
+  </template>
+
+  <!-- 로그인했지만 아직 책장 주소가 없는 사람 -->
+  <template id="t-nohandle">
+    <p class="lede">아직 책장 주소를 정하지 않았어요.<br />작업실 Desk에서 주소를 정하면 이 자리에 책장이 생깁니다.</p>
     <section class="app-entry">
       <h2>CASH Room</h2>
       <p class="app-desc">내 이야기를 짓는 작업실 방. 매일의 기록으로 나만의 책을 만들어, 이 책장에 진열합니다.</p>
       <a class="app-open" href="/app/">CASH Room 들어가기 →</a>
     </section>
-  </section>
+  </template>
 
-  <hr />
-
-  <!-- 노트 (방문자: 공개만 / 주인: 전체) -->
-  <section class="content">
-    <h2 id="notes-title">노트</h2>
-    <div id="my-notes"><p class="lede">불러오는 중…</p></div>
-  </section>
-
-  {posts.length > 0 && (
-    <>
-      <hr />
-      <section class="content">
-        <h2>연재</h2>
-        <PostList posts={posts} />
-      </section>
-    </>
-  )}
-
-  <!-- Firestore (노트 로드). auth/init은 Base(nav)에서 이미 처리됨 -->
   <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
   <script is:inline>
     (function () {
-      var db = firebase.firestore();
+      var door = document.getElementById('door');
       var auth = firebase.auth();
-      var $ = function (id) { return document.getElementById(id); };
-      function esc(s) {
-        return (s || '').replace(/[&<>"]/g, function (c) {
-          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      var db = firebase.firestore();
+
+      function show(id) {
+        var t = document.getElementById(id);
+        door.innerHTML = '';
+        door.appendChild(t.content.cloneNode(true));
+        var b = document.getElementById('go-login');
+        if (b) b.addEventListener('click', function () {
+          auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+            .catch(function (e) { alert('로그인 실패: ' + e.message); });
         });
       }
-      function collect(snap) { var a = []; snap.forEach(function (d) { var x = d.data(); x.id = d.id; a.push(x); }); return a; }
-      function render(items, owner) {
-        items.sort(function (a, b) {
-          return (((b.createdAt && b.createdAt.seconds) || 9e15) - ((a.createdAt && a.createdAt.seconds) || 9e15));
-        });
-        if (!items.length) {
-          $('my-notes').innerHTML = owner
-            ? '<p class="lede">아직 노트가 없어요. CASH Room에서 써보세요.</p>'
-            : '<p class="lede">아직 공개된 글이 없어요.</p>';
-          return;
-        }
-        var html = '<ul class="note-list">';
-        items.forEach(function (n) {
-          var pub = n.visibility === 'public';
-          var badge = owner ? '<span class="note-badge ' + (pub ? 'pub' : 'priv') + '">' + (pub ? '공개' : '나만') + '</span>' : '';
-          var body = n.body ? '<div class="note-body">' + esc(n.body) + '</div>' : '';
-          html += '<li class="note-item"><div class="note-head"><span class="note-title">' +
-            esc(n.title || '(제목 없음)') + '</span>' + badge + '</div>' + body + '</li>';
-        });
-        html += '</ul>';
-        $('my-notes').innerHTML = html;
-      }
-      function loadOwner(uid) {
-        db.collection('notes').where('ownerUid', '==', uid).get()
-          .then(function (s) { render(collect(s), true); })
-          .catch(function (e) { $('my-notes').innerHTML = '<p class="lede">불러오기 실패: ' + esc(e.message) + '</p>'; });
-      }
-      function loadPublic() {
-        db.collection('notes').where('visibility', '==', 'public').get()
-          .then(function (s) { render(collect(s), false); })
-          .catch(function (e) { $('my-notes').innerHTML = '<p class="lede">불러오기 실패: ' + esc(e.message) + '</p>'; });
-      }
+
       auth.onAuthStateChanged(function (u) {
-        if (u) {
-          $('owner-only').hidden = false;
-          $('notes-title').textContent = '내 노트';
-          loadOwner(u.uid);
-        } else {
-          $('owner-only').hidden = true;
-          $('notes-title').textContent = '노트';
-          loadPublic();
-        }
+        if (!u) { show('t-guest'); return; }
+        door.innerHTML = '<p class="lede">책장을 여는 중…</p>';
+        db.collection('users').doc(u.uid).get()
+          .then(function (s) {
+            var h = s.exists && s.data().handle;
+            if (h) location.replace('/u/' + encodeURIComponent(h));
+            else show('t-nohandle');
+          })
+          .catch(function () { show('t-nohandle'); });
       });
     })();
   </script>

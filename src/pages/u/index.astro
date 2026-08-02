@@ -102,6 +102,18 @@ import Base from '../../layouts/Base.astro';
 
     #shelf-root .foot { text-align: center; font-size: 10px; color: var(--faint); font-style: italic;
       margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); line-height: 1.8; }
+
+    /* 주인에게만 — 책장 뒤편의 작업실 문 */
+    #shelf-root .mine[hidden] { display: none; }
+    #shelf-root .mine { display: flex; align-items: center; gap: 9px; margin-top: 15px;
+      padding: 10px 12px; border: 1px solid rgba(156,116,32,.32); border-radius: 5px;
+      background: rgba(255,255,255,.4); }
+    #shelf-root .mine .m { flex: 1; font-size: 10.5px; color: var(--muted); line-height: 1.6; }
+    #shelf-root .mine .m b { display: block; font-family: Georgia, serif; font-size: 11px;
+      letter-spacing: .14em; color: var(--gold); }
+    #shelf-root .mine a { flex-shrink: 0; text-decoration: none; font-size: 11px; font-weight: 700;
+      color: #fff8ea; background: linear-gradient(135deg, #c8a05a, #96702a);
+      padding: 8px 12px; border-radius: 5px; }
   </style>
 
   <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
@@ -109,6 +121,14 @@ import Base from '../../layouts/Base.astro';
     (function () {
       var root = document.getElementById('shelf-root');
       var db = firebase.firestore();
+      var ownerUid = null, meUid = null;
+
+      // 이 책장의 주인이 보고 있을 때만 작업실 문이 보인다
+      function markOwner() {
+        var el = root.querySelector('.mine');
+        if (el) el.hidden = !(meUid && ownerUid && meUid === ownerUid);
+      }
+      firebase.auth().onAuthStateChanged(function (u) { meUid = u ? u.uid : null; markOwner(); });
 
       function esc(s) {
         return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
@@ -207,9 +227,13 @@ import Base from '../../layouts/Base.astro';
         }
         html += '</div>';
 
+        html += '<div class="mine" hidden><div class="m"><b>MY SHELF</b>내 책장을 보고 있어요</div>' +
+          '<a href="/app/">작업실 열기 →</a></div>';
+
         if (!cards.length) {
           html += '<p class="empty">아직 나눈 것이 없습니다.<br/>' + esc(pen) + '의 이야기는 아직 책 안에 있습니다.</p>';
           root.innerHTML = html;
+          markOwner();
           return;
         }
 
@@ -240,6 +264,7 @@ import Base from '../../layouts/Base.astro';
 
         html += '<div class="foot">' + esc(pen) + '이 나눈 것들입니다<br/>나머지는 아직 그의 책 안에 있습니다</div>';
         root.innerHTML = html;
+        markOwner();
         loadPhotos();
       }
 
@@ -264,6 +289,7 @@ import Base from '../../layouts/Base.astro';
             return;
           }
           var profile = snap.docs[0].data();
+          ownerUid = snap.docs[0].id;
           return db.collection('feed').where('handle', '==', handle).get()
             .then(function (fs) {
               var cards = [];

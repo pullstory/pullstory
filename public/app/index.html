@@ -669,6 +669,10 @@
     word-break:break-all}
   .dk-u.set{background:none;border:none;padding:0;cursor:pointer;color:#8a5f14;text-decoration:underline;
     font-family:'Noto Serif KR',serif;font-size:10.5px;font-weight:700;margin-top:5px}
+  .dk-visit{display:inline-flex;align-items:center;gap:5px;margin-top:9px;padding:6px 12px;
+    border:1px solid rgba(156,116,32,.4);border-radius:5px;background:rgba(255,253,245,.75);
+    text-decoration:none;font-family:'Noto Serif KR',serif;font-size:10.5px;font-weight:700;color:#8a5f14}
+  .dk-visit i{font-style:normal;font-size:9px;opacity:.7}
   .dk-bio{font-family:'Noto Serif KR',serif;font-size:11px;color:#8a6d3c;margin-top:8px;line-height:1.7;
     white-space:pre-wrap;max-width:250px;margin-left:auto;margin-right:auto}
   .dk-bio.add{background:none;border:none;cursor:pointer;color:#b09a6e;font-style:italic;text-decoration:underline}
@@ -4077,6 +4081,7 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
         {handle
           ? <div className="dk-u">pullstory.net/u/{handle}</div>
           : <button className="dk-u set" onClick={onNeedHandle}>책장 주소 정하기</button>}
+        {handle && <div><a className="dk-visit" href={"/u/"+handle} target="_blank" rel="noopener">책장 보기 <i>↗</i></a></div>}
         {(profile && profile.intro)
           ? <div className="dk-bio">{profile.intro}</div>
           : <button className="dk-bio add" onClick={onEditPen}>＋ 소개 쓰기</button>}
