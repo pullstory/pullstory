@@ -484,6 +484,10 @@
     background:rgba(255,253,245,.9);padding:10px 11px;outline:none;
     font-family:'Noto Serif KR',serif;font-size:16px;font-weight:700;color:#2f2109}
   .pn-in:focus{border-color:#b8862f;background:#fffdf5}
+  .pn-bio{position:relative;width:100%;box-sizing:border-box;border:1px solid #d8c79a;border-radius:5px;
+    background:rgba(255,253,245,.9);padding:9px 10px;outline:none;resize:none;overflow:hidden;display:block;
+    font-family:'Noto Serif KR',serif;font-size:12px;line-height:1.7;color:#3a2818}
+  .pn-bio::placeholder{color:#c2ae86}
   .pn-msg{position:relative;font-size:9.5px;color:#a89066;font-style:italic;margin-top:6px;line-height:1.6}
   .pn-lock{position:relative;margin-top:14px;padding:10px 11px;border-radius:5px;
     background:rgba(156,116,32,.09);border:1px solid rgba(156,116,32,.25);
@@ -652,23 +656,22 @@
   .bp-n .u{font-family:ui-monospace,Menlo,monospace;font-style:normal;color:#8a5f14;word-break:break-all}
 
   /* ===== Desk ===== */
-  .dk-plate{display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:4px;margin-bottom:18px;
-    background:rgba(255,253,244,.85);border:1px solid rgba(156,116,32,.35);position:relative}
-  .dk-plate::before{content:"";position:absolute;inset:3px;border:1px solid rgba(156,116,32,.16);border-radius:2px}
-  .dk-av{width:34px;height:34px;border-radius:50%;flex-shrink:0;position:relative;
+  .dk-prof{text-align:center;padding-bottom:16px;margin-bottom:4px;
+    border-bottom:1px solid rgba(120,90,40,.2)}
+  .dk-av{width:52px;height:52px;border-radius:50%;margin:0 auto 9px;display:flex;align-items:center;
+    justify-content:center;border:none;cursor:pointer;padding:0;
     background:radial-gradient(circle at 35% 30%,#e7c98a,#9c7420);color:#3a2610;
-    display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-weight:700;font-size:15px}
-  .dk-who{flex:1;min-width:0;position:relative}
+    font-family:Georgia,serif;font-weight:700;font-size:22px}
   .dk-nm{background:none;border:none;padding:0;cursor:pointer;font-family:'Noto Serif KR',serif;
-    font-size:12.5px;font-weight:700;color:#2f2109;display:flex;align-items:center;gap:5px}
-  .dk-nm i{font-style:normal;font-size:9px;color:#b09a6e}
-  .dk-u{font-family:ui-monospace,Menlo,monospace;font-size:9px;color:#a8894e;margin-top:2px;
-    word-break:break-all;text-align:left}
+    font-size:17px;font-weight:700;color:#2f2109;display:inline-flex;align-items:center;gap:6px}
+  .dk-nm i{font-style:normal;font-size:10px;color:#b09a6e}
+  .dk-u{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#a8894e;margin-top:3px;
+    word-break:break-all}
   .dk-u.set{background:none;border:none;padding:0;cursor:pointer;color:#8a5f14;text-decoration:underline;
-    font-family:'Noto Serif KR',serif;font-size:9.5px;font-weight:700}
-  .dk-go{margin-left:auto;flex-shrink:0;position:relative;font-family:'Noto Serif KR',serif;font-size:9.5px;
-    font-weight:700;color:#8a5f14;border:1px solid rgba(156,116,32,.5);border-radius:20px;padding:5px 10px;
-    background:transparent;cursor:pointer}
+    font-family:'Noto Serif KR',serif;font-size:10.5px;font-weight:700;margin-top:5px}
+  .dk-bio{font-family:'Noto Serif KR',serif;font-size:11px;color:#8a6d3c;margin-top:8px;line-height:1.7;
+    white-space:pre-wrap;max-width:250px;margin-left:auto;margin-right:auto}
+  .dk-bio.add{background:none;border:none;cursor:pointer;color:#b09a6e;font-style:italic;text-decoration:underline}
 
   .dk-sect{display:flex;align-items:baseline;gap:8px;margin:0 0 11px}
   .dk-sect .k{font-family:'Cormorant Garamond',Georgia,serif;font-size:12px;letter-spacing:.2em;color:#9c7420;
@@ -1217,6 +1220,25 @@ async function publishBook(uid, profile, book, records) {
   });
 
   await setPhotosVisibility(photoIds, "public");
+}
+
+// 글도 진열대에 오른다 — 원본은 notes에 그대로 있고 카드만 만든다
+async function publishNote(uid, profile, note) {
+  const handle = (profile && profile.handle) || "";
+  if (!FIREBASE_READY || !uid || uid === "local-user" || !handle) return;
+  const text = noteBlocks(note).filter(b => b.t === "p").map(b => b.v).join("\n").trim();
+  await fbDb.collection("feed").doc(handle + "_n" + note.id).set({
+    kind: "note", ownerUid: uid, handle, penName: (profile && profile.penName) || "",
+    noteId: note.id, title: note.title || "",
+    excerpt: text.slice(0, 120),
+    visibility: "public", publishedAt: Date.now(),
+  });
+}
+
+async function unpublishNote(uid, handle, noteId) {
+  if (!FIREBASE_READY || !uid || uid === "local-user" || !handle) return;
+  await fbDb.collection("feed").doc(handle + "_n" + noteId).delete()
+    .catch(e => console.warn("unpublish note:", e));
 }
 
 async function unpublishBook(uid, handle, book) {
@@ -1812,7 +1834,7 @@ function Photo({src, id, alt, className, style, onClick}) {
 
 // 장서표 — 필명을 적는 자리.
 // mode="first" 시작할 때 한 번(문 열리기 전) · mode="edit" 메뉴에서 이름을 눌렀을 때
-function PenNamePlate({mode, initial, suggestion, handle, uid, onSave, onClose}) {
+function PenNamePlate({mode, initial, intro, suggestion, handle, uid, onSave, onClose}) {
   const [v, setV] = useState(initial || suggestion || "");
   const [saving, setSaving] = useState(false);
   const first = mode === "first";
@@ -1844,10 +1866,13 @@ function PenNamePlate({mode, initial, suggestion, handle, uid, onSave, onClose})
     return () => clearTimeout(t);
   }, [h, first, handle]);
 
+  const [bio, setBio] = useState(intro || "");
+  useEffect(() => { setBio(intro || ""); }, [intro]);
+
   const submit = async () => {
     if (!name || saving) return;
     setSaving(true);
-    await onSave({penName: name});
+    await onSave(first ? {penName: name} : {penName: name, intro: bio.trim()});
     setSaving(false);
   };
 
@@ -1890,8 +1915,15 @@ function PenNamePlate({mode, initial, suggestion, handle, uid, onSave, onClose})
           {first && suggestion && (
             <div className="pn-msg">구글 계정 이름을 넣어 뒀어요. 마음에 안 들면 지우고 새로 쓰세요</div>
           )}
+          {!first && (
+            <div style={{marginTop:"14px"}}>
+              <div className="pn-l">소개 <span style={{color:"#b8a276",fontWeight:400}}>· 선택</span></div>
+              <AutoTA className="pn-bio" value={bio} placeholder="책장에 들어온 사람이 먼저 읽게 될 몇 줄"
+                onChange={e=>setBio(e.target.value)}/>
+            </div>
+          )}
           <div className="pn-lock">
-            ✎ 필명은 <b>언제든 바꿀 수 있습니다.</b> 지금 완벽하지 않아도 괜찮아요.
+            ✎ 필명과 소개는 <b>언제든 바꿀 수 있습니다.</b> 지금 완벽하지 않아도 괜찮아요.
           </div>
         </div>
       )}
@@ -1936,7 +1968,7 @@ function PenNamePlate({mode, initial, suggestion, handle, uid, onSave, onClose})
           <div style={{display:"flex",gap:"8px",width:"100%"}}>
             {!first && <button className="pn-cancel" onClick={onClose}>닫기</button>}
             <button className="pn-go" disabled={!name || saving} onClick={submit}>
-              {saving ? "저장 중…" : first ? "이 이름으로 시작하기" : "필명 저장"}
+              {saving ? "저장 중…" : first ? "이 이름으로 시작하기" : "저장"}
             </button>
           </div>
         )}
@@ -3883,8 +3915,15 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
     const id = await noteApi.create({});
     if (id) { setEditId(id); setView("edit"); }
   };
-  const toggleVis = (n) =>
-    noteApi.update(n.id, {visibility: n.visibility === "public" ? "private" : "public"});
+  const toggleVis = async (n) => {
+    const uid = user && user.uid;
+    const next = n.visibility === "public" ? "private" : "public";
+    await noteApi.update(n.id, {visibility: next});
+    try {
+      if (next === "public") await publishNote(uid, profile, n);
+      else await unpublishNote(uid, handle, n.id);
+    } catch (e) { console.warn("note feed:", e); }
+  };
 
   const editing = editId ? notes.find(n => n.id === editId) : null;
   const bodyOf = (n) => noteBlocks(n).filter(b => b.t === "p").map(b => b.v).join("\n");
@@ -4032,14 +4071,15 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
         <div className="sf-desc">무엇을 내보낼지 여기서 정합니다</div>
       </div>
 
-      <div className="dk-plate">
-        <div className="dk-av">{penName.slice(0,1)}</div>
-        <div className="dk-who">
-          <button className="dk-nm" onClick={onEditPen}>{penName} <i>✎</i></button>
-          {handle
-            ? <div className="dk-u">pullstory.net/u/{handle}</div>
-            : <button className="dk-u set" onClick={onNeedHandle}>책장 주소 정하기</button>}
-        </div>
+      <div className="dk-prof">
+        <button className="dk-av" onClick={onEditPen} title="프로필 고치기">{penName.slice(0,1)}</button>
+        <button className="dk-nm" onClick={onEditPen}>{penName} <i>✎</i></button>
+        {handle
+          ? <div className="dk-u">pullstory.net/u/{handle}</div>
+          : <button className="dk-u set" onClick={onNeedHandle}>책장 주소 정하기</button>}
+        {(profile && profile.intro)
+          ? <div className="dk-bio">{profile.intro}</div>
+          : <button className="dk-bio add" onClick={onEditPen}>＋ 소개 쓰기</button>}
       </div>
 
       <div className="dk-sect"><span className="k">Books</span><span className="s">쌓아 온 책</span><span className="l"/></div>
@@ -4311,6 +4351,7 @@ function PageBook({data, setData, onLogout, user, profile, onSaveProfile, notes,
         <PenNamePlate
           mode="edit"
           initial={(profile && profile.penName) || ""}
+          intro={(profile && profile.intro) || ""}
           handle={(profile && profile.handle) || ""}
           uid={user && user.uid}
           onSave={async (patch)=>{ await onSaveProfile(patch); if (patch.penName) setEditPen(false); }}
@@ -4477,6 +4518,24 @@ function App() {
     try { await resetSave(user && user.uid, fresh); }
     catch (e) { console.warn("Reset save failed:", e); }
   }, [user]);
+
+  // 책장에 내걸 숫자 — scashbook 문서는 본인만 읽을 수 있어서 남의 책장에선 못 본다.
+  // 그래서 이미 공개로 열어 둔 users 문서에 이 셋만 따로 얹는다.
+  useEffect(() => {
+    if (!data || !user || !profile || !profile.handle) return;
+    const t = setTimeout(() => {
+      const start = data.startDate || todayStr();
+      const day = Math.max(1, daysBetween(start, todayStr()));
+      const page = data.pageCount || 0;
+      const cash = Object.values(data.pageRecords || {}).reduce((sum, r) =>
+        sum + ((r.tasks || []).filter(x => x.done && CASH_KEYS.indexOf(x.cat) >= 0).length), 0);
+      const prev = profile.stats || {};
+      if (prev.day === day && prev.page === page && prev.cash === cash) return;
+      saveProfile(user.uid, profile, {stats: {day, page, cash}})
+        .then(setProfile).catch(e => console.warn("stats:", e));
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [data, user, profile]);
 
   const handleSaveProfile = useCallback(async (patch) => {
     const next = await saveProfile(user && user.uid, profile, patch);
