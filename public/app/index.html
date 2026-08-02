@@ -4067,11 +4067,6 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
         </div>
       )}
 
-      <div className="dk-acts">
-        <button className="dk-new" onClick={startNew}>⊕ 새 글 쓰기</button>
-        <button className="dk-bind" disabled={loose.length === 0} onClick={startBind}>📎 묶기</button>
-      </div>
-
       {loose.length === 0 ? (
         <div className="dk-empty">아직 쓴 글이 없어요.<br/>무엇이든 자유롭게 적어보세요.</div>
       ) : loose.map(n => (
@@ -4087,6 +4082,11 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
             onClick={()=>{ if (n.visibility !== "public" && !handle) { onNeedHandle(); return; } toggleVis(n); }}/>
         </div>
       ))}
+
+      <div className="dk-acts" style={{marginTop:"11px",marginBottom:0}}>
+        <button className="dk-new" onClick={startNew}>⊕ 새 글 쓰기</button>
+        <button className="dk-bind" disabled={loose.length === 0} onClick={startBind}>📎 묶기</button>
+      </div>
 
       <div className="dk-foot">Books의 책은 각자의 자리에서 내보냅니다<br/>여기서는 글을 쓰고 묶습니다</div>
 
