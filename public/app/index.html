@@ -746,6 +746,12 @@
     background:rgba(255,255,255,.5);display:flex;align-items:center;justify-content:space-between}
   .dk-pub.on{border-color:#b8862f;background:rgba(212,168,81,.14)}
   .dk-pub .t{font-family:'Noto Serif KR',serif;font-size:12px;font-weight:700;color:#2f2109}
+  .dk-cats{display:flex;gap:6px}
+  .dk-cat{flex:1;min-width:0;padding:8px 2px;border-radius:6px;border:1.4px solid;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:2px;font-family:inherit}
+  .dk-cat b{font-family:Georgia,serif;font-size:13px;font-weight:700;line-height:1}
+  .dk-cat span{font-family:'Noto Serif KR',serif;font-size:8.5px;font-weight:700;opacity:.9}
+
   .dk-mk{width:100%;margin-top:13px;padding:12px;border:none;border-radius:6px;cursor:pointer;
     background:linear-gradient(135deg,#e0bd6e,#a8792a);color:#fff8ea;
     font-family:'Noto Serif KR',serif;font-size:13px;font-weight:700}
@@ -2187,7 +2193,7 @@ const CASH4 = ["C","A","S","H"];
 
 // 책 상세 (표지 탭 → 전체화면 오버레이. Portal로 body에 렌더 → 캐러셀 transform 영향 X)
 // Story = 책의 정보 + 표(습관 일정표 / D-DAY 표) · Write = 그 경험을 엮은 연재
-function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleStatus, uid, profile, onNeedHandle, notes, noteApi}) {
+function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBook, toggleStatus, uid, profile, onNeedHandle, notes, noteApi}) {
   const isHabit = taskTypeOf(book) === "habit";
   const isColl = book.type === "collection";
   const h = book.habit || {};
@@ -2329,7 +2335,7 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
       <div className="mb-page" onClick={e=>e.stopPropagation()}>
         <div className="mb-dbar">
           <button className="mb-back" onClick={editing ? ()=>setEditId(null) : onClose}>
-            {editing ? "‹ 목록으로" : "‹ 책장으로"}
+            {editing ? "‹ 목록으로" : (backLabel || "‹ 책장으로")}
           </button>
           <button className="mb-pill" onClick={()=>toggleStatus(book.id)} style={done?{background:"rgba(90,140,74,.2)",color:"#4a7c3a"}:null}>{book.status||"진행중"}</button>
         </div>
@@ -2536,7 +2542,7 @@ function BookDetail({book, bc, records, onClose, updateBook, deleteBook, toggleS
   return ReactDOM.createPortal(overlay, document.body);
 }
 
-function HomePage({data, setData, user, profile, onNeedHandle, notes, noteApi, openBookId, onOpenedBook}) {
+function HomePage({data, setData, user, profile, onNeedHandle, notes, noteApi, openBookId, onOpenedBook, bookFrom, onReturn}) {
   const nowYear = new Date().getFullYear();
   const [viewYear, setViewYear] = useState(nowYear);
   const [detailId, setDetailId] = useState(null);
@@ -2642,7 +2648,8 @@ function HomePage({data, setData, user, profile, onNeedHandle, notes, noteApi, o
       )}
 
       {detail && <BookDetail key={detail.id} book={detail} bc={BC[detail.cat]||BC.C} records={data.pageRecords||{}}
-        onClose={()=>setDetailId(null)}
+        backLabel={bookFrom === "workshop" ? "‹ Desk로" : "‹ 책장으로"}
+        onClose={()=>{ setDetailId(null); onReturn && onReturn(); }}
         updateBook={updateBook} deleteBook={deleteBook} toggleStatus={toggleStatus}
         uid={user && user.uid} profile={profile} onNeedHandle={onNeedHandle}
         notes={notes} noteApi={noteApi}/>}
@@ -3824,6 +3831,7 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
   const [editId, setEditId] = useState(null);
   const [picked, setPicked] = useState([]);
   const [bindTitle, setBindTitle] = useState("");
+  const [bindCat, setBindCat] = useState("C");
   const [busy, setBusy] = useState(false);
 
   const year = new Date().getFullYear();
@@ -3861,7 +3869,7 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
   };
 
   // ── 묶기 ──
-  const startBind = () => { setPicked([]); setBindTitle(""); setView("bind"); };
+  const startBind = () => { setPicked([]); setBindTitle(""); setBindCat("C"); setView("bind"); };
   const togglePick = (id) =>
     setPicked(ps => ps.indexOf(id) >= 0 ? ps.filter(x => x !== id) : [...ps, id]);
 
@@ -3874,7 +3882,7 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
     const chapters = data.chapters || {};
     const ch = chapters[year] || {tasks: []};
     setData({...data, chapters: {...chapters, [year]: {...ch, tasks: [...(ch.tasks || []), {
-      id: bookId, cat: "C", type: "collection", text: title, status: "진행중", ts: Date.now(),
+      id: bookId, cat: bindCat, type: "collection", text: title, status: "진행중", ts: Date.now(),
     }]}}});
     // 고른 글에 '이 책 소속' 표시만 붙인다 — 옮겨 담지 않는다
     for (const nid of picked) await noteApi.update(nid, {bookId: String(bookId)});
@@ -3895,8 +3903,8 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
       : `${b.status === "완료" ? "완료" : "진행중"} · 글 ${cnt}`;
     return (
       <button className="dk-bk" onClick={()=>goBook(b.id)} title={b.text}>
-        <div className="dk-sp" style={{background: isColl ? "#4a5b7a" : bc.sp}}/>
-        <div className="dk-in" style={{background: isColl ? "linear-gradient(140deg,#5d7192,#3f4f6b)" : bc.g}}>
+        <div className="dk-sp" style={{background: bc.sp}}/>
+        <div className="dk-in" style={{background: bc.g}}>
           <div className="dk-fr"/>
           <div className={"dk-bd " + (b.published ? "on" : "off")}>{b.published ? "공개" : "나만"}</div>
           <div className="dk-ty">{isColl ? "✍️ 묶음" : t === "habit" ? "🔁 습관" : "🏆 성취"}</div>
@@ -3959,6 +3967,23 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
           );
         })}
         <div style={{marginTop:"15px"}}>
+          <div style={{fontSize:"9px",fontWeight:700,color:"#9c7f4e",marginBottom:"6px"}}>어느 영역의 책인가요</div>
+          <div className="dk-cats">
+            {CASH_KEYS.map(k => {
+              const on = bindCat === k;
+              return (
+                <button key={k} className={"dk-cat" + (on ? " on" : "")} onClick={()=>setBindCat(k)}
+                  style={{borderColor: EP_COL[k],
+                          background: on ? EP_COL[k] : "transparent",
+                          color: on ? "#fff8ea" : EP_INK[k]}}>
+                  <b>{k}</b><span>{CK[k]}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{marginTop:"14px"}}>
           <div style={{fontSize:"9px",fontWeight:700,color:"#9c7f4e",marginBottom:"5px"}}>책 제목</div>
           <input className="input" value={bindTitle} maxLength={40} placeholder="이 글들을 무엇이라 부를까요"
             onChange={e=>setBindTitle(e.target.value)} style={{fontSize:"14px",fontWeight:700}}/>
@@ -4039,6 +4064,7 @@ function PageBook({data, setData, onLogout, user, profile, onSaveProfile, notes,
   const [editPen, setEditPen] = useState(false);
   const [needHandle, setNeedHandle] = useState(false);
   const [openBookId, setOpenBookId] = useState(null);   // Desk에서 책을 눌러 들어온 경우
+  const [bookFrom, setBookFrom] = useState(null);       // 닫으면 돌아갈 자리
   const [dragDx, setDragDx] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef({active:false, x:0, y:0, moved:false});
@@ -4116,7 +4142,10 @@ function PageBook({data, setData, onLogout, user, profile, onSaveProfile, notes,
       case "chapters": return <HomePage     data={data} setData={setData} user={user}
                                 profile={profile} onNeedHandle={()=>setNeedHandle(true)}
                                 notes={notes} noteApi={noteApi}
-                                openBookId={openBookId} onOpenedBook={()=>setOpenBookId(null)}/>;
+                                openBookId={openBookId} onOpenedBook={()=>setOpenBookId(null)}
+                                bookFrom={bookFrom}
+                                onReturn={()=>{ const k = bookFrom; setBookFrom(null);
+                                  if (k) setPageIdx(PAGES.findIndex(x=>x.key===k)); }}/>;
       case "writing":  return <EpisodePage  data={data} setData={setData} user={user}
                                 profile={profile} onNeedHandle={()=>setNeedHandle(true)}/>;
       case "now":      return <HistoryPage  data={data} setData={setData} user={user}
@@ -4125,7 +4154,8 @@ function PageBook({data, setData, onLogout, user, profile, onSaveProfile, notes,
                                 notes={notes} noteApi={noteApi}
                                 onEditPen={()=>setEditPen(true)} onNeedHandle={()=>setNeedHandle(true)}
                                 goPage={(k)=>setPageIdx(PAGES.findIndex(x=>x.key===k))}
-                                goBook={(id)=>{ setOpenBookId(id); setPageIdx(PAGES.findIndex(x=>x.key==="chapters")); }}/>;
+                                goBook={(id)=>{ setOpenBookId(id); setBookFrom("workshop");
+                                  setPageIdx(PAGES.findIndex(x=>x.key==="chapters")); }}/>;
       default: return null;
     }
   };
