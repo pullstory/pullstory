@@ -162,6 +162,7 @@ import '../../styles/paper.css';
     }
     #book-root .peek .h a { color: #fff8e5; font-size: 10px; text-decoration: none; opacity: .9; }
     #book-root .peek .h a:hover { text-decoration: underline; }
+    #book-root .peek .h i { color: #fff8e5; font-size: 10px; font-style: normal; opacity: .62; }
     #book-root .peek .b { padding: 11px 12px 13px; }
     #book-root .peek .shot { margin-top: 0; }
     #book-root .peek .memo { font-size: 16px; }
@@ -343,9 +344,12 @@ import '../../styles/paper.css';
             Array.prototype.forEach.call(btns, function (x) { x.classList.remove('sel'); });
             b.classList.add('sel');
             var m = (d.days || {})[n] || {};
+            // 그 하루까지 나눈 날만 건너갈 길이 있다 — 아니면 날짜만 적는다
             host.innerHTML = '<div class="peek">' +
               '<div class="h"><span>DAY ' + esc(n) + '</span>' +
-                '<a href="/p/' + esc(handle) + '/' + esc(m.date) + '">' + esc(shortDate(m.date)) + ' →</a></div>' +
+                (m.open
+                  ? '<a href="/p/' + esc(handle) + '/' + esc(m.date) + '">' + esc(shortDate(m.date)) + ' →</a>'
+                  : '<i>' + esc(shortDate(m.date)) + '</i>') + '</div>' +
               '<div class="b">' +
                 (m.photoId ? '<div class="shot" data-photo="' + esc(m.photoId) + '"></div>' : '') +
                 (m.memo ? '<div class="memo">' + esc(m.memo) + '</div>'

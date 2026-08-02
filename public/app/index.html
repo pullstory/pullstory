@@ -1182,7 +1182,8 @@ function bookDays(book, records, span) {
     const rec = (records || {})[k];
     const t = rec && (rec.tasks || []).find(x => x.done && String(x.sourceTaskId) === String(book.id));
     if (!t) continue;
-    days[n] = {date: k, photoId: t.photoId || null, memo: t.memo || ""};
+    // open = 그 하루 자체도 나눴는가. 아니면 읽는 쪽에서 그날로 건너가는 길을 열지 않는다
+    days[n] = {date: k, photoId: t.photoId || null, memo: t.memo || "", open: !!rec.published};
     if (t.photoId) photoIds.push(t.photoId);
   }
   return {days, photoIds};
