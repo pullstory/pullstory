@@ -1,0 +1,280 @@
+---
+// 남의 책장 — /u/{handle}
+// 정적 사이트라 주소의 handle은 브라우저에서 읽는다 (vercel.json 재작성 규칙이 여기로 보낸다).
+import Base from '../../layouts/Base.astro';
+---
+
+<Base title="책장 — PULLSTORY" description="누군가 나눈 하루와 책이 놓인 책장.">
+  <div id="shelf-root">
+    <p class="loading">책장을 펴는 중…</p>
+  </div>
+
+  <style is:global>
+    /* 읽는 화면만은 앱과 같은 세계로 — 서점에 책을 보러 온 것이지 웹페이지를 보러 온 게 아니다 */
+    #shelf-root {
+      --ink: #3a2818; --deep: #2f2109; --muted: #8a6d3c; --faint: #a89066;
+      --gold: #9c7420; --line: rgba(120,90,40,.22);
+      font-family: 'Noto Serif KR', Georgia, serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 30%, rgba(237,226,197,.4), transparent 60%),
+        linear-gradient(#f5ecd9, #f1e6cf);
+      border-radius: 10px;
+      padding: 22px 16px 26px;
+      margin: 1rem 0 2rem;
+    }
+    #shelf-root .loading,
+    #shelf-root .empty { text-align: center; color: var(--faint); font-style: italic; padding: 34px 12px; line-height: 1.8; }
+
+    /* 지은이 */
+    #shelf-root .who { text-align: center; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+    #shelf-root .av {
+      width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 10px;
+      background: radial-gradient(circle at 35% 30%, #e7c98a, #9c7420); color: #3a2610;
+      display: flex; align-items: center; justify-content: center;
+      font-family: Georgia, serif; font-weight: 700; font-size: 23px;
+    }
+    #shelf-root .pen { font-size: 18px; font-weight: 700; color: var(--deep); }
+    #shelf-root .handle { font-family: ui-monospace, Menlo, monospace; font-size: 10.5px; color: #a8894e; margin-top: 3px; }
+    #shelf-root .bio { font-size: 12px; color: var(--muted); margin-top: 9px; line-height: 1.8; white-space: pre-wrap;
+      max-width: 30em; margin-left: auto; margin-right: auto; }
+
+    #shelf-root .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px;
+      max-width: 340px; margin-left: auto; margin-right: auto; }
+    #shelf-root .stat { position: relative; border: 1px solid rgba(156,116,32,.4); border-radius: 3px;
+      padding: 10px 3px 9px; text-align: center; background: rgba(255,255,255,.45); }
+    #shelf-root .stat::before { content:""; position:absolute; inset:3px; border:1px solid rgba(156,116,32,.18); border-radius:2px; }
+    #shelf-root .stat b { position: relative; display: block; font-family: Georgia, serif; font-size: 22px;
+      font-weight: 700; line-height: 1; color: var(--gold); }
+    #shelf-root .stat span { position: relative; display: block; font-family: Georgia, serif; font-size: 9px;
+      letter-spacing: .16em; color: var(--muted); margin-top: 5px; font-weight: 700; }
+
+    /* 구역 */
+    #shelf-root .sect { display: flex; align-items: baseline; gap: 8px; margin: 24px 0 12px; }
+    #shelf-root .sect b { font-family: Georgia, serif; font-size: 11.5px; letter-spacing: .2em; color: var(--gold);
+      text-transform: uppercase; font-weight: 700; white-space: nowrap; }
+    #shelf-root .sect i { font-style: normal; font-size: 10px; color: var(--faint); }
+    #shelf-root .sect u { flex: 1; height: 1px; background: var(--line); text-decoration: none; }
+
+    /* 책장 */
+    #shelf-root .case { padding: 13px 11px 0; border-radius: 5px;
+      background: linear-gradient(160deg, #5a3d22, #33220f 75%);
+      box-shadow: inset 0 0 0 1px rgba(200,160,90,.2); }
+    #shelf-root .books { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+    #shelf-root .plank { height: 9px; margin: 12px -11px 0;
+      background: linear-gradient(180deg, #9a6528, #6a441f); box-shadow: 0 4px 7px rgba(0,0,0,.45); }
+    #shelf-root .bk { position: relative; aspect-ratio: 3/4.2; border-radius: 3px 6px 6px 3px; overflow: hidden;
+      display: flex; box-shadow: 0 6px 13px rgba(0,0,0,.4); text-decoration: none; min-width: 0; }
+    #shelf-root .bk .sp { width: 6px; flex-shrink: 0; }
+    #shelf-root .bk .in { flex: 1; position: relative; padding: 8px 7px; display: flex; flex-direction: column; min-width: 0; }
+    #shelf-root .bk .fr { position: absolute; inset: 5px; border: 1px solid rgba(255,248,220,.35); border-radius: 2px; }
+    #shelf-root .bk .ty { display: block; position: relative; font-size: 7px; font-weight: 700; color: rgba(255,248,220,.85); }
+    #shelf-root .bk .tt { position: relative; font-size: 10.5px; font-weight: 700; color: #fff8e5; line-height: 1.3;
+      margin-top: auto; text-shadow: 0 1px 4px rgba(0,0,0,.5);
+      overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+    #shelf-root .bk .st { display: block; position: relative; font-family: Georgia, serif; font-size: 8px;
+      font-style: italic; color: rgba(255,248,220,.82); margin-top: 3px; }
+    #shelf-root .bk.story .in { background: linear-gradient(150deg, #3f2e1c, #241812); }
+    #shelf-root .bk.story .fr { border-color: rgba(226,190,110,.55); }
+    #shelf-root .bk.story .tt { font-family: Georgia, serif; font-size: 12px; }
+
+    /* 하루 */
+    #shelf-root .mon { font-family: Georgia, serif; font-size: 10px; letter-spacing: .14em; color: #a8894e;
+      font-weight: 700; margin: 16px 0 9px; }
+    #shelf-root .days { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    #shelf-root .day { border-radius: 5px; overflow: hidden; background: #fffdf6; text-decoration: none;
+      box-shadow: 0 3px 10px rgba(60,40,15,.16); border: 1px solid rgba(120,90,40,.14); display: block; }
+    #shelf-root .day .im { display: block; height: 84px; background: rgba(120,90,40,.1);
+      background-size: cover; background-position: center; }
+    #shelf-root .day .bd { display: block; padding: 8px 9px 10px; }
+    #shelf-root .day .dt { display: block; font-family: Georgia, serif; font-size: 10px; color: #a08a5e; }
+    #shelf-root .day .cp { font-size: 10.5px; color: var(--ink); margin-top: 4px; line-height: 1.55;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    #shelf-root .day .ep { display: block; font-family: Georgia, serif; font-size: 9px; color: #b09a6e;
+      margin-top: 5px; font-style: italic; }
+
+    /* 글 */
+    #shelf-root .sheet { background: #fffdf6; border: 1px solid rgba(120,90,40,.18); border-radius: 2px;
+      padding: 12px 13px; margin-bottom: 9px; box-shadow: 0 2px 5px rgba(60,40,15,.11); }
+    #shelf-root .sheet .t { font-size: 13px; font-weight: 700; color: var(--deep); }
+    #shelf-root .sheet .d { font-family: Georgia, serif; font-size: 10px; color: #a8894e; margin-top: 3px; }
+    #shelf-root .sheet .x { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.7; white-space: pre-wrap; }
+
+    #shelf-root .foot { text-align: center; font-size: 10px; color: var(--faint); font-style: italic;
+      margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); line-height: 1.8; }
+  </style>
+
+  <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <script is:inline>
+    (function () {
+      var root = document.getElementById('shelf-root');
+      var db = firebase.firestore();
+
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
+      }
+      // /u/hyunwook → hyunwook  (?u= 로도 받는다 — 재작성 규칙이 없는 환경에서 확인용)
+      var parts = location.pathname.split('/').filter(Boolean);
+      var qs = new URLSearchParams(location.search);
+      var handle = decodeURIComponent(qs.get('u') || parts[1] || '').toLowerCase();
+
+      if (!handle) {
+        root.innerHTML = '<p class="empty">책장 주소가 없습니다.<br/>pullstory.net/u/이름 형태로 들어와 주세요.</p>';
+        return;
+      }
+
+      var CAT = {
+        C: { sp: '#c98f22', g: 'linear-gradient(140deg,#e3ad35,#c8901f)' },
+        A: { sp: '#9c332e', g: 'linear-gradient(140deg,#c04a44,#a3352f)' },
+        S: { sp: '#315b86', g: 'linear-gradient(140deg,#487eb2,#325f8c)' },
+        H: { sp: '#3a6e3e', g: 'linear-gradient(140deg,#4f9354,#37703c)' }
+      };
+      var MON = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+
+      // 2026-08-01 → 8. 1
+      function shortDate(d) {
+        var p = String(d || '').split('-');
+        if (p.length < 3) return d || '';
+        return parseInt(p[1], 10) + '. ' + parseInt(p[2], 10);
+      }
+
+      function typeIcon(t) { return t === 'habit' ? '🔁 습관' : t === 'collection' ? '✍️ 묶음' : '🏆 성취'; }
+
+      function bookCard(c) {
+        var cat = CAT[c.cat] || CAT.C;
+        var st = c.type === 'collection' ? ('글 ' + (c.postCount || 0) + '편')
+               : c.type === 'habit' ? ((c.filled || 0) + '/' + (c.total || 0))
+               : ('글 ' + (c.postCount || 0) + '편');
+        return '<a class="bk" href="/book/' + esc(handle) + '/' + esc(c.bookId) + '">' +
+          '<span class="sp" style="background:' + cat.sp + '"></span>' +
+          '<span class="in" style="background:' + cat.g + '">' +
+            '<span class="fr"></span>' +
+            '<span class="ty">' + typeIcon(c.type) + '</span>' +
+            '<span class="tt">' + esc(c.title || '(제목 없음)') + '</span>' +
+            '<span class="st">' + esc(st) + '</span>' +
+          '</span></a>';
+      }
+
+      function storyCard(n) {
+        return '<a class="bk story" href="#pages">' +
+          '<span class="sp" style="background:#8a6a2a"></span>' +
+          '<span class="in"><span class="fr"></span>' +
+            '<span class="ty">📖 스토리북</span>' +
+            '<span class="tt">Story<br/>Book</span>' +
+            '<span class="st">' + n + '장</span>' +
+          '</span></a>';
+      }
+
+      function dayCard(c) {
+        return '<a class="day" href="/p/' + esc(handle) + '/' + esc(c.date) + '" data-photo="' + esc(c.keyPhotoId || '') + '">' +
+          '<span class="im"></span>' +
+          '<span class="bd">' +
+            '<span class="dt">' + esc(shortDate(c.date)) + '</span>' +
+            (c.caption ? '<span class="cp">' + esc(c.caption) + '</span>' : '') +
+            '<span class="ep">에피소드 ' + (c.count || 0) + '</span>' +
+          '</span></a>';
+      }
+
+      function noteCard(c) {
+        return '<div class="sheet">' +
+          '<div class="t">' + esc(c.title || '(제목 없음)') + '</div>' +
+          '<div class="d">' + esc(new Date(c.publishedAt || Date.now()).toLocaleDateString('ko-KR')) + '</div>' +
+          (c.excerpt ? '<div class="x">' + esc(c.excerpt) + '</div>' : '') +
+        '</div>';
+      }
+
+      function render(profile, cards) {
+        var books = cards.filter(function (c) { return c.kind === 'book'; });
+        var pages = cards.filter(function (c) { return c.kind === 'page'; });
+        var notes = cards.filter(function (c) { return c.kind === 'note'; });
+        var pen = profile.penName || '이름 없는 지은이';
+        var st = profile.stats || {};
+
+        var html = '<div class="who">' +
+          '<div class="av">' + esc(pen.slice(0, 1)) + '</div>' +
+          '<div class="pen">' + esc(pen) + '</div>' +
+          '<div class="handle">@' + esc(handle) + '</div>' +
+          (profile.intro ? '<div class="bio">' + esc(profile.intro) + '</div>' : '');
+
+        if (st.day || st.page || st.cash) {
+          html += '<div class="stats">' +
+            '<div class="stat"><b>' + (st.day || 0) + '</b><span>DAY</span></div>' +
+            '<div class="stat"><b>' + (st.page || 0) + '</b><span>PAGE</span></div>' +
+            '<div class="stat"><b>' + (st.cash || 0) + '</b><span>C.A.S.H</span></div>' +
+          '</div>';
+        }
+        html += '</div>';
+
+        if (!cards.length) {
+          html += '<p class="empty">아직 나눈 것이 없습니다.<br/>' + esc(pen) + '의 이야기는 아직 책 안에 있습니다.</p>';
+          root.innerHTML = html;
+          return;
+        }
+
+        if (books.length || pages.length) {
+          html += '<div class="sect"><b>Books</b><i>펴낸 책</i><u></u></div><div class="case"><div class="books">';
+          if (pages.length) html += storyCard(pages.length);
+          html += books.map(bookCard).join('');
+          html += '</div><div class="plank"></div></div>';
+        }
+
+        if (pages.length) {
+          html += '<div class="sect" id="pages"><b>Pages</b><i>나눈 하루</i><u></u></div>';
+          var byMon = {};
+          pages.forEach(function (c) {
+            var k = (c.date || '').slice(0, 7);
+            (byMon[k] = byMon[k] || []).push(c);
+          });
+          Object.keys(byMon).sort().reverse().forEach(function (k) {
+            var y = k.slice(0, 4), m = parseInt(k.slice(5, 7), 10);
+            html += '<div class="mon">' + y + ' · ' + (MON[m - 1] || '') + '</div><div class="days">' +
+              byMon[k].map(dayCard).join('') + '</div>';
+          });
+        }
+
+        if (notes.length) {
+          html += '<div class="sect"><b>Notes</b><i>낱장의 글</i><u></u></div>' + notes.map(noteCard).join('');
+        }
+
+        html += '<div class="foot">' + esc(pen) + '이 나눈 것들입니다<br/>나머지는 아직 그의 책 안에 있습니다</div>';
+        root.innerHTML = html;
+        loadPhotos();
+      }
+
+      // 대표 사진은 카드마다 한 장씩 따로 불러온다
+      function loadPhotos() {
+        var els = root.querySelectorAll('.day[data-photo]');
+        Array.prototype.forEach.call(els, function (el) {
+          var id = el.getAttribute('data-photo');
+          if (!id) return;
+          db.collection('photos').doc(id).get().then(function (s) {
+            if (!s.exists) return;
+            var d = s.data().data;
+            if (d) el.querySelector('.im').style.backgroundImage = 'url("' + d + '")';
+          }).catch(function () {});
+        });
+      }
+
+      db.collection('users').where('handle', '==', handle).limit(1).get()
+        .then(function (snap) {
+          if (snap.empty) {
+            root.innerHTML = '<p class="empty">이 주소의 책장을 찾지 못했습니다.<br/>주소를 다시 확인해 주세요.</p>';
+            return;
+          }
+          var profile = snap.docs[0].data();
+          return db.collection('feed').where('handle', '==', handle).get()
+            .then(function (fs) {
+              var cards = [];
+              fs.forEach(function (d) { var x = d.data(); x.id = d.id; cards.push(x); });
+              cards.sort(function (a, b) { return (b.publishedAt || 0) - (a.publishedAt || 0); });
+              render(profile, cards);
+            });
+        })
+        .catch(function (e) {
+          root.innerHTML = '<p class="empty">책장을 열지 못했습니다.<br/>' + esc(e.message) + '</p>';
+        });
+    })();
+  </script>
+</Base>
