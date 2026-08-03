@@ -17,7 +17,7 @@
   body{font-family:'Noto Sans KR',sans-serif;background:#1a0f08;overflow:hidden;color:#3a2818}
   /* 넓은 화면에서는 손에 쥔 것만큼만 — 앱 속은 전부 이 루트 기준 absolute라 폭만 걸면 따라온다.
      좁은 화면에서는 max-width가 아무 일도 하지 않는다. */
-  :root{--app-w:460px}
+  :root{--app-w:680px}   /* 홈페이지 칼럼(.wrap)과 같은 폭 — 작업실과 책장을 오갈 때 폭이 안 튄다 */
   #root{max-width:var(--app-w);margin:0 auto;position:relative;
     box-shadow:0 0 0 1px rgba(212,168,81,.14), 0 0 60px rgba(0,0,0,.55)}
   input,textarea,select,button{font-family:inherit;outline:none;color:inherit}
