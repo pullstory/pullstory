@@ -504,6 +504,22 @@
     font-size:11px;color:#9c7a2a;margin-top:4px;display:inline-flex;align-items:center;gap:4px}
   .pn-name i{font-style:normal;font-size:9px;opacity:.75}
 
+  /* 얼굴 사진 */
+  .pn-ava{text-align:center;margin-bottom:16px}
+  .pn-avb{position:relative;width:66px;height:66px;border-radius:50%;padding:0;cursor:pointer;
+    border:1px solid rgba(156,116,32,.45);overflow:visible;
+    background:radial-gradient(circle at 35% 30%,#e7c98a,#9c7420);color:#3a2610;
+    font-family:Georgia,serif;font-weight:700;font-size:27px;
+    display:inline-flex;align-items:center;justify-content:center}
+  .pn-avb:disabled{opacity:.6;cursor:default}
+  .pn-avi{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
+  .pn-avb i{position:absolute;right:-2px;bottom:-2px;width:22px;height:22px;border-radius:50%;
+    background:#8a5f14;color:#fff8ea;font-style:normal;font-size:12px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+  .pn-avt{font-size:9.5px;color:#a89066;font-style:italic;margin-top:9px;line-height:1.6}
+  .pn-avx{background:none;border:none;cursor:pointer;font-family:'Noto Serif KR',serif;
+    font-size:10px;color:#a8564a;text-decoration:underline;margin-top:9px;padding:0}
+
   /* 책장 주소 */
   .pn-div{position:relative;height:1px;background:rgba(120,90,40,.2);margin:17px 0 15px}
   .pn-addr{position:relative;display:flex;align-items:center;border:1px solid #d8c79a;border-radius:5px;
@@ -678,7 +694,8 @@
   .dk-av{width:52px;height:52px;border-radius:50%;margin:0 auto 7px;display:flex;align-items:center;
     justify-content:center;border:none;cursor:pointer;padding:0;
     background:radial-gradient(circle at 35% 30%,#e7c98a,#9c7420);color:#3a2610;
-    font-family:Georgia,serif;font-weight:700;font-size:22px}
+    font-family:Georgia,serif;font-weight:700;font-size:22px;overflow:hidden}
+  .dk-avi{width:100%;height:100%;object-fit:cover;display:block}
   .dk-nm{background:none;border:none;padding:0;cursor:pointer;font-family:'Noto Serif KR',serif;
     font-size:14px;font-weight:700;color:#2f2109;display:inline-flex;align-items:center;gap:5px;
     max-width:100%;overflow:hidden}
@@ -1927,6 +1944,21 @@ function AutoTA({value, onChange, onBlur, placeholder, className}) {
 
 // 인증 사진 — 예전 기록은 base64가 본문에 그대로(src), 새 기록은 photoId만 들고 있다.
 // 둘 다 받아서 알아서 그린다.
+// 지은이의 얼굴 — 고른 사진이 없으면 이름 첫 글자가 대신한다
+function Avatar({id, name, className}) {
+  const [url, setUrl] = useState(id ? (photoCache.get(id) || null) : null);
+  useEffect(() => {
+    if (!id) { setUrl(null); return; }
+    const hit = photoCache.get(id);
+    if (hit) { setUrl(hit); return; }
+    let alive = true;
+    loadPhoto(id).then(d => { if (alive) setUrl(d); });
+    return () => { alive = false; };
+  }, [id]);
+  if (url) return <img className={className} src={url} alt=""/>;
+  return <span>{String(name || "?").slice(0, 1)}</span>;
+}
+
 function Photo({src, id, alt, className, style, onClick}) {
   const [url, setUrl] = useState(src || (id ? photoCache.get(id) : null) || null);
   useEffect(() => {
@@ -1948,7 +1980,7 @@ function Photo({src, id, alt, className, style, onClick}) {
 
 // 장서표 — 필명을 적는 자리.
 // mode="first" 시작할 때 한 번(문 열리기 전) · mode="edit" 메뉴에서 이름을 눌렀을 때
-function PenNamePlate({mode, initial, intro, suggestion, handle, uid, onSave, onClose}) {
+function PenNamePlate({mode, initial, intro, suggestion, handle, uid, avatarId, onSave, onClose}) {
   const [v, setV] = useState(initial || suggestion || "");
   const [saving, setSaving] = useState(false);
   const first = mode === "first";
@@ -1982,6 +2014,36 @@ function PenNamePlate({mode, initial, intro, suggestion, handle, uid, onSave, on
 
   const [bio, setBio] = useState(intro || "");
   useEffect(() => { setBio(intro || ""); }, [intro]);
+
+  // 얼굴 사진 — 책장에 걸리는 것이라 고르는 즉시 공개로 열어 둔다
+  const [ava, setAva] = useState(avatarId || null);
+  useEffect(() => { setAva(avatarId || null); }, [avatarId]);
+  const [avaBusy, setAvaBusy] = useState(false);
+  const avaRef = useRef(null);
+
+  const pickAvatar = async (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!f) return;
+    setAvaBusy(true);
+    try {
+      const b64 = await compressPhoto(f, 320, 0.82);
+      const saved = await savePhoto(uid, b64);
+      if (saved && saved.id) {
+        await setPhotosVisibility([saved.id], "public");
+        setAva(saved.id);
+        await onSave({avatarId: saved.id});
+      } else {
+        alert("사진을 저장하지 못했어요.");
+      }
+    } catch (err) { console.warn("avatar:", err); alert("사진을 저장하지 못했어요."); }
+    setAvaBusy(false);
+  };
+
+  const clearAvatar = async () => {
+    setAva(null);
+    await onSave({avatarId: null});
+  };
 
   const submit = async () => {
     if (!name || saving) return;
@@ -2019,6 +2081,20 @@ function PenNamePlate({mode, initial, intro, suggestion, handle, uid, onSave, on
           : <span>읽는 사람이 부르게 될 이름입니다</span>}
       </div>
       <div className="pn-rule"/>
+
+      {!onlyHandle && (
+        <div className="pn-ava">
+          <button className="pn-avb" onClick={()=>avaRef.current && avaRef.current.click()}
+            title="얼굴 사진 고르기" disabled={avaBusy}>
+            <Avatar id={ava} name={name || initial} className="pn-avi"/>
+            <i>{avaBusy ? "…" : "＋"}</i>
+          </button>
+          <input ref={avaRef} type="file" accept="image/*" style={{display:"none"}} onChange={pickAvatar}/>
+          {ava
+            ? <button className="pn-avx" onClick={clearAvatar}>사진 지우기</button>
+            : <div className="pn-avt">얼굴 사진을 골라 두면 책장에 함께 걸립니다</div>}
+        </div>
+      )}
 
       {!onlyHandle && (
         <div>
@@ -3003,7 +3079,9 @@ function EpisodePage({data, setData, user, profile, onNeedHandle}) {
 
   // My Books(연간 책 목록)에서 가져올 task 목록
   const curYear = todayDate.getFullYear();
-  const sourceTasks = ((data.chapters||{})[curYear]||{}).tasks || [];
+  // My Books에 꽂은 책만 — Desk에서 글을 묶어 만든 책은 오늘 할 일이 될 수 없다
+  const sourceTasks = (((data.chapters||{})[curYear]||{}).tasks || [])
+    .filter(t => t.type !== "collection");
 
   // 에피소드 펼침 토글
   const [expandedEp, setExpandedEp] = useState({});
@@ -4264,7 +4342,9 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
       <div className="dk-prof">
         <div className="dk-ptop">
           <div className="dk-me">
-            <button className="dk-av" onClick={onEditPen} title="프로필 고치기">{penName.slice(0,1)}</button>
+            <button className="dk-av" onClick={onEditPen} title="프로필 고치기">
+              <Avatar id={profile && profile.avatarId} name={penName} className="dk-avi"/>
+            </button>
             <button className="dk-nm" onClick={onEditPen}>{penName} <i>✎</i></button>
             {handle
               ? <div className="dk-u">pullstory.net/u/{handle}</div>
@@ -4561,6 +4641,7 @@ function PageBook({data, setData, onLogout, user, profile, onSaveProfile, notes,
           intro={(profile && profile.intro) || ""}
           handle={(profile && profile.handle) || ""}
           uid={user && user.uid}
+          avatarId={(profile && profile.avatarId) || null}
           onSave={async (patch)=>{ await onSaveProfile(patch); if (patch.penName) setEditPen(false); }}
           onClose={()=>setEditPen(false)}
         />
@@ -4830,6 +4911,8 @@ function App() {
       <PenNamePlate
         mode="first"
         suggestion={(user.name && user.name !== "작가") ? user.name : ""}
+        uid={user.uid}
+        avatarId={(profile && profile.avatarId) || null}
         onSave={(patch)=>handleSaveProfile(patch)}
       />
     );

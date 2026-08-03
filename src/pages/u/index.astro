@@ -36,10 +36,11 @@ import Base from '../../layouts/Base.astro';
     #shelf-root .me { flex: 0 0 84px; min-width: 0; text-align: center; }
     #shelf-root .say { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
     #shelf-root .av {
-      width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 8px;
+      width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 8px; overflow: hidden;
       background: radial-gradient(circle at 35% 30%, #e7c98a, #9c7420); color: #3a2610;
       display: flex; align-items: center; justify-content: center;
       font-family: Georgia, serif; font-weight: 700; font-size: 23px;
+      background-size: cover; background-position: center;
     }
     #shelf-root .pen { font-size: 14.5px; font-weight: 700; color: var(--deep); line-height: 1.4; }
     #shelf-root .handle { font-family: ui-monospace, Menlo, monospace; font-size: 9px; color: #a8894e;
@@ -261,7 +262,8 @@ import Base from '../../layouts/Base.astro';
         var hasSay = !!(profile.identity || profile.intro);
         var html = '<div class="who"><div class="top' + (hasSay ? '' : ' alone') + '">' +
             '<div class="me">' +
-              '<div class="av">' + esc(pen.slice(0, 1)) + '</div>' +
+              '<div class="av" data-photo="' + esc(profile.avatarId || '') + '">' +
+                (profile.avatarId ? '' : esc(pen.slice(0, 1))) + '</div>' +
               '<div class="pen">' + esc(pen) + '</div>' +
               '<div class="handle">@' + esc(handle) + '</div>' +
             '</div>' +
@@ -287,6 +289,7 @@ import Base from '../../layouts/Base.astro';
           html += '<p class="empty">아직 나눈 것이 없습니다.<br/>' + esc(pen) + '의 이야기는 아직 책 안에 있습니다.</p>';
           root.innerHTML = html;
           markOwner();
+          loadPhotos();
           return;
         }
 
@@ -340,6 +343,14 @@ import Base from '../../layouts/Base.astro';
 
       // 대표 사진은 카드마다 한 장씩 따로 불러온다
       function loadPhotos() {
+        var av = root.querySelector('.av[data-photo]');
+        if (av && av.getAttribute('data-photo')) {
+          db.collection('photos').doc(av.getAttribute('data-photo')).get().then(function (s) {
+            if (!s.exists) return;
+            var d = s.data().data;
+            if (d) av.style.backgroundImage = 'url("' + d + '")';
+          }).catch(function () {});
+        }
         var els = root.querySelectorAll('.day[data-photo]');
         Array.prototype.forEach.call(els, function (el) {
           var id = el.getAttribute('data-photo');
