@@ -1,6 +1,6 @@
 {
-  "name": "CASH Room — PULLSTORY",
-  "short_name": "CASH Room",
+  "name": "Story Room — PULLSTORY",
+  "short_name": "Story Room",
   "description": "끌어당김의 핵심은 반복. 매일 한 페이지씩 나의 인생 스토리를 써내려가는 책.",
   "start_url": "./",
   "display": "standalone",

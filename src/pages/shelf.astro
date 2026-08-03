@@ -1,28 +1,100 @@
 ---
 // My shelf = 내 책장으로 가는 문. 진짜 책장은 /u/{handle}에 있다.
 // 로그인해 있으면 곧장 자기 책장으로 보내고, 아직 주소가 없으면 작업실로 안내한다.
+// 로그인 전 화면은 이 서비스를 처음 만나는 자리이기도 해서, 책장과 같은 세계로 그린다.
 import Base from '../layouts/Base.astro';
 ---
-<Base title="My shelf · PULLSTORY" description="PULLSTORY 책장 — 내가 나눈 하루와 책이 놓인 자리.">
-  <div id="door">
-    <p class="lede">책장을 찾는 중…</p>
+<Base title="Story Room · PULLSTORY" description="매일 한 장씩 써 내려간 이야기가 놓이는 책장.">
+  <div id="door" class="paper">
+    <p class="loading">책장을 찾는 중…</p>
   </div>
 
   <!-- 로그인 안 한 사람 -->
   <template id="t-guest">
-    <p class="lede">책장은 내가 나눈 하루와 책이 놓이는 자리입니다.<br />로그인하면 내 책장으로 갑니다.</p>
-    <button class="app-open" type="button" id="go-login">로그인하고 내 책장 열기</button>
+    <div class="scene">
+      <img class="room" src="/img/story-room.png" alt="책 속에 차려진 방 — 책상과 책장과 비전보드" />
+      <div class="om">Story Room</div>
+      <h1>머릿속에 방 하나</h1>
+      <div class="rule"></div>
+      <p class="lede">
+        매일 한 장씩 써 내려가면<br />
+        그것이 쌓여 한 권의 책이 됩니다.
+      </p>
+      <button class="enter" type="button" id="go-login">문 열기</button>
+      <p class="foot">이미 쓰던 분도 같은 문으로 들어옵니다</p>
+    </div>
   </template>
 
   <!-- 로그인했지만 아직 책장 주소가 없는 사람 -->
   <template id="t-nohandle">
-    <p class="lede">아직 책장 주소를 정하지 않았어요.<br />작업실 Desk에서 주소를 정하면 이 자리에 책장이 생깁니다.</p>
-    <section class="app-entry">
-      <h2>CASH Room</h2>
-      <p class="app-desc">내 이야기를 짓는 작업실 방. 매일의 기록으로 나만의 책을 만들어, 이 책장에 진열합니다.</p>
-      <a class="app-open" href="/app/">CASH Room 들어가기 →</a>
-    </section>
+    <div class="scene">
+      <img class="room" src="/img/story-room.png" alt="책 속에 차려진 방" />
+      <div class="om">Story Room</div>
+      <h1>아직 책장 주소가 없어요</h1>
+      <div class="rule"></div>
+      <p class="lede">
+        작업실 Desk에서 주소를 정하면<br />
+        이 자리에 당신의 책장이 생깁니다.
+      </p>
+      <a class="enter" href="/app/">Story Room →</a>
+    </div>
   </template>
+
+  <style is:global>
+    /* 책장(/u/)과 같은 종이·잉크·금박 */
+    #door {
+      --ink: #3a2818; --deep: #2f2109; --muted: #8a6d3c; --faint: #a89066; --gold: #9c7420;
+      font-family: 'Noto Serif KR', Georgia, serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 30%, rgba(237,226,197,.4), transparent 60%),
+        linear-gradient(#f5ecd9, #f1e6cf);
+      border-radius: 10px;
+      padding: 30px 20px 34px;
+      margin: 1rem 0 2rem;
+    }
+    #door .loading { text-align: center; color: var(--faint); font-style: italic; padding: 40px 12px; }
+
+    #door .scene { text-align: center; max-width: 30em; margin: 0 auto; }
+    /* 그림의 흰 바탕이 종이에 녹아들도록 — 투명 배경 파일이 아니어도 된다 */
+    #door .room {
+      display: block; width: 100%; max-width: 300px; height: auto;
+      margin: 0 auto 4px; border-radius: 0;
+      mix-blend-mode: multiply;
+    }
+    #door .om {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 11px; letter-spacing: .38em; text-transform: uppercase;
+      color: #b09355; font-weight: 700;
+    }
+    #door h1 {
+      font-family: 'Noto Serif KR', serif;
+      font-size: 25px; font-weight: 700; color: var(--deep);
+      margin: 8px 0 0; line-height: 1.4; text-wrap: balance;
+    }
+    #door .rule {
+      width: 46px; height: 1px; margin: 14px auto 13px;
+      background: linear-gradient(90deg, transparent, #b8862f, transparent);
+    }
+    #door .lede { font-size: 12.5px; color: var(--muted); line-height: 2; margin: 0; }
+
+    #door .enter {
+      display: inline-block; margin-top: 22px; padding: 12px 30px;
+      border: none; border-radius: 6px; cursor: pointer; text-decoration: none;
+      background: linear-gradient(135deg, #c8a05a, #96702a);
+      color: #fff8ea; font-family: 'Noto Serif KR', serif;
+      font-size: 13.5px; font-weight: 700; letter-spacing: .1em;
+      box-shadow: 0 4px 12px rgba(60,40,15,.28);
+      transition: transform .15s, box-shadow .15s;
+    }
+    #door .enter:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(60,40,15,.34); }
+    #door .enter:active { transform: translateY(0); }
+
+    #door .foot {
+      font-size: 10.5px; color: var(--faint); font-style: italic;
+      margin: 14px 0 0; line-height: 1.8;
+    }
+  </style>
 
   <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
   <script is:inline>
@@ -35,16 +107,19 @@ import Base from '../layouts/Base.astro';
         var t = document.getElementById(id);
         door.innerHTML = '';
         door.appendChild(t.content.cloneNode(true));
+        // 그림이 아직 없어도 화면은 성립해야 한다
+        var img = door.querySelector('.room');
+        if (img) img.addEventListener('error', function () { img.remove(); });
         var b = document.getElementById('go-login');
         if (b) b.addEventListener('click', function () {
           auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
-            .catch(function (e) { alert('로그인 실패: ' + e.message); });
+            .catch(function (e) { alert('로그인이 안 됐어요: ' + e.message); });
         });
       }
 
       auth.onAuthStateChanged(function (u) {
         if (!u) { show('t-guest'); return; }
-        door.innerHTML = '<p class="lede">책장을 여는 중…</p>';
+        door.innerHTML = '<p class="loading">책장을 여는 중…</p>';
         db.collection('users').doc(u.uid).get()
           .then(function (s) {
             var h = s.exists && s.data().handle;

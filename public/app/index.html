@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="CASH Room">
+<meta name="apple-mobile-web-app-title" content="Story Room">
 <meta name="theme-color" content="#3a2c1e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>CASH Room — 나의 인생 스토리</title>
+<title>Story Room — 나의 인생 스토리</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&family=Nanum+Pen+Script&family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&display=swap" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1557,7 +1557,7 @@ function LoginScreen({onLogin}) {
   return (
     <div style={{height:"100%",background:"radial-gradient(ellipse at center,#3a2c1e 0%,#1a0f08 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",opacity:show?1:0,transition:"opacity 1.2s",padding:"24px",textAlign:"center"}}>
       <BrainGraphic/>
-      <div className="heading-latin" style={{fontSize:"44px",color:"#d4a851",marginTop:"20px",letterSpacing:"3px",fontWeight:700}}>CASH Room</div>
+      <div className="heading-latin" style={{fontSize:"44px",color:"#d4a851",marginTop:"20px",letterSpacing:"3px",fontWeight:700}}>Story Room</div>
       <div className="heading-serif" style={{fontSize:"12px",color:"#9c7a2a",marginTop:"4px",letterSpacing:"4px"}}>S T O R Y · C A S H · B O O K</div>
       <div style={{maxWidth:"320px",fontSize:"12px",color:"#8a7556",marginTop:"32px",lineHeight:1.8}}>
         끌어당김의 핵심은 <span style={{color:"#d4a851"}}>반복</span>.<br/>
@@ -4764,7 +4764,7 @@ function PageBook({data, setData, onLogout, user, profile, onSaveProfile, notes,
         <div onClick={()=>setMenu(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:50,display:"flex",alignItems:"flex-start",justifyContent:"flex-start",animation:"fadeIn .2s"}}>
           <div onClick={e=>e.stopPropagation()} style={{width:"260px",height:"100%",background:"linear-gradient(180deg,#3a2c1e,#1a0f08)",padding:"20px",paddingTop:"max(20px,env(safe-area-inset-top))",borderRight:"1px solid #6a5538",overflow:"auto"}}>
             <div style={{textAlign:"center",marginBottom:"20px",paddingBottom:"16px",borderBottom:"1px solid #4a3520"}}>
-              <div className="heading-latin" style={{fontSize:"22px",color:"#d4a851",fontWeight:700,letterSpacing:"2px"}}>CASH Room</div>
+              <div className="heading-latin" style={{fontSize:"22px",color:"#d4a851",fontWeight:700,letterSpacing:"2px"}}>Story Room</div>
               <button className="pn-name" onClick={()=>setEditPen(true)} title="필명 고치기">
                 {(profile && profile.penName) || "작가"}님 <i>✎</i>
               </button>
