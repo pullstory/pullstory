@@ -56,20 +56,11 @@ import Base from '../layouts/Base.astro';
     #door .loading { text-align: center; color: var(--faint); font-style: italic; padding: 40px 12px; }
 
     #door .scene { text-align: center; max-width: 30em; margin: 0 auto; }
-    /* 그림이 제 배경 사각형을 달고 오므로, 곱하기로 종이에 얹고 가장자리를 풀어 준다.
-       투명 배경 파일이 아니어도 테두리가 안 보인다. */
+    /* 배경이 투명한 그림이라 종이 위에 그대로 놓인다 */
     #door .room {
-      display: block; width: 100%; max-width: 320px; height: auto;
-      margin: 0 auto 2px; border-radius: 0;
-      mix-blend-mode: multiply;
-      -webkit-mask-image:
-        linear-gradient(to bottom, transparent 0, #000 7%, #000 93%, transparent 100%),
-        linear-gradient(to right, transparent 0, #000 7%, #000 93%, transparent 100%);
-      -webkit-mask-composite: source-in;
-      mask-image:
-        linear-gradient(to bottom, transparent 0, #000 7%, #000 93%, transparent 100%),
-        linear-gradient(to right, transparent 0, #000 7%, #000 93%, transparent 100%);
-      mask-composite: intersect;
+      display: block; width: 100%; max-width: 300px; height: auto;
+      margin: 0 auto 6px; border-radius: 0;
+      filter: drop-shadow(0 8px 18px rgba(60,40,15,.18));
     }
     #door .om {
       font-family: 'Cormorant Garamond', Georgia, serif;
