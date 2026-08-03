@@ -730,6 +730,28 @@
   .dk-stat span{position:relative;display:block;font-family:'Cormorant Garamond',Georgia,serif;
     font-size:8.5px;letter-spacing:.14em;color:#8a6d3c;margin-top:4px;font-weight:700}
 
+  /* Desk 두 장 — 내가 쓴 것 / 내가 읽는 것 */
+  .dk-tabs{display:flex;margin:14px 0 16px;border-bottom:1.5px solid rgba(120,90,40,.22)}
+  .dk-tabs button{flex:1;background:none;border:none;padding:9px 0 8px;cursor:pointer;position:relative;
+    font-family:'Cormorant Garamond',Georgia,serif;font-size:14px;font-weight:700;letter-spacing:.14em;
+    color:#b09a6e}
+  .dk-tabs button .ko{font-family:'Noto Serif KR',serif;font-size:10px;letter-spacing:0;margin-left:6px;opacity:.8}
+  .dk-tabs button.on{color:#8a5f14}
+  .dk-tabs button.on::after{content:"";position:absolute;left:0;right:0;bottom:-1.5px;height:2.5px;background:#b8862f}
+
+  /* 꽂아둔 책장 */
+  .lb-row{display:flex;align-items:center;gap:11px;padding:10px 2px;width:100%;background:none;border:none;
+    border-bottom:1px solid rgba(120,90,40,.13);cursor:pointer;font-family:inherit;text-align:left}
+  .lb-av{width:38px;height:38px;border-radius:50%;flex-shrink:0;overflow:hidden;display:flex;
+    align-items:center;justify-content:center;background:radial-gradient(circle at 35% 30%,#e7c98a,#9c7420);
+    color:#3a2610;font-family:Georgia,serif;font-weight:700;font-size:16px}
+  .lb-av img{width:100%;height:100%;object-fit:cover;display:block}
+  .lb-m{flex:1;min-width:0}
+  .lb-nm{display:block;font-family:'Noto Serif KR',serif;font-size:12.5px;font-weight:700;color:#2f2109}
+  .lb-id{display:block;font-size:10.5px;color:#8a6d3c;margin-top:2px;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;line-height:1.5}
+  .lb-go{flex-shrink:0;color:#c7ae7a;font-size:13px}
+
   .dk-sect{display:flex;align-items:baseline;gap:8px;margin:0 0 11px}
   .dk-sect .k{font-family:'Cormorant Garamond',Georgia,serif;font-size:12px;letter-spacing:.2em;color:#9c7420;
     text-transform:uppercase;font-weight:700;white-space:nowrap}
@@ -4104,6 +4126,35 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
   const [busy, setBusy] = useState(false);
 
   const [collId, setCollId] = useState(null);   // 펼쳐 본 묶음 책
+  const [tab, setTab] = useState("mine");       // mine(내가 쓴 것) | lib(내가 읽는 것)
+
+  // 꽂아둔 책장 — 표시는 shelfmarks에 있고, 지은이 정보는 그때그때 users에서 가져온다
+  const [shelves, setShelves] = useState(null);   // null = 아직 안 읽음
+  useEffect(() => {
+    const uid = user && user.uid;
+    if (tab !== "lib" || !FIREBASE_READY || !uid || uid === "local-user") return;
+    let alive = true;
+    (async () => {
+      try {
+        const snap = await fbDb.collection("shelfmarks").where("uid", "==", uid).get();
+        const rows = await Promise.all(snap.docs.map(async d => {
+          const m = d.data();
+          let p = null;
+          try {
+            const u = m.targetUid ? await fbDb.collection("users").doc(m.targetUid).get() : null;
+            if (u && u.exists) p = u.data();
+          } catch (e) { /* 지은이를 못 읽어도 주소는 남는다 */ }
+          return {handle: m.handle, at: m.createdAt || 0,
+                  penName: (p && p.penName) || m.handle,
+                  identity: (p && p.identity) || "",
+                  avatarId: (p && p.avatarId) || null};
+        }));
+        rows.sort((a, b) => b.at - a.at);
+        if (alive) setShelves(rows);
+      } catch (e) { console.warn("shelfmarks:", e); if (alive) setShelves([]); }
+    })();
+    return () => { alive = false; };
+  }, [user, tab]);
 
   const year = new Date().getFullYear();
   const allBooks = ((data.chapters || {})[year] || {}).tasks || [];
@@ -4369,6 +4420,46 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
         </div>
       </div>
 
+      <div className="dk-tabs">
+        <button className={tab === "mine" ? "on" : ""} onClick={()=>setTab("mine")}>
+          MINE<span className="ko">내 것</span>
+        </button>
+        <button className={tab === "lib" ? "on" : ""} onClick={()=>setTab("lib")}>
+          LIBRARY<span className="ko">서재</span>
+        </button>
+      </div>
+
+      {tab === "lib" ? (
+        <div style={{animation:"fadeIn .3s"}}>
+          <div className="dk-sect"><span className="k">Shelves</span><span className="s">꽂아둔 책장</span><span className="l"/></div>
+          {shelves === null ? (
+            <div className="dk-empty">서재를 펴는 중…</div>
+          ) : shelves.length === 0 ? (
+            <div className="dk-empty">
+              아직 꽂아둔 책장이 없어요.<br/>
+              남의 책장에서 오른쪽 위 모서리를 접으면 여기 모입니다.
+            </div>
+          ) : shelves.map(s => (
+            <a key={s.handle} className="lb-row" href={"/u/" + s.handle}>
+              <span className="lb-av"><Avatar id={s.avatarId} name={s.penName}/></span>
+              <span className="lb-m">
+                <span className="lb-nm">{s.penName}</span>
+                {s.identity && <span className="lb-id">{s.identity}</span>}
+              </span>
+              <span className="lb-go">→</span>
+            </a>
+          ))}
+
+          <div className="dk-sect" style={{marginTop:"22px"}}><span className="k">Marks</span><span className="s">책갈피</span><span className="l"/></div>
+          <div className="dk-empty">읽다가 접어 둔 글이 여기 모입니다.</div>
+
+          <div className="dk-sect" style={{marginTop:"22px"}}><span className="k">Letters</span><span className="s">받은 편지</span><span className="l"/></div>
+          <div className="dk-empty">아직 받은 편지가 없어요.</div>
+
+          <div className="dk-foot">편지는 책장을 꽂아 둔 사람만 보낼 수 있어요</div>
+        </div>
+      ) : (
+      <div style={{animation:"fadeIn .3s"}}>
       <div className="dk-sect"><span className="k">Books</span><span className="s">쌓아 온 책</span><span className="l"/></div>
       <div className="dk-shelf">
         <button className="dk-bk dk-story" onClick={()=>goPage("now")} title="Story Book">
@@ -4416,6 +4507,8 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
       </div>
 
       <div className="dk-foot">Books의 책은 각자의 자리에서 내보냅니다<br/>여기서는 글을 쓰고 묶습니다</div>
+      </div>
+      )}
 
       {collBook && (
         <BookDetail key={collBook.id} book={collBook} bc={BC[collBook.cat] || BC.C}

@@ -12,6 +12,8 @@ import Base from '../../layouts/Base.astro';
   <style is:global>
     /* 읽는 화면만은 앱과 같은 세계로 — 서점에 책을 보러 온 것이지 웹페이지를 보러 온 게 아니다 */
     #shelf-root {
+      position: relative;
+      overflow: hidden;
       --ink: #3a2818; --deep: #2f2109; --muted: #8a6d3c; --faint: #a89066;
       --gold: #9c7420; --line: rgba(120,90,40,.22);
       font-family: 'Noto Serif KR', Georgia, serif;
@@ -25,6 +27,35 @@ import Base from '../../layouts/Base.astro';
     }
     #shelf-root .loading,
     #shelf-root .empty { text-align: center; color: var(--faint); font-style: italic; padding: 34px 12px; line-height: 1.8; }
+
+    /* 모서리 접기 — 이 책장을 내 서재에 들인다.
+       안 걸렸을 땐 색이 없다. 색이 곧 상태다. */
+    #shelf-root .mark {
+      position: absolute; top: 0; right: 0; width: 44px; height: 44px;
+      padding: 0; border: none; background: none; cursor: pointer; z-index: 3;
+      transition: width .22s cubic-bezier(.3,.8,.4,1), height .22s cubic-bezier(.3,.8,.4,1);
+    }
+    #shelf-root .mark[hidden] { display: none; }
+    #shelf-root .mark .fold {
+      position: absolute; inset: 0;
+      clip-path: polygon(100% 0, 100% 100%, 0 0);
+      background: rgba(120,90,40,.13);
+      box-shadow: inset -1px 1px 0 rgba(120,90,40,.32);
+      filter: drop-shadow(-2px 2px 2px rgba(60,40,15,.28));
+      transition: background .22s;
+    }
+    #shelf-root .mark .mk {
+      position: absolute; top: 7px; right: 8px; font-style: normal;
+      font-family: Georgia, serif; font-size: 12px; font-weight: 700;
+      color: #9a8760; line-height: 1; transition: color .22s, top .22s, right .22s;
+    }
+    #shelf-root .mark[aria-pressed="true"] { width: 52px; height: 52px; }
+    #shelf-root .mark[aria-pressed="true"] .fold {
+      background: linear-gradient(225deg, #c9534c 0%, #b23f39 55%, #8f2f2a 100%);
+      box-shadow: inset -1px 1px 0 rgba(255,240,238,.32);
+    }
+    #shelf-root .mark[aria-pressed="true"] .mk { color: #fff3f1; top: 8px; right: 9px; }
+    #shelf-root .say { padding-right: 26px; }
 
     /* 지은이 — 왼쪽에 사람, 오른쪽에 그가 스스로 붙인 말 */
     #shelf-root .who { padding-bottom: 16px; border-bottom: 1px solid var(--line); }
@@ -162,13 +193,59 @@ import Base from '../../layouts/Base.astro';
       var root = document.getElementById('shelf-root');
       var db = firebase.firestore();
       var ownerUid = null, meUid = null;
+      var marked = false, markBusy = false;
 
       // 이 책장의 주인이 보고 있을 때만 작업실 문이 보인다
       function markOwner() {
         var el = root.querySelector('.mine');
         if (el) el.hidden = !(meUid && ownerUid && meUid === ownerUid);
       }
-      firebase.auth().onAuthStateChanged(function (u) { meUid = u ? u.uid : null; markOwner(); });
+
+      // 모서리 접기 — 자기 책장에는 접을 것이 없다
+      function paintMark() {
+        var el = root.querySelector('.mark');
+        if (!el) return;
+        el.hidden = !!(meUid && ownerUid && meUid === ownerUid);
+        el.setAttribute('aria-pressed', marked ? 'true' : 'false');
+        el.querySelector('.mk').textContent = marked ? '✓' : '＋';
+        el.title = marked ? '내 서재에 있음' : '내 서재에 들이기';
+      }
+
+      function loadMark() {
+        if (!meUid || (ownerUid && meUid === ownerUid)) { marked = false; paintMark(); return; }
+        db.collection('shelfmarks').doc(meUid + '_' + handle).get()
+          .then(function (s) { marked = s.exists; paintMark(); })
+          .catch(function (e) { console.warn('shelfmark:', e); paintMark(); });
+      }
+
+      function toggleMark() {
+        if (markBusy) return;
+        if (!meUid) {
+          firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider())
+            .catch(function (e) { alert('로그인이 안 됐어요: ' + e.message); });
+          return;
+        }
+        markBusy = true;
+        var next = !marked;
+        marked = next;
+        paintMark();                       // 먼저 접히고, 저장은 뒤따른다
+        var ref = db.collection('shelfmarks').doc(meUid + '_' + handle);
+        (next
+          ? ref.set({uid: meUid, handle: handle, targetUid: ownerUid || null, createdAt: Date.now()})
+          : ref.delete()
+        ).then(function () { markBusy = false; })
+         .catch(function (e) {
+           marked = !next; paintMark(); markBusy = false;
+           console.warn('shelfmark save:', e);
+           alert('잘 안 됐어요. 잠시 뒤 다시 해주세요.');
+         });
+      }
+
+      firebase.auth().onAuthStateChanged(function (u) {
+        meUid = u ? u.uid : null;
+        markOwner();
+        loadMark();
+      });
 
       function esc(s) {
         return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
@@ -260,7 +337,11 @@ import Base from '../../layouts/Base.astro';
 
         // 스스로 붙인 말이 아직 없으면 지은이만 가운데 세운다
         var hasSay = !!(profile.identity || profile.intro);
-        var html = '<div class="who"><div class="top' + (hasSay ? '' : ' alone') + '">' +
+        var html =
+          '<button class="mark" type="button" aria-pressed="false" hidden>' +
+            '<span class="fold"></span><i class="mk">＋</i>' +
+          '</button>' +
+          '<div class="who"><div class="top' + (hasSay ? '' : ' alone') + '">' +
             '<div class="me">' +
               '<div class="av" data-photo="' + esc(profile.avatarId || '') + '">' +
                 (profile.avatarId ? '' : esc(pen.slice(0, 1))) + '</div>' +
@@ -289,6 +370,8 @@ import Base from '../../layouts/Base.astro';
           html += '<p class="empty">아직 나눈 것이 없습니다.<br/>' + esc(pen) + '의 이야기는 아직 책 안에 있습니다.</p>';
           root.innerHTML = html;
           markOwner();
+          wireMark();
+          loadMark();
           loadPhotos();
           return;
         }
@@ -326,8 +409,15 @@ import Base from '../../layouts/Base.astro';
         html += '<div class="foot">' + esc(pen) + '이 나눈 것들입니다<br/>나머지는 아직 그의 책 안에 있습니다</div>';
         root.innerHTML = html;
         markOwner();
+        wireMark();
+        loadMark();
         wireRails();
         loadPhotos();
+      }
+
+      function wireMark() {
+        var el = root.querySelector('.mark');
+        if (el) el.addEventListener('click', toggleMark);
       }
 
       // ◀▶ 는 한 화면씩 민다
