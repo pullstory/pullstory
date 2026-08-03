@@ -15,6 +15,11 @@
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body,#root{height:100%}
   body{font-family:'Noto Sans KR',sans-serif;background:#1a0f08;overflow:hidden;color:#3a2818}
+  /* 넓은 화면에서는 손에 쥔 것만큼만 — 앱 속은 전부 이 루트 기준 absolute라 폭만 걸면 따라온다.
+     좁은 화면에서는 max-width가 아무 일도 하지 않는다. */
+  :root{--app-w:460px}
+  #root{max-width:var(--app-w);margin:0 auto;position:relative;
+    box-shadow:0 0 0 1px rgba(212,168,81,.14), 0 0 60px rgba(0,0,0,.55)}
   input,textarea,select,button{font-family:inherit;outline:none;color:inherit}
   textarea{resize:vertical;font-family:'Noto Sans KR',sans-serif}
 
@@ -189,7 +194,7 @@
   .mb-ctype{font-family:'Noto Serif KR',serif;font-size:9px;font-weight:700;letter-spacing:.08em;color:rgba(255,248,220,.85)}
   .mb-cttl{font-family:'Noto Serif KR',serif;font-size:15px;font-weight:700;color:#fff8e5;line-height:1.4;margin-top:auto;text-shadow:0 1px 4px rgba(0,0,0,.4)}
   .mb-cst{font-family:'Cormorant Garamond',serif;font-size:10px;font-style:italic;color:rgba(255,248,220,.75);margin-top:6px}
-  .mb-ov{position:fixed;inset:0;z-index:10000;background:rgba(20,12,5,.55);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:18px 12px;box-sizing:border-box;animation:fadeIn .2s}
+  .mb-ov{position:fixed;inset:0;max-width:var(--app-w);margin:0 auto;z-index:10000;background:rgba(20,12,5,.55);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:18px 12px;box-sizing:border-box;animation:fadeIn .2s}
   .mb-page{width:100%;max-width:400px;border-radius:9px;background:#f3e9d1;background-image:radial-gradient(circle at 60% 0%,#f8f1de,#eaddbf 75%);overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.5)}
   .mb-dbar{display:flex;align-items:center;justify-content:space-between;padding:12px 13px 10px}
   .mb-back{background:none;border:none;color:#8a6a3a;font-family:'Noto Serif KR',serif;font-size:12px;font-weight:700;cursor:pointer}
@@ -421,7 +426,7 @@
   .rs-link button{background:none;border:none;color:#9a7c4c;font-family:'Noto Serif KR',serif;
     font-size:10.5px;letter-spacing:.06em;border-bottom:1px solid rgba(154,124,76,.35);
     padding:0 0 2px;cursor:pointer}
-  .rs-ov{position:fixed;inset:0;z-index:10001;background:rgba(14,8,3,.8);display:flex;
+  .rs-ov{position:fixed;inset:0;max-width:var(--app-w);margin:0 auto;z-index:10001;background:rgba(14,8,3,.8);display:flex;
     align-items:center;justify-content:center;padding:18px;animation:fadeIn .2s}
   .rs-sheet{width:100%;max-width:330px;border-radius:8px;padding:17px 16px 16px;color:#3a2818;
     background:linear-gradient(#fffdf4,#f5ecd6);box-shadow:0 16px 40px rgba(0,0,0,.6)}
@@ -461,7 +466,7 @@
   /* ===== 필명 (장서표) ===== */
   .pn-scene{height:100%;display:flex;align-items:center;justify-content:center;padding:18px;
     background:radial-gradient(ellipse at 40% 15%,#3f2b18,#180d05 85%)}
-  .pn-ov{position:fixed;inset:0;z-index:10002;display:flex;align-items:center;justify-content:center;
+  .pn-ov{position:fixed;inset:0;max-width:var(--app-w);margin:0 auto;z-index:10002;display:flex;align-items:center;justify-content:center;
     padding:18px;background:rgba(14,8,3,.8);animation:fadeIn .2s}
   .pn-plate{width:100%;max-width:320px;position:relative;border-radius:4px;padding:22px 18px 18px;
     background:linear-gradient(#fffdf4,#f4ead1);box-shadow:0 14px 34px rgba(0,0,0,.55);
@@ -4132,8 +4137,10 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
   const [shelves, setShelves] = useState(null);   // null = 아직 안 읽음
   const [shelvesErr, setShelvesErr] = useState("");
   useEffect(() => {
+    if (tab !== "lib") return;
     const uid = user && user.uid;
-    if (tab !== "lib" || !FIREBASE_READY || !uid || uid === "local-user") return;
+    // 로컬 모드엔 서재가 없다 — 영영 "펴는 중"으로 두지 않는다
+    if (!FIREBASE_READY || !uid || uid === "local-user") { setShelves([]); setShelvesErr(""); return; }
     let alive = true;
     (async () => {
       try {
