@@ -26,21 +26,36 @@ import Base from '../../layouts/Base.astro';
     #shelf-root .loading,
     #shelf-root .empty { text-align: center; color: var(--faint); font-style: italic; padding: 34px 12px; line-height: 1.8; }
 
-    /* 지은이 */
-    #shelf-root .who { text-align: center; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+    /* 지은이 — 왼쪽에 사람, 오른쪽에 그가 스스로 붙인 말 */
+    #shelf-root .who { padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+    #shelf-root .top { display: flex; gap: 14px; align-items: flex-start; }
+    #shelf-root .top.alone { justify-content: center; }
+    #shelf-root .top.alone .me { flex: 0 0 auto; }
+    #shelf-root .top.alone .pen { font-size: 18px; }
+    #shelf-root .top.alone .handle { font-size: 10.5px; }
+    #shelf-root .me { flex: 0 0 84px; min-width: 0; text-align: center; }
+    #shelf-root .say { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
     #shelf-root .av {
-      width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 10px;
+      width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 8px;
       background: radial-gradient(circle at 35% 30%, #e7c98a, #9c7420); color: #3a2610;
       display: flex; align-items: center; justify-content: center;
       font-family: Georgia, serif; font-weight: 700; font-size: 23px;
     }
-    #shelf-root .pen { font-size: 18px; font-weight: 700; color: var(--deep); }
-    #shelf-root .handle { font-family: ui-monospace, Menlo, monospace; font-size: 10.5px; color: #a8894e; margin-top: 3px; }
-    #shelf-root .bio { font-size: 12px; color: var(--muted); margin-top: 9px; line-height: 1.8; white-space: pre-wrap;
-      max-width: 30em; margin-left: auto; margin-right: auto; }
+    #shelf-root .pen { font-size: 14.5px; font-weight: 700; color: var(--deep); line-height: 1.4; }
+    #shelf-root .handle { font-family: ui-monospace, Menlo, monospace; font-size: 9px; color: #a8894e;
+      margin-top: 3px; word-break: break-all; }
+    /* identity — 지은이가 스스로 정한 한 줄 */
+    #shelf-root .idt {
+      border: 1px solid rgba(156,116,32,.42); border-radius: 4px; background: rgba(255,255,255,.6);
+      padding: 10px 12px; font-size: 12.5px; font-weight: 700; color: var(--deep);
+      line-height: 1.65; white-space: pre-wrap;
+    }
+    #shelf-root .bio {
+      border: 1px solid rgba(120,90,40,.22); border-radius: 4px; background: rgba(255,255,255,.32);
+      padding: 10px 12px; font-size: 11.5px; color: var(--muted); line-height: 1.85; white-space: pre-wrap;
+    }
 
-    #shelf-root .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px;
-      max-width: 340px; margin-left: auto; margin-right: auto; }
+    #shelf-root .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 13px; }
     #shelf-root .stat { position: relative; border: 1px solid rgba(156,116,32,.4); border-radius: 3px;
       padding: 10px 3px 9px; text-align: center; background: rgba(255,255,255,.45); }
     #shelf-root .stat::before { content:""; position:absolute; inset:3px; border:1px solid rgba(156,116,32,.18); border-radius:2px; }
@@ -234,16 +249,27 @@ import Base from '../../layouts/Base.astro';
 
       function render(profile, cards) {
         var books = cards.filter(function (c) { return c.kind === 'book'; });
-        var pages = cards.filter(function (c) { return c.kind === 'page'; });
+        // 다 채우지 못한 하루는 진열대에 오르지 않는다 — 스토리북 안에서만 읽힌다.
+        // 다만 스토리북 표지의 장수는 그 못다 채운 날까지 센다. 그 책에는 다 들어 있으니까.
+        var allPages = cards.filter(function (c) { return c.kind === 'page'; });
+        var pages = allPages.filter(function (c) { return c.pageDone !== false; });
         var notes = cards.filter(function (c) { return c.kind === 'note'; });
         var pen = profile.penName || '이름 없는 지은이';
         var st = profile.stats || {};
 
-        var html = '<div class="who">' +
-          '<div class="av">' + esc(pen.slice(0, 1)) + '</div>' +
-          '<div class="pen">' + esc(pen) + '</div>' +
-          '<div class="handle">@' + esc(handle) + '</div>' +
-          (profile.intro ? '<div class="bio">' + esc(profile.intro) + '</div>' : '');
+        // 스스로 붙인 말이 아직 없으면 지은이만 가운데 세운다
+        var hasSay = !!(profile.identity || profile.intro);
+        var html = '<div class="who"><div class="top' + (hasSay ? '' : ' alone') + '">' +
+            '<div class="me">' +
+              '<div class="av">' + esc(pen.slice(0, 1)) + '</div>' +
+              '<div class="pen">' + esc(pen) + '</div>' +
+              '<div class="handle">@' + esc(handle) + '</div>' +
+            '</div>' +
+            '<div class="say">' +
+              (profile.identity ? '<div class="idt">' + esc(profile.identity) + '</div>' : '') +
+              (profile.intro ? '<div class="bio">' + esc(profile.intro) + '</div>' : '') +
+            '</div>' +
+          '</div>';
 
         if (st.day || st.page || st.cash) {
           html += '<div class="stats">' +
@@ -274,11 +300,11 @@ import Base from '../../layouts/Base.astro';
           '</div>';
         }
 
-        if (books.length || pages.length) {
+        if (books.length || allPages.length) {
           var shown = books.slice(0, RAIL);
           html += sect('books', 'Books', '펴낸 책', books.length, '/books/' + encodeURIComponent(handle)) +
             '<div class="case"><div class="rail books" data-rail-body="books">' +
-            (pages.length ? storyCard(pages.length) : '') +
+            (allPages.length ? storyCard(allPages.length) : '') +
             shown.map(bookCard).join('') +
             '</div><div class="plank"></div></div>';
         }

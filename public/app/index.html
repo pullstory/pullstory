@@ -670,26 +670,48 @@
   .bp-n .u{font-family:ui-monospace,Menlo,monospace;font-style:normal;color:#8a5f14;word-break:break-all}
 
   /* ===== Desk ===== */
-  .dk-prof{text-align:center;padding-bottom:16px;margin-bottom:4px;
-    border-bottom:1px solid rgba(120,90,40,.2)}
-  .dk-av{width:52px;height:52px;border-radius:50%;margin:0 auto 9px;display:flex;align-items:center;
+  /* 명패 — 왼쪽에 지은이, 오른쪽에 그가 스스로 붙인 말 */
+  .dk-prof{padding-bottom:15px;margin-bottom:4px;border-bottom:1px solid rgba(120,90,40,.2)}
+  .dk-ptop{display:flex;gap:13px;align-items:flex-start}
+  .dk-me{flex:0 0 78px;min-width:0;text-align:center}
+  .dk-say{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+  .dk-av{width:52px;height:52px;border-radius:50%;margin:0 auto 7px;display:flex;align-items:center;
     justify-content:center;border:none;cursor:pointer;padding:0;
     background:radial-gradient(circle at 35% 30%,#e7c98a,#9c7420);color:#3a2610;
     font-family:Georgia,serif;font-weight:700;font-size:22px}
   .dk-nm{background:none;border:none;padding:0;cursor:pointer;font-family:'Noto Serif KR',serif;
-    font-size:17px;font-weight:700;color:#2f2109;display:inline-flex;align-items:center;gap:6px}
-  .dk-nm i{font-style:normal;font-size:10px;color:#b09a6e}
-  .dk-u{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#a8894e;margin-top:3px;
-    word-break:break-all}
+    font-size:14px;font-weight:700;color:#2f2109;display:inline-flex;align-items:center;gap:5px;
+    max-width:100%;overflow:hidden}
+  .dk-nm i{font-style:normal;font-size:9px;color:#b09a6e;flex-shrink:0}
+  .dk-u{font-family:ui-monospace,Menlo,monospace;font-size:8.5px;color:#a8894e;margin-top:3px;
+    word-break:break-all;line-height:1.4}
   .dk-u.set{background:none;border:none;padding:0;cursor:pointer;color:#8a5f14;text-decoration:underline;
-    font-family:'Noto Serif KR',serif;font-size:10.5px;font-weight:700;margin-top:5px}
-  .dk-visit{display:inline-flex;align-items:center;gap:5px;margin-top:9px;padding:6px 12px;
+    font-family:'Noto Serif KR',serif;font-size:10px;font-weight:700;margin-top:5px}
+  .dk-visit{display:inline-flex;align-items:center;gap:4px;margin-top:7px;padding:5px 9px;
     border:1px solid rgba(156,116,32,.4);border-radius:5px;background:rgba(255,253,245,.75);
-    text-decoration:none;font-family:'Noto Serif KR',serif;font-size:10.5px;font-weight:700;color:#8a5f14}
-  .dk-visit i{font-style:normal;font-size:9px;opacity:.7}
-  .dk-bio{font-family:'Noto Serif KR',serif;font-size:11px;color:#8a6d3c;margin-top:8px;line-height:1.7;
-    white-space:pre-wrap;max-width:250px;margin-left:auto;margin-right:auto}
-  .dk-bio.add{background:none;border:none;cursor:pointer;color:#b09a6e;font-style:italic;text-decoration:underline}
+    text-decoration:none;font-family:'Noto Serif KR',serif;font-size:9.5px;font-weight:700;color:#8a5f14}
+  .dk-visit i{font-style:normal;font-size:8px;opacity:.7}
+  /* identity — Vision에서 정한 한 줄 */
+  .dk-idt{border:1px solid rgba(156,116,32,.42);border-radius:4px;background:rgba(255,253,245,.85);
+    padding:9px 11px;font-family:'Noto Serif KR',serif;font-size:11.5px;font-weight:700;color:#2f2109;
+    line-height:1.6;white-space:pre-wrap}
+  .dk-idt.add{cursor:pointer;text-align:left;width:100%;border-style:dashed;color:#b09a6e;font-weight:400;
+    font-style:italic}
+  .dk-bio{border:1px solid rgba(120,90,40,.24);border-radius:4px;background:rgba(255,255,255,.42);
+    padding:10px 11px;font-family:'Noto Serif KR',serif;font-size:11px;color:#8a6d3c;line-height:1.75;
+    white-space:pre-wrap;min-height:52px}
+  .dk-bio.add{cursor:pointer;text-align:left;width:100%;border-style:dashed;color:#b09a6e;
+    font-style:italic;text-decoration:none}
+  /* 세 지표 */
+  .dk-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:12px}
+  .dk-stat{position:relative;border:1px solid rgba(156,116,32,.4);border-radius:3px;
+    padding:9px 3px 8px;text-align:center;background:rgba(255,255,255,.45);min-width:0}
+  .dk-stat::before{content:"";position:absolute;inset:3px;border:1px solid rgba(156,116,32,.18);
+    border-radius:2px}
+  .dk-stat b{position:relative;display:block;font-family:'Cormorant Garamond',Georgia,serif;
+    font-size:20px;font-weight:700;line-height:1;color:#9c7420;font-variant-numeric:tabular-nums}
+  .dk-stat span{position:relative;display:block;font-family:'Cormorant Garamond',Georgia,serif;
+    font-size:8.5px;letter-spacing:.14em;color:#8a6d3c;margin-top:4px;font-weight:700}
 
   .dk-sect{display:flex;align-items:baseline;gap:8px;margin:0 0 11px}
   .dk-sect .k{font-family:'Cormorant Garamond',Georgia,serif;font-size:12px;letter-spacing:.2em;color:#9c7420;
@@ -1097,6 +1119,8 @@ async function publishDay(uid, profile, date, rec) {
     penName: (profile && profile.penName) || "",
     date, caption,
     keyPhotoId: (key && key.photoId) || null,
+    // 다 채운 하루인가 — 아니면 스토리북 안에서만 읽힌다(진열대는 이 값을 보고 거른다)
+    pageDone: isPageDone(rec),
     visibility: "public",
     publishedAt: now,
   };
@@ -2078,14 +2102,17 @@ function DayShare({date, rec, updateRec, uid, profile, onNeedHandle, todayLabel}
   const eps = dayEpisodes(rec);
   const withPhoto = eps.filter(t => t.photo || t.photoId);
   const remaining = ((rec && rec.tasks) || []).filter(t => !t.done).length;
-  const canPublish = isPageDone(rec) && eps.length > 0;
+  // 다 못 채운 날도 내보낼 수 있다 — 그것도 내 이야기니까.
+  // 다만 진열대(메인·책장)에는 오르지 않고 스토리북 안에서만 읽힌다.
+  const full = isPageDone(rec);
+  const canPublish = eps.length > 0;
   const published = !!(rec && rec.published);
   const keyId = (rec && rec.keyScene) || null;
   const handle = (profile && profile.handle) || "";
 
   // 내보낸 뒤에 내용이 바뀌면 진열된 사본도 따라 바뀐다
   const sig = published
-    ? JSON.stringify([eps.map(t => [t.id, t.doneAt, t.photoId, t.memo]), (rec||{}).caption, keyId])
+    ? JSON.stringify([eps.map(t => [t.id, t.doneAt, t.photoId, t.memo]), (rec||{}).caption, keyId, full])
     : "";
   useEffect(() => {
     if (!published || !sig || !handle) return;
@@ -2164,17 +2191,18 @@ function DayShare({date, rec, updateRec, uid, profile, onNeedHandle, todayLabel}
           {busy ? "잠시만요…"
             : published ? (
               <span>
-                진열 중 · <span className="u">pullstory.net/p/{handle}/{date}</span><br/>
-                내리면 진열만 그만두고 기록은 그대로 남습니다
+                {full ? "진열 중" : "스토리북에만 실림"} · <span className="u">pullstory.net/p/{handle}/{date}</span><br/>
+                {full ? "내리면 진열만 그만두고 기록은 그대로 남습니다"
+                      : "다 채우지 못한 날이라 진열대에는 오르지 않아요"}
               </span>
-            ) : canPublish ? (
-              <span>이 하루를 진열대에 올립니다 · 언제든 내릴 수 있어요</span>
             ) : eps.length === 0 ? (
               <span>아직 끝낸 에피소드가 없어요</span>
+            ) : full ? (
+              <span>이 하루를 진열대에 올립니다 · 언제든 내릴 수 있어요</span>
             ) : (
               <span>
-                <b>{remaining}개만 더</b> 끝내면 내보낼 수 있어요<br/>
-                다 채운 하루만 진열대에 올라갑니다
+                <b>{remaining}개</b>를 남긴 하루입니다<br/>
+                진열대에는 오르지 않고 <b>스토리북 안에서만</b> 읽힙니다
               </span>
             )}
         </div>
@@ -4027,6 +4055,15 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
   const publishedDays = Object.keys(records).filter(k => records[k] && records[k].published).length;
   const collBook = collId != null ? bound.find(b => b.id === collId) : null;
 
+  // Vision에 적은 한 줄 · 책장에 내걸리는 세 숫자 (users 문서와 같은 셈)
+  const identity = (data.bookTitle || "").trim();
+  const st = {
+    day: Math.max(1, daysBetween(data.startDate || todayStr(), todayStr())),
+    page: data.pageCount || 0,
+    cash: Object.values(records).reduce((s, r) =>
+      s + ((r.tasks || []).filter(x => x.done && CASH_KEYS.indexOf(x.cat) >= 0).length), 0),
+  };
+
   const penName = (profile && profile.penName) || "작가";
   const handle = (profile && profile.handle) || "";
 
@@ -4225,15 +4262,31 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
       </div>
 
       <div className="dk-prof">
-        <button className="dk-av" onClick={onEditPen} title="프로필 고치기">{penName.slice(0,1)}</button>
-        <button className="dk-nm" onClick={onEditPen}>{penName} <i>✎</i></button>
-        {handle
-          ? <div className="dk-u">pullstory.net/u/{handle}</div>
-          : <button className="dk-u set" onClick={onNeedHandle}>책장 주소 정하기</button>}
-        {handle && <div><a className="dk-visit" href={"/u/"+handle} target="_blank" rel="noopener">책장 보기 <i>↗</i></a></div>}
-        {(profile && profile.intro)
-          ? <div className="dk-bio">{profile.intro}</div>
-          : <button className="dk-bio add" onClick={onEditPen}>＋ 소개 쓰기</button>}
+        <div className="dk-ptop">
+          <div className="dk-me">
+            <button className="dk-av" onClick={onEditPen} title="프로필 고치기">{penName.slice(0,1)}</button>
+            <button className="dk-nm" onClick={onEditPen}>{penName} <i>✎</i></button>
+            {handle
+              ? <div className="dk-u">pullstory.net/u/{handle}</div>
+              : <button className="dk-u set" onClick={onNeedHandle}>책장 주소 정하기</button>}
+            {handle && <a className="dk-visit" href={"/u/"+handle}>책장 보기 <i>→</i></a>}
+          </div>
+          <div className="dk-say">
+            {identity
+              ? <div className="dk-idt">{identity}</div>
+              : <button className="dk-idt add" onClick={()=>goPage("future")}>
+                  Vision에서 identity 한 줄을 정해 보세요
+                </button>}
+            {(profile && profile.intro)
+              ? <div className="dk-bio">{profile.intro}</div>
+              : <button className="dk-bio add" onClick={onEditPen}>＋ 소개 쓰기</button>}
+          </div>
+        </div>
+        <div className="dk-stats">
+          <div className="dk-stat"><b>{st.day}</b><span>DAY</span></div>
+          <div className="dk-stat"><b>{st.page}</b><span>PAGE</span></div>
+          <div className="dk-stat"><b>{st.cash}</b><span>C.A.S.H</span></div>
+        </div>
       </div>
 
       <div className="dk-sect"><span className="k">Books</span><span className="s">쌓아 온 책</span><span className="l"/></div>
@@ -4728,11 +4781,15 @@ function App() {
       });
       chapters.sort((a, b) => (a.k < b.k ? -1 : 1));
 
+      // Vision에 적어 둔 identity 한 줄도 같이 — 지은이를 소개하는 첫 문장이다
+      const identity = (data.bookTitle || "").trim();
+
       const prev = profile.stats || {};
       const same = prev.day === day && prev.page === page && prev.cash === cash &&
+        (profile.identity || "") === identity &&
         JSON.stringify(profile.chapters || []) === JSON.stringify(chapters);
       if (same) return;
-      saveProfile(user.uid, profile, {stats: {day, page, cash}, chapters})
+      saveProfile(user.uid, profile, {stats: {day, page, cash}, chapters, identity})
         .then(setProfile).catch(e => console.warn("stats:", e));
     }, 1500);
     return () => clearTimeout(t);

@@ -137,7 +137,21 @@ import '../../styles/paper.css';
     #story-root .cell.on {
       background: linear-gradient(140deg, #d9b25c, #a8792a); border-color: #8a6420; color: #fff8ea; font-weight: 700;
     }
+    /* 다 채우지는 못했지만 펼쳐 보인 날 */
+    #story-root .cell.part {
+      background: #fdf5e2; border-color: rgba(184,134,47,.5); color: var(--gold); font-weight: 700;
+    }
     #story-root .cell.pad { border: none; background: none; }
+
+    /* 달력이 무엇을 말하는지 */
+    #story-root .key {
+      display: flex; justify-content: center; gap: 13px; margin-top: 9px;
+      font-size: 9px; color: var(--faint);
+    }
+    #story-root .key i { font-style: normal; display: inline-flex; align-items: center; gap: 4px; }
+    #story-root .key u { width: 9px; height: 9px; border-radius: 2px; text-decoration: none; display: inline-block; }
+    #story-root .key u.on { background: linear-gradient(140deg, #d9b25c, #a8792a); }
+    #story-root .key u.part { background: #fdf5e2; border: 1px solid rgba(184,134,47,.5); }
 
     /* 그달에 펼친 장 */
     #story-root .days { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
@@ -202,17 +216,24 @@ import '../../styles/paper.css';
         var first = new Date(year, month - 1, 1).getDay();
         var last = new Date(year, month, 0).getDate();
         var shared = {};
-        byMonth(year, month).forEach(function (p) { shared[parseInt(String(p.date).slice(8, 10), 10)] = p.date; });
+        byMonth(year, month).forEach(function (p) {
+          shared[parseInt(String(p.date).slice(8, 10), 10)] = { date: p.date, done: p.pageDone !== false };
+        });
 
         var cells = '';
         for (var i = 0; i < first; i++) cells += '<div class="cell pad"></div>';
         for (var d = 1; d <= last; d++) {
-          cells += shared[d]
-            ? '<a class="cell on" href="/p/' + esc(handle) + '/' + esc(shared[d]) + '">' + d + '</a>'
+          var day = shared[d];
+          cells += day
+            ? '<a class="cell ' + (day.done ? 'on' : 'part') + '" href="/p/' + esc(handle) + '/' + esc(day.date) + '">' + d + '</a>'
             : '<div class="cell">' + d + '</div>';
         }
+        var anyPart = Object.keys(shared).some(function (k) { return !shared[k].done; });
         return '<div class="calh">' + DOW.map(function (x) { return '<div>' + x + '</div>'; }).join('') + '</div>' +
-          '<div class="cal">' + cells + '</div>';
+          '<div class="cal">' + cells + '</div>' +
+          (anyPart
+            ? '<div class="key"><i><u class="on"></u>다 채운 날</i><i><u class="part"></u>못다 채운 날</i></div>'
+            : '');
       }
 
       function dayCard(c) {
@@ -222,7 +243,8 @@ import '../../styles/paper.css';
           '<span class="bd">' +
             '<span class="dt">' + parseInt(d.slice(5, 7), 10) + '. ' + parseInt(d.slice(8, 10), 10) + '</span>' +
             (c.caption ? '<span class="cp">' + esc(c.caption) + '</span>' : '') +
-            '<span class="ep">에피소드 ' + (c.count || 0) + '</span>' +
+            '<span class="ep">에피소드 ' + (c.count || 0) +
+              (c.pageDone === false ? ' · 못다 채운 날' : '') + '</span>' +
           '</span></a>';
       }
 
