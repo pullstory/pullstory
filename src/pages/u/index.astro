@@ -211,10 +211,13 @@ import Base from '../../layouts/Base.astro';
         el.title = marked ? '내 서재에 있음' : '내 서재에 들이기';
       }
 
+      // 없는 문서를 직접 집어 오는 대신 조회로 확인한다 —
+      // 규칙이 resource.data.uid 하나만 보면 되고, 없으면 빈 결과가 돌아온다
       function loadMark() {
         if (!meUid || (ownerUid && meUid === ownerUid)) { marked = false; paintMark(); return; }
-        db.collection('shelfmarks').doc(meUid + '_' + handle).get()
-          .then(function (s) { marked = s.exists; paintMark(); })
+        db.collection('shelfmarks')
+          .where('uid', '==', meUid).where('handle', '==', handle).limit(1).get()
+          .then(function (s) { marked = !s.empty; paintMark(); })
           .catch(function (e) { console.warn('shelfmark:', e); paintMark(); });
       }
 
