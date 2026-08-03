@@ -12,7 +12,7 @@ import Base from '../layouts/Base.astro';
   <!-- 로그인 안 한 사람 -->
   <template id="t-guest">
     <div class="scene">
-      <img class="room" src="/img/story-room.png" alt="책 속에 차려진 방 — 책상과 책장과 비전보드" />
+      <img class="room" src="/img/story-room.webp" alt="책 속에 차려진 방 — 책상과 책장과 비전보드" />
       <div class="om">Story Room</div>
       <h1>머릿속에 방 하나</h1>
       <div class="rule"></div>
@@ -28,7 +28,7 @@ import Base from '../layouts/Base.astro';
   <!-- 로그인했지만 아직 책장 주소가 없는 사람 -->
   <template id="t-nohandle">
     <div class="scene">
-      <img class="room" src="/img/story-room.png" alt="책 속에 차려진 방" />
+      <img class="room" src="/img/story-room.webp" alt="책 속에 차려진 방" />
       <div class="om">Story Room</div>
       <h1>아직 책장 주소가 없어요</h1>
       <div class="rule"></div>
@@ -56,11 +56,20 @@ import Base from '../layouts/Base.astro';
     #door .loading { text-align: center; color: var(--faint); font-style: italic; padding: 40px 12px; }
 
     #door .scene { text-align: center; max-width: 30em; margin: 0 auto; }
-    /* 그림의 흰 바탕이 종이에 녹아들도록 — 투명 배경 파일이 아니어도 된다 */
+    /* 그림이 제 배경 사각형을 달고 오므로, 곱하기로 종이에 얹고 가장자리를 풀어 준다.
+       투명 배경 파일이 아니어도 테두리가 안 보인다. */
     #door .room {
-      display: block; width: 100%; max-width: 300px; height: auto;
-      margin: 0 auto 4px; border-radius: 0;
+      display: block; width: 100%; max-width: 320px; height: auto;
+      margin: 0 auto 2px; border-radius: 0;
       mix-blend-mode: multiply;
+      -webkit-mask-image:
+        linear-gradient(to bottom, transparent 0, #000 7%, #000 93%, transparent 100%),
+        linear-gradient(to right, transparent 0, #000 7%, #000 93%, transparent 100%);
+      -webkit-mask-composite: source-in;
+      mask-image:
+        linear-gradient(to bottom, transparent 0, #000 7%, #000 93%, transparent 100%),
+        linear-gradient(to right, transparent 0, #000 7%, #000 93%, transparent 100%);
+      mask-composite: intersect;
     }
     #door .om {
       font-family: 'Cormorant Garamond', Georgia, serif;
