@@ -4130,6 +4130,7 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
 
   // 꽂아둔 책장 — 표시는 shelfmarks에 있고, 지은이 정보는 그때그때 users에서 가져온다
   const [shelves, setShelves] = useState(null);   // null = 아직 안 읽음
+  const [shelvesErr, setShelvesErr] = useState("");
   useEffect(() => {
     const uid = user && user.uid;
     if (tab !== "lib" || !FIREBASE_READY || !uid || uid === "local-user") return;
@@ -4150,8 +4151,12 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
                   avatarId: (p && p.avatarId) || null};
         }));
         rows.sort((a, b) => b.at - a.at);
-        if (alive) setShelves(rows);
-      } catch (e) { console.warn("shelfmarks:", e); if (alive) setShelves([]); }
+        if (alive) { setShelves(rows); setShelvesErr(""); }
+      } catch (e) {
+        // 못 읽은 것과 아직 없는 것은 다르다 — 빈 목록으로 뭉개지 않는다
+        console.warn("shelfmarks:", e);
+        if (alive) { setShelves([]); setShelvesErr(e && e.message ? e.message : "알 수 없는 이유"); }
+      }
     })();
     return () => { alive = false; };
   }, [user, tab]);
@@ -4434,6 +4439,11 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
           <div className="dk-sect"><span className="k">Shelves</span><span className="s">꽂아둔 책장</span><span className="l"/></div>
           {shelves === null ? (
             <div className="dk-empty">서재를 펴는 중…</div>
+          ) : shelvesErr ? (
+            <div className="dk-empty">
+              서재를 불러오지 못했어요.<br/>
+              <span style={{fontSize:"9.5px",opacity:.75}}>{shelvesErr}</span>
+            </div>
           ) : shelves.length === 0 ? (
             <div className="dk-empty">
               아직 꽂아둔 책장이 없어요.<br/>
