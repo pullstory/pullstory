@@ -18,9 +18,10 @@ try {
   pages = {};
 }
 
-/** 발행된 글 목록(최신순) — 본문 제외한 메타 */
+/** 발행된 글 목록(최신순) — 본문 제외한 메타. slot/deck은 지면 자리 */
 export async function getPublishedPosts() {
-  return cache.map(({ id, title, date, slug, thumb }) => ({ id, title, date, slug, thumb }));
+  return cache.map(({ id, title, date, slug, thumb, slot, deck }) =>
+    ({ id, title, date, slug, thumb, slot: slot || null, deck: deck || '' }));
 }
 
 /** slug에 해당하는 글의 메타 + 마크다운 본문 */

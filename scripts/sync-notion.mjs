@@ -47,6 +47,26 @@ const n2m = new NotionToMarkdown({ notionClient: notion });
 function findPropByType(props, type) {
   return Object.values(props || {}).find((p) => p?.type === type) || null;
 }
+// 지면 속성 — 노션 DB에 없어도 되고, 있으면 신문 자리를 정한다.
+// '자리' 또는 'Slot' 이름의 선택(select) 속성, '부제' 또는 'Deck' 이름의 텍스트 속성.
+function propByName(props, names) {
+  const keys = Object.keys(props || {});
+  const hit = keys.find((k) => names.some((n) => k.trim().toLowerCase() === n));
+  return hit ? props[hit] : null;
+}
+function slotOf(props) {
+  const p = propByName(props, ['자리', 'slot']);
+  const v = (p?.select?.name || '').trim();
+  if (/톱|top|lead/i.test(v)) return 'top';
+  if (/주요|major|feature/i.test(v)) return 'major';
+  if (/단신|brief|short/i.test(v)) return 'brief';
+  return null;                       // 안 정했으면 순서로 정한다
+}
+function deckOf(props) {
+  const p = propByName(props, ['부제', 'deck', 'subtitle']);
+  return (p?.rich_text || []).map((x) => x.plain_text).join('').trim() || '';
+}
+
 function titleText(props) {
   const t = findPropByType(props, 'title');
   return (t?.title || []).map((x) => x.plain_text).join('').trim() || 'Untitled';
@@ -165,7 +185,8 @@ const metas = pages
     const base = slugify(title);
     const slug = base || page.id.replace(/-/g, '').slice(0, 12);
     const coverUrl = page.cover?.external?.url || page.cover?.file?.url || null;
-    return { id: page.id, title, date, published, slug, coverUrl };
+    return { id: page.id, title, date, published, slug, coverUrl,
+             slot: slotOf(props), deck: deckOf(props) };
   })
   .filter((p) => p.published)
   .sort((a, b) => (b.date || '').localeCompare(a.date || ''));

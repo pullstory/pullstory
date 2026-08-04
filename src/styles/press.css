@@ -1,0 +1,64 @@
+/* 목록 지면 — 메인(신문)에서 '전부 보기'로 들어오는 자리.
+   메인과 같은 종이·잉크·금박을 쓰되, 밀지 않고 전부 펼쳐 놓는다. */
+
+.press {
+  --ink: #2f2109; --body: #3a2818; --muted: #8a6d3c; --faint: #a89066;
+  --gold: #9c7420; --line: rgba(120, 90, 40, 0.32);
+  font-family: 'Noto Serif KR', Georgia, serif;
+  color: var(--body);
+  background: linear-gradient(#f7efdc, #f1e6cf);
+  border-radius: 10px;
+  padding: 24px 20px 28px;
+  margin: 1rem 0 2rem;
+}
+
+.press .bar {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11px;
+  margin-bottom: 14px;
+}
+.press .bar a { color: var(--gold); text-decoration: none; font-weight: 700; }
+.press .bar a:hover { text-decoration: underline; }
+.press .bar span { color: var(--faint); font-style: italic; }
+
+.press .head { text-align: center; padding-bottom: 16px; border-bottom: 2px solid var(--ink); }
+.press .head .om {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 10px; letter-spacing: .34em; color: #b09355;
+  text-transform: uppercase; font-weight: 700;
+}
+.press .head h1 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 32px; font-weight: 700; color: var(--ink);
+  margin: 6px 0 0; line-height: 1.05; letter-spacing: .04em;
+}
+.press .head p { font-size: 11.5px; color: var(--muted); margin: 8px 0 0; line-height: 1.75; }
+
+/* 월 머리 */
+.press .mon {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 11px; letter-spacing: .2em; color: var(--gold);
+  font-weight: 700; margin: 22px 0 11px;
+  padding-bottom: 6px; border-bottom: 1px solid var(--line);
+}
+
+.press .empty {
+  text-align: center; color: var(--faint); font-style: italic;
+  padding: 40px 12px; line-height: 1.9;
+}
+
+.press .foot {
+  text-align: center; font-size: 10px; color: var(--faint); font-style: italic;
+  margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--line); line-height: 1.9;
+}
+.press .foot a { color: var(--gold); text-decoration: none; font-weight: 700; font-style: normal; }
+.press .foot a:hover { text-decoration: underline; }
+
+/* 지은이 줄 — 목록에서 사람으로 건너가는 길 */
+.press .who {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 9.5px; color: var(--faint); letter-spacing: .08em;
+}
+.press .who b { color: var(--gold); font-weight: 700; font-family: 'Noto Serif KR', serif; }

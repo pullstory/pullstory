@@ -74,10 +74,8 @@ import '../../styles/paper.css';
       var qs = new URLSearchParams(location.search);
       var handle = decodeURIComponent(qs.get('u') || parts[1] || '').toLowerCase();
 
-      if (!handle) {
-        root.innerHTML = '<p class="empty">누구의 책장인지 알 수 없습니다.<br/>pullstory.net/books/이름 형태로 들어와 주세요.</p>';
-        return;
-      }
+      // 핸들이 없으면 '모두의 책' 지면 — 메인 신문의 Books 구역에서 '전부 보기'로 오는 자리
+      var all = !handle;
 
       var CAT = {
         C: { sp: '#c98f22', g: 'linear-gradient(140deg,#e3ad35,#c8901f)' },
@@ -85,7 +83,7 @@ import '../../styles/paper.css';
         S: { sp: '#315b86', g: 'linear-gradient(140deg,#487eb2,#325f8c)' },
         H: { sp: '#3a6e3e', g: 'linear-gradient(140deg,#4f9354,#37703c)' }
       };
-      var shelf = '/u/' + encodeURIComponent(handle);
+      var shelf = all ? '/' : '/u/' + encodeURIComponent(handle);
 
       function typeIcon(t) { return t === 'habit' ? '🔁 습관' : t === 'collection' ? '✍️ 묶음' : '🏆 성취'; }
 
@@ -93,13 +91,13 @@ import '../../styles/paper.css';
         var cat = CAT[c.cat] || CAT.C;
         var st = c.type === 'habit' ? ((c.filled || 0) + '/' + (c.total || 0))
                                     : ('글 ' + (c.postCount || 0) + '편');
-        return '<a class="bk" href="/book/' + esc(handle) + '/' + esc(c.bookId) + '">' +
+        return '<a class="bk" href="/book/' + esc(c.handle || handle) + '/' + esc(c.bookId) + '">' +
           '<span class="sp" style="background:' + cat.sp + '"></span>' +
           '<span class="in" style="background:' + cat.g + '">' +
             '<span class="fr"></span>' +
             '<span class="ty">' + typeIcon(c.type) + '</span>' +
             '<span class="tt">' + esc(c.title || '(제목 없음)') + '</span>' +
-            '<span class="st">' + esc(st) + '</span>' +
+            '<span class="st">' + (all ? esc(c.penName || c.handle) : esc(st)) + '</span>' +
           '</span></a>';
       }
 
@@ -118,12 +116,15 @@ import '../../styles/paper.css';
         var cards = (pageCount ? [storyCard(pageCount)] : []).concat(books.map(bookCard));
 
         var html =
-          '<div class="bar"><a href="' + shelf + '">‹ ' + esc(pen) + '의 책장</a><span>펴낸 책</span></div>' +
+          '<div class="bar"><a href="' + shelf + '">' +
+            (all ? '‹ PULLSTORY' : '‹ ' + esc(pen) + '의 책장') + '</a><span>펴낸 책</span></div>' +
           '<div class="head">' +
-            '<div class="om">' + esc(pen) + '</div>' +
-            '<h1>Books</h1>' +
-            '<p>' + esc(pen) + '이 펴낸 책 ' + books.length + '권' +
-              (pageCount ? ' · 스토리북 1권' : '') + '</p>' +
+            '<div class="om">' + (all ? 'Books' : esc(pen)) + '</div>' +
+            '<h1>' + (all ? '펴낸 책' : 'Books') + '</h1>' +
+            '<p>' + (all
+              ? '사람들이 세상에 내놓은 책 ' + books.length + '권'
+              : esc(pen) + '이 펴낸 책 ' + books.length + '권' + (pageCount ? ' · 스토리북 1권' : '')) +
+            '</p>' +
           '</div>';
 
         if (!cards.length) {
@@ -136,10 +137,25 @@ import '../../styles/paper.css';
           html += '</div>';
         }
 
-        html += '<div class="foot">' + esc(pen) + '이 펴낸 책들입니다<br/>' +
-          '<a href="' + shelf + '">책장으로 돌아가기 →</a></div>';
+        html += '<div class="foot">' +
+          (all ? '표지를 누르면 그 책으로, 지은이 이름을 따라가면 그의 책장으로 갑니다'
+               : esc(pen) + '이 펴낸 책들입니다') + '<br/>' +
+          '<a href="' + shelf + '">' + (all ? '신문으로 돌아가기 →' : '책장으로 돌아가기 →') + '</a></div>';
 
         root.innerHTML = html;
+      }
+
+      if (all) {
+        db.collection('feed').orderBy('publishedAt', 'desc').limit(300).get()
+          .then(function (fs) {
+            var books = [];
+            fs.forEach(function (d) { var x = d.data(); if (x.kind === 'book') books.push(x); });
+            render({penName: ''}, books, 0);
+          })
+          .catch(function (e) {
+            root.innerHTML = '<p class="empty">지면을 열지 못했습니다.<br/>' + esc(e.message) + '</p>';
+          });
+        return;
       }
 
       db.collection('users').where('handle', '==', handle).limit(1).get()

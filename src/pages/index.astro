@@ -1,12 +1,337 @@
 ---
-// 메인 = 서점: 들어오면 바로 보이는 스토리 피드
+// 메인 = 신문 1면.
+// 위는 편집된 자리(노션 → 빌드 때 박힘), 아래는 흐르는 자리(Firestore → 열릴 때 채워짐).
+// 시간이 두 갈래로 흐르는 게 이 페이지의 성질이다.
 import Base from '../layouts/Base.astro';
-import PostList from '../components/PostList.astro';
 import { getPublishedPosts } from '../lib/notion.js';
 
 const posts = await getPublishedPosts();
+
+// 자리를 정해 둔 글이 먼저. 안 정한 글은 최신순으로 톱 → 주요 → 단신에 흘려 넣는다.
+const picked = { top: [], major: [], brief: [] };
+const rest = [];
+for (const p of posts) {
+  if (p.slot && picked[p.slot]) picked[p.slot].push(p);
+  else rest.push(p);
+}
+while (picked.top.length < 1 && rest.length) picked.top.push(rest.shift());
+while (picked.major.length < 2 && rest.length) picked.major.push(rest.shift());
+picked.brief.push(...rest);
+
+const top = picked.top[0] || null;
+const major = picked.major;
+const brief = picked.brief;
+const hasDesk = posts.length > 0;
+
+const QUOTE = '쓰지 않은 하루는 지나가고, 쓴 하루는 남는다';
 ---
-<Base title="PULLSTORY">
-  <p class="lede">사람들의 성장 스토리를 만나는 공간.</p>
-  <PostList posts={posts} />
+
+<Base title="PULLSTORY" description="매일 한 장씩 써 내려간 이야기가 모이는 곳.">
+  <div id="paper">
+    <header class="mast">
+      <div class="dl"><span>매일 한 장</span><span id="mast-count">&nbsp;</span></div>
+      <div class="rule"></div>
+      <h1>PULLSTORY</h1>
+      <div class="rule"></div>
+      <div class="dl"><span id="today">&nbsp;</span><span>pullstory.net</span></div>
+      <p class="quote">&ldquo;{QUOTE}&rdquo;</p>
+    </header>
+
+    {hasDesk && (
+      <section class="desk">
+        <div class="lead">
+          {top && (
+            <article>
+              <div class="kick">편집부</div>
+              <h2><a href={`/blog/${top.slug}/`}>{top.title}</a></h2>
+              {top.deck && <p class="deck">{top.deck}</p>}
+              {top.thumb && <a href={`/blog/${top.slug}/`}><img class="fig" src={top.thumb} alt="" /></a>}
+            </article>
+          )}
+          {major.length > 0 && (
+            <div class="major">
+              {major.map((p) => (
+                <article>
+                  <h3><a href={`/blog/${p.slug}/`}>{p.title}</a></h3>
+                  {p.deck && <p class="deck sm">{p.deck}</p>}
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {brief.length > 0 && (
+          <aside class="briefs">
+            <div class="h">단신</div>
+            {brief.map((p) => (
+              <a class="brief" href={`/blog/${p.slug}/`}>
+                <b>{p.title}</b><span>편집부</span>
+              </a>
+            ))}
+          </aside>
+        )}
+      </section>
+    )}
+
+    <div id="stream"></div>
+
+    <footer class="foot">
+      <span>PULLSTORY</span> · 자신만의 스토리를 만드는 사람들의 공간
+    </footer>
+  </div>
+
+  <style is:global>
+    /* 신문 1면 — 책장과 같은 종이·잉크·금박 */
+    #paper {
+      --ink: #2f2109; --body: #3a2818; --muted: #8a6d3c; --faint: #a89066;
+      --gold: #9c7420; --line: rgba(120,90,40,.32); --red: #b23f39;
+      font-family: 'Noto Serif KR', Georgia, serif;
+      color: var(--body);
+      background: linear-gradient(#f7efdc, #f1e6cf);
+      border-radius: 10px;
+      padding: 24px 20px 26px;
+      margin: 1rem 0 2rem;
+    }
+
+    #paper .rule { border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); height: 4px; margin: 8px 0; }
+    #paper .dl {
+      display: flex; justify-content: space-between; gap: 10px;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 10px; letter-spacing: .16em; color: var(--muted); text-transform: uppercase;
+    }
+    #paper .mast h1 {
+      text-align: center; font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: clamp(34px, 9vw, 58px); font-weight: 700; letter-spacing: .16em;
+      line-height: 1; margin: 2px 0; color: var(--ink);
+    }
+    #paper .quote {
+      text-align: center; font-size: 12.5px; color: #6b552f; font-style: italic;
+      padding: 11px 0 0; margin: 0;
+    }
+
+    #paper .sec { display: flex; align-items: center; gap: 9px; margin: 24px 0 12px; }
+    #paper .sec b {
+      font-family: 'Cormorant Garamond', Georgia, serif; font-size: 11px; letter-spacing: .28em;
+      color: var(--gold); text-transform: uppercase; white-space: nowrap;
+    }
+    #paper .sec i { font-style: normal; font-size: 10px; color: var(--faint); white-space: nowrap; }
+    #paper .sec u { flex: 1; height: 1px; background: var(--line); text-decoration: none; }
+    #paper .sec a.more {
+      font-size: 10px; color: var(--gold); text-decoration: none; font-weight: 700; white-space: nowrap;
+    }
+    #paper .sec a.more:hover { text-decoration: underline; }
+
+    /* 편집부 */
+    #paper .desk { display: grid; grid-template-columns: 1fr 190px; gap: 22px; margin-top: 20px;
+      padding-top: 18px; border-top: 1px solid var(--line); }
+    #paper .kick {
+      font-family: 'Cormorant Garamond', Georgia, serif; font-size: 10px; letter-spacing: .2em;
+      color: var(--red); font-weight: 700; text-transform: uppercase;
+    }
+    #paper .lead h2 { font-size: clamp(22px, 5vw, 30px); font-weight: 700; line-height: 1.25; margin: 5px 0 0; }
+    #paper .lead h2 a, #paper .major h3 a { color: var(--ink); text-decoration: none; }
+    #paper .lead h2 a:hover, #paper .major h3 a:hover { color: var(--gold); }
+    #paper .deck { font-size: 12.5px; color: #6b552f; margin: 7px 0 0; line-height: 1.75; font-style: italic; }
+    #paper .deck.sm { font-size: 11.5px; margin-top: 4px; }
+    #paper img.fig {
+      display: block; width: 100%; height: auto; margin: 12px 0 0;
+      border: 1px solid var(--line); border-radius: 0;
+    }
+    #paper .major { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px;
+      padding-top: 14px; border-top: 1px solid var(--line); }
+    #paper .major h3 { font-size: 15px; font-weight: 700; line-height: 1.45; margin: 0; }
+
+    #paper .briefs { border-left: 1px solid var(--line); padding-left: 15px; }
+    #paper .briefs .h {
+      font-family: 'Cormorant Garamond', Georgia, serif; font-size: 10px; letter-spacing: .2em;
+      color: var(--gold); font-weight: 700; padding-bottom: 7px; border-bottom: 1px solid var(--line);
+    }
+    #paper a.brief { display: block; padding: 9px 0; border-bottom: 1px dotted var(--line); text-decoration: none; }
+    #paper a.brief:last-child { border-bottom: none; }
+    #paper a.brief b { display: block; font-size: 12px; font-weight: 700; line-height: 1.5; color: var(--ink); }
+    #paper a.brief span { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 9.5px; color: var(--faint); }
+    #paper a.brief:hover b { color: var(--gold); }
+
+    /* 좌우로 미는 줄 */
+    #paper .rail {
+      display: flex; gap: 11px; overflow-x: auto; scroll-behavior: smooth;
+      scrollbar-width: none; -ms-overflow-style: none;
+    }
+    #paper .rail::-webkit-scrollbar { display: none; }
+    #paper .rail > * { flex: 0 0 auto; }
+
+    /* 하루 */
+    #paper .day {
+      width: 168px; border: 1px solid rgba(120,90,40,.24); background: #fffdf6;
+      text-decoration: none; display: block; box-shadow: 0 2px 7px rgba(60,40,15,.12);
+    }
+    #paper .day .im { display: block; height: 88px; background: rgba(120,90,40,.1);
+      background-size: cover; background-position: center; }
+    #paper .day .bd { display: block; padding: 8px 9px 10px; }
+    #paper .day .by { display: block; font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 9.5px; color: var(--faint); letter-spacing: .08em; }
+    #paper .day .cp { display: -webkit-box; font-size: 11.5px; color: var(--body); margin-top: 3px;
+      line-height: 1.55; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+    /* 책 */
+    #paper .bk {
+      position: relative; width: 78px; aspect-ratio: 3/4.2; border-radius: 2px 5px 5px 2px;
+      overflow: hidden; display: flex; text-decoration: none; box-shadow: 0 5px 11px rgba(60,40,15,.32);
+    }
+    #paper .bk .sp { width: 5px; flex-shrink: 0; }
+    #paper .bk .in { flex: 1; position: relative; padding: 7px 6px; display: flex; flex-direction: column; min-width: 0; }
+    #paper .bk .fr { position: absolute; inset: 4px; border: 1px solid rgba(255,248,220,.34); border-radius: 2px; }
+    #paper .bk .tt {
+      position: relative; margin-top: auto; font-size: 9px; font-weight: 700; color: #fff8e5;
+      line-height: 1.35; text-shadow: 0 1px 3px rgba(0,0,0,.45);
+      overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    }
+    #paper .bk .by { position: relative; display: block; font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 8px; font-style: italic; color: rgba(255,248,220,.8); margin-top: 3px; }
+
+    /* 글 */
+    #paper .notes { column-count: 2; column-gap: 22px; }
+    #paper a.nt {
+      display: block; padding: 8px 0; border-bottom: 1px dotted var(--line);
+      text-decoration: none; break-inside: avoid;
+    }
+    #paper a.nt b { display: block; font-size: 12.5px; font-weight: 700; color: var(--ink); line-height: 1.5; }
+    #paper a.nt span { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 9.5px; color: var(--faint); }
+    #paper a.nt:hover b { color: var(--gold); }
+
+    #paper .foot {
+      text-align: center; font-size: 10px; color: var(--faint); font-style: italic;
+      margin-top: 26px; padding-top: 14px; border-top: 2px solid var(--ink); line-height: 1.9;
+    }
+    #paper .foot span { font-family: 'Cormorant Garamond', Georgia, serif; letter-spacing: .2em; font-style: normal; }
+
+    #paper .quiet { font-size: 11px; color: var(--faint); font-style: italic; padding: 14px 2px; }
+
+    @media (max-width: 620px) {
+      #paper .desk { grid-template-columns: 1fr; gap: 16px; }
+      #paper .briefs { border-left: none; padding-left: 0; border-top: 1px solid var(--line); padding-top: 12px; }
+      #paper .major { grid-template-columns: 1fr; }
+      #paper .notes { column-count: 1; }
+    }
+  </style>
+
+  <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <script is:inline>
+    (function () {
+      var db = firebase.firestore();
+      var stream = document.getElementById('stream');
+
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
+      }
+
+      // 제호의 날짜 — 매일 바뀌는 지면이라는 신호
+      var DOW = ['일', '월', '화', '수', '목', '금', '토'];
+      var t = new Date();
+      document.getElementById('today').textContent =
+        t.getFullYear() + '년 ' + (t.getMonth() + 1) + '월 ' + t.getDate() + '일 ' + DOW[t.getDay()] + '요일';
+
+      function shortDate(d) {
+        var p = String(d || '').split('-');
+        if (p.length < 3) return d || '';
+        return parseInt(p[1], 10) + '. ' + parseInt(p[2], 10);
+      }
+      function tsDate(ms) {
+        var x = new Date(ms || Date.now());
+        return (x.getMonth() + 1) + '. ' + x.getDate();
+      }
+
+      var CAT = {
+        C: { sp: '#c98f22', g: 'linear-gradient(140deg,#e3ad35,#c8901f)' },
+        A: { sp: '#9c332e', g: 'linear-gradient(140deg,#c04a44,#a3352f)' },
+        S: { sp: '#315b86', g: 'linear-gradient(140deg,#487eb2,#325f8c)' },
+        H: { sp: '#3a6e3e', g: 'linear-gradient(140deg,#4f9354,#37703c)' }
+      };
+
+      function sect(name, sub, more) {
+        return '<div class="sec"><b>' + name + '</b><i>' + sub + '</i><u></u>' +
+          (more ? '<a class="more" href="' + more + '">전부 보기 →</a>' : '') + '</div>';
+      }
+
+      function dayCard(c) {
+        return '<a class="day" href="/p/' + esc(c.handle) + '/' + esc(c.date) + '" data-photo="' + esc(c.keyPhotoId || '') + '">' +
+          '<span class="im"></span><span class="bd">' +
+            '<span class="by">' + esc(shortDate(c.date)) + ' · ' + esc(c.penName || c.handle) + '</span>' +
+            '<span class="cp">' + esc(c.caption || '이 하루의 기록') + '</span>' +
+          '</span></a>';
+      }
+
+      function bookCard(c) {
+        var cat = CAT[c.cat] || CAT.C;
+        return '<a class="bk" href="/book/' + esc(c.handle) + '/' + esc(c.bookId) + '">' +
+          '<span class="sp" style="background:' + cat.sp + '"></span>' +
+          '<span class="in" style="background:' + cat.g + '"><span class="fr"></span>' +
+            '<span class="tt">' + esc(c.title || '(제목 없음)') + '</span>' +
+            '<span class="by">' + esc(c.penName || c.handle) + '</span>' +
+          '</span></a>';
+      }
+
+      function noteCard(c) {
+        return '<a class="nt" href="/n/' + esc(c.handle) + '/' + esc(c.noteId) + '">' +
+          '<b>' + esc(c.title || '(제목 없음)') + '</b>' +
+          '<span>' + esc(c.penName || c.handle) + ' · ' + tsDate(c.publishedAt) + '</span></a>';
+      }
+
+      // 사진은 카드마다 한 장씩 따로
+      function loadPhotos() {
+        Array.prototype.forEach.call(stream.querySelectorAll('.day[data-photo]'), function (el) {
+          var id = el.getAttribute('data-photo');
+          if (!id) return;
+          db.collection('photos').doc(id).get().then(function (s) {
+            if (!s.exists) return;
+            var d = s.data().data;
+            if (d) el.querySelector('.im').style.backgroundImage = 'url("' + d + '")';
+          }).catch(function () {});
+        });
+      }
+
+      // 한 번만 읽고 종류별로 나눈다 — 복합 색인이 필요 없다
+      db.collection('feed').orderBy('publishedAt', 'desc').limit(60).get()
+        .then(function (snap) {
+          var all = [];
+          snap.forEach(function (d) { all.push(d.data()); });
+
+          var pages = all.filter(function (c) { return c.kind === 'page' && c.pageDone !== false; });
+          var books = all.filter(function (c) { return c.kind === 'book'; });
+          var notes = all.filter(function (c) { return c.kind === 'note'; });
+
+          var who = {};
+          all.forEach(function (c) { if (c.handle) who[c.handle] = 1; });
+          var n = Object.keys(who).length;
+          document.getElementById('mast-count').textContent =
+            n ? ('지은이 ' + n + ' · 펴낸 책 ' + books.length) : '';
+
+          var html = '';
+          if (pages.length) {
+            html += sect('Pages', '오늘 펼쳐진 장', '/pages/') +
+              '<div class="rail">' + pages.slice(0, 12).map(dayCard).join('') + '</div>';
+          }
+          if (books.length) {
+            html += sect('Books', '새로 펴낸 책', '/books/') +
+              '<div class="rail">' + books.slice(0, 12).map(bookCard).join('') + '</div>';
+          }
+          if (notes.length) {
+            html += sect('Notes', '쓴 글', '/notes/') +
+              '<div class="notes">' + notes.slice(0, 10).map(noteCard).join('') + '</div>';
+          }
+          if (!html) {
+            html = '<p class="quiet">아직 진열대가 조용합니다. 첫 장이 곧 놓입니다.</p>';
+          }
+
+          stream.innerHTML = html;
+          loadPhotos();
+        })
+        .catch(function (e) {
+          console.warn('feed:', e);
+          stream.innerHTML = '<p class="quiet">진열대를 열지 못했습니다.</p>';
+        });
+    })();
+  </script>
 </Base>

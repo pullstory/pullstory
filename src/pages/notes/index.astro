@@ -1,0 +1,90 @@
+---
+// 쓴 글 전부 — /notes/
+// 메인 신문의 Notes 구역에서 '전부 보기'로 들어오는 자리.
+import Base from '../../layouts/Base.astro';
+import '../../styles/press.css';
+---
+
+<Base title="쓴 글 — PULLSTORY" description="사람들이 내보낸 글이 모인 자리.">
+  <div id="list" class="press">
+    <div class="bar"><a href="/">‹ PULLSTORY</a><span>쓴 글</span></div>
+    <div class="head">
+      <div class="om">Notes</div>
+      <h1>쓴 글</h1>
+      <p>낱장으로, 또는 책 속에서 쓰인 글들.</p>
+    </div>
+    <p class="empty">지면을 펴는 중…</p>
+  </div>
+
+  <style is:global>
+    #list a.nt {
+      display: flex; align-items: baseline; gap: 11px;
+      padding: 12px 2px; border-bottom: 1px dotted var(--line); text-decoration: none;
+    }
+    #list a.nt .m { flex: 1; min-width: 0; }
+    #list a.nt .m > b { display: block; font-size: 13.5px; font-weight: 700; color: var(--ink); line-height: 1.5; }
+    #list a.nt .x { display: block; font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.65;
+      overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    #list a.nt .d { flex-shrink: 0; font-family: Georgia, serif; font-size: 10px; color: var(--faint);
+      font-variant-numeric: tabular-nums; }
+    #list a.nt:hover .m > b { color: var(--gold); }
+    #list .src { display: block; margin-top: 5px; }
+  </style>
+
+  <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <script is:inline>
+    (function () {
+      var root = document.getElementById('list');
+      var db = firebase.firestore();
+      var MON = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE',
+                 'JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
+      }
+      function d2(ms) { var x = new Date(ms || Date.now()); return (x.getMonth()+1) + '. ' + x.getDate(); }
+
+      function row(c) {
+        return '<a class="nt" href="/n/' + esc(c.handle) + '/' + esc(c.noteId) + '">' +
+          '<span class="m"><b>' + esc(c.title || '(제목 없음)') + '</b>' +
+            (c.excerpt ? '<span class="x">' + esc(c.excerpt) + '</span>' : '') +
+            '<span class="src who">by <b>' + esc(c.penName || c.handle) + '</b>' +
+              (c.bookTitle ? ' · ' + esc(c.bookTitle) : '') + '</span>' +
+          '</span>' +
+          '<span class="d">' + d2(c.publishedAt) + '</span></a>';
+      }
+
+      db.collection('feed').orderBy('publishedAt', 'desc').limit(300).get()
+        .then(function (snap) {
+          var rows = [];
+          snap.forEach(function (d) { var x = d.data(); if (x.kind === 'note') rows.push(x); });
+
+          var tail = root.querySelector('.empty');
+          if (!rows.length) { tail.textContent = '아직 내보낸 글이 없습니다.'; return; }
+
+          var byMon = {};
+          rows.forEach(function (c) {
+            var t = new Date(c.publishedAt || Date.now());
+            var k = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0');
+            (byMon[k] = byMon[k] || []).push(c);
+          });
+
+          var html = '';
+          Object.keys(byMon).sort().reverse().forEach(function (k) {
+            var y = k.slice(0, 4), m = parseInt(k.slice(5, 7), 10);
+            html += '<div class="mon">' + y + ' · ' + (MON[m - 1] || '') + '</div>' +
+              byMon[k].map(row).join('');
+          });
+          html += '<div class="foot">' + rows.length + '편이 놓여 있습니다<br/>' +
+            '<a href="/">신문으로 돌아가기 →</a></div>';
+
+          tail.outerHTML = html;
+        })
+        .catch(function (e) {
+          root.querySelector('.empty').textContent = '지면을 열지 못했습니다: ' + e.message;
+        });
+    })();
+  </script>
+</Base>
