@@ -1,29 +1,11 @@
 ---
 // 메인 = 신문 1면.
-// 위는 편집된 자리(노션 → 빌드 때 박힘), 아래는 흐르는 자리(Firestore → 열릴 때 채워짐).
-// 시간이 두 갈래로 흐르는 게 이 페이지의 성질이다.
+// 편집된 자리와 흐르는 자리가 한 페이지에 있다.
+// 자리는 feed 문서의 slot 표시가 정한다 — 편집부 글이든 남의 하루든 같은 장치로 1면에 오른다.
 import Base from '../layouts/Base.astro';
-import { getPublishedPosts } from '../lib/notion.js';
-
-const posts = await getPublishedPosts();
-
-// 자리를 정해 둔 글이 먼저. 안 정한 글은 최신순으로 톱 → 주요 → 단신에 흘려 넣는다.
-const picked = { top: [], major: [], brief: [] };
-const rest = [];
-for (const p of posts) {
-  if (p.slot && picked[p.slot]) picked[p.slot].push(p);
-  else rest.push(p);
-}
-while (picked.top.length < 1 && rest.length) picked.top.push(rest.shift());
-while (picked.major.length < 2 && rest.length) picked.major.push(rest.shift());
-picked.brief.push(...rest);
-
-const top = picked.top[0] || null;
-const major = picked.major;
-const brief = picked.brief;
-const hasDesk = posts.length > 0;
 
 const QUOTE = '쓰지 않은 하루는 지나가고, 쓴 하루는 남는다';
+const DESK = 'pullstory';   // 편집부 핸들
 ---
 
 <Base title="PULLSTORY" description="매일 한 장씩 써 내려간 이야기가 모이는 곳.">
@@ -37,41 +19,7 @@ const QUOTE = '쓰지 않은 하루는 지나가고, 쓴 하루는 남는다';
       <p class="quote">&ldquo;{QUOTE}&rdquo;</p>
     </header>
 
-    {hasDesk && (
-      <section class="desk">
-        <div class="lead">
-          {top && (
-            <article>
-              <div class="kick">편집부</div>
-              <h2><a href={`/blog/${top.slug}/`}>{top.title}</a></h2>
-              {top.deck && <p class="deck">{top.deck}</p>}
-              {top.thumb && <a href={`/blog/${top.slug}/`}><img class="fig" src={top.thumb} alt="" /></a>}
-            </article>
-          )}
-          {major.length > 0 && (
-            <div class="major">
-              {major.map((p) => (
-                <article>
-                  <h3><a href={`/blog/${p.slug}/`}>{p.title}</a></h3>
-                  {p.deck && <p class="deck sm">{p.deck}</p>}
-                </article>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {brief.length > 0 && (
-          <aside class="briefs">
-            <div class="h">단신</div>
-            {brief.map((p) => (
-              <a class="brief" href={`/blog/${p.slug}/`}>
-                <b>{p.title}</b><span>편집부</span>
-              </a>
-            ))}
-          </aside>
-        )}
-      </section>
-    )}
+    <div id="desk"></div>
 
     <div id="stream"></div>
 
@@ -133,10 +81,11 @@ const QUOTE = '쓰지 않은 하루는 지나가고, 쓴 하루는 남는다';
     #paper .lead h2 a:hover, #paper .major h3 a:hover { color: var(--gold); }
     #paper .deck { font-size: 12.5px; color: #6b552f; margin: 7px 0 0; line-height: 1.75; font-style: italic; }
     #paper .deck.sm { font-size: 11.5px; margin-top: 4px; }
-    #paper img.fig {
-      display: block; width: 100%; height: auto; margin: 12px 0 0;
-      border: 1px solid var(--line); border-radius: 0;
+    #paper .fig {
+      display: none; width: 100%; height: 200px; margin: 12px 0 0;
+      border: 1px solid var(--line); background-size: cover; background-position: center;
     }
+    #paper .fig.on { display: block; }
     #paper .major { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px;
       padding-top: 14px; border-top: 1px solid var(--line); }
     #paper .major h3 { font-size: 15px; font-weight: 700; line-height: 1.45; margin: 0; }
@@ -220,6 +169,8 @@ const QUOTE = '쓰지 않은 하루는 지나가고, 쓴 하루는 남는다';
     (function () {
       var db = firebase.firestore();
       var stream = document.getElementById('stream');
+      var deskEl = document.getElementById('desk');
+      var DESK = 'pullstory';
 
       function esc(s) {
         return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
@@ -255,6 +206,51 @@ const QUOTE = '쓰지 않은 하루는 지나가고, 쓴 하루는 남는다';
           (more ? '<a class="more" href="' + more + '">전부 보기 →</a>' : '') + '</div>';
       }
 
+      // 1면에 오르는 것 — 종류가 무엇이든 slot이 붙으면 여기로 온다
+      function hrefOf(c) {
+        if (c.kind === 'note') return '/n/' + esc(c.handle) + '/' + esc(c.noteId);
+        if (c.kind === 'book') return '/book/' + esc(c.handle) + '/' + esc(c.bookId);
+        if (c.kind === 'page') return '/p/' + esc(c.handle) + '/' + esc(c.date);
+        return '/u/' + esc(c.handle);
+      }
+      function titleOf(c) {
+        if (c.kind === 'page') return c.caption || (c.date + '의 하루');
+        return c.title || '(제목 없음)';
+      }
+      function byOf(c) {
+        return c.handle === DESK ? '편집부' : (c.penName || c.handle);
+      }
+
+      function leadArt(c) {
+        return '<article>' +
+          '<div class="kick">' + esc(byOf(c)) + '</div>' +
+          '<h2><a href="' + hrefOf(c) + '">' + esc(titleOf(c)) + '</a></h2>' +
+          (c.excerpt ? '<p class="deck">' + esc(c.excerpt) + '</p>' : '') +
+          (c.keyPhotoId ? '<a href="' + hrefOf(c) + '"><span class="fig" data-photo="' + esc(c.keyPhotoId) + '"></span></a>' : '') +
+        '</article>';
+      }
+      function majorArt(c) {
+        return '<article><h3><a href="' + hrefOf(c) + '">' + esc(titleOf(c)) + '</a></h3>' +
+          (c.excerpt ? '<p class="deck sm">' + esc(c.excerpt) + '</p>' : '') + '</article>';
+      }
+      function briefArt(c) {
+        return '<a class="brief" href="' + hrefOf(c) + '">' +
+          '<b>' + esc(titleOf(c)) + '</b><span>' + esc(byOf(c)) + '</span></a>';
+      }
+
+      function renderDesk(top, major, brief) {
+        if (!top && !major.length && !brief.length) { deskEl.innerHTML = ''; return; }
+        var html = '<section class="desk"><div class="lead">';
+        if (top) html += leadArt(top);
+        if (major.length) html += '<div class="major">' + major.map(majorArt).join('') + '</div>';
+        html += '</div>';
+        if (brief.length) {
+          html += '<aside class="briefs"><div class="h">단신</div>' + brief.map(briefArt).join('') + '</aside>';
+        }
+        html += '</section>';
+        deskEl.innerHTML = html;
+      }
+
       function dayCard(c) {
         return '<a class="day" href="/p/' + esc(c.handle) + '/' + esc(c.date) + '" data-photo="' + esc(c.keyPhotoId || '') + '">' +
           '<span class="im"></span><span class="bd">' +
@@ -281,6 +277,15 @@ const QUOTE = '쓰지 않은 하루는 지나가고, 쓴 하루는 남는다';
 
       // 사진은 카드마다 한 장씩 따로
       function loadPhotos() {
+        Array.prototype.forEach.call(document.querySelectorAll('#desk .fig[data-photo]'), function (el) {
+          var id = el.getAttribute('data-photo');
+          if (!id) return;
+          db.collection('photos').doc(id).get().then(function (s) {
+            if (!s.exists) return;
+            var d = s.data().data;
+            if (d) { el.style.backgroundImage = 'url("' + d + '")'; el.classList.add('on'); }
+          }).catch(function () {});
+        });
         Array.prototype.forEach.call(stream.querySelectorAll('.day[data-photo]'), function (el) {
           var id = el.getAttribute('data-photo');
           if (!id) return;
@@ -298,9 +303,17 @@ const QUOTE = '쓰지 않은 하루는 지나가고, 쓴 하루는 남는다';
           var all = [];
           snap.forEach(function (d) { all.push(d.data()); });
 
-          var pages = all.filter(function (c) { return c.kind === 'page' && c.pageDone !== false; });
-          var books = all.filter(function (c) { return c.kind === 'book'; });
-          var notes = all.filter(function (c) { return c.kind === 'note'; });
+          // slot이 붙은 것은 1면 위로 올라가고 아래에서는 빠진다
+          var SLOT = {top: [], major: [], brief: []};
+          var flow = [];
+          all.forEach(function (c) {
+            if (c.slot && SLOT[c.slot]) SLOT[c.slot].push(c); else flow.push(c);
+          });
+          renderDesk(SLOT.top[0] || null, SLOT.major.slice(0, 2), SLOT.brief);
+
+          var pages = flow.filter(function (c) { return c.kind === 'page' && c.pageDone !== false; });
+          var books = flow.filter(function (c) { return c.kind === 'book'; });
+          var notes = flow.filter(function (c) { return c.kind === 'note'; });
 
           var who = {};
           all.forEach(function (c) { if (c.handle) who[c.handle] = 1; });
