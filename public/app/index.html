@@ -4259,7 +4259,9 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
         fbDb.collection("feed").orderBy("publishedAt", "desc").limit(60).get(),
         fbDb.collection("press").get(),
       ]);
-      const items = fs.docs.map(d => ({id: d.id, ...d.data()}));
+      // 편집 대상은 편집부가 쓴 것만 — 남이 올린 것은 카테고리 구역으로 그냥 흐른다
+      const items = fs.docs.map(d => ({id: d.id, ...d.data()}))
+        .filter(c => c.handle === DESK_HANDLE);
       const slots = {};
       ps.forEach(d => { slots[d.id] = (d.data() || {}).slot || ""; });
       setPress({items, slots});
@@ -4623,9 +4625,9 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
                   {line("brief", "단신")}
                 </div>
 
-                <div className="dk-sect"><span className="k">Published</span><span className="s">최근 발행된 것</span><span className="l"/></div>
+                <div className="dk-sect"><span className="k">Published</span><span className="s">편집부가 내보낸 것</span><span className="l"/></div>
                 {press.items.length === 0 ? (
-                  <div className="dk-empty">아직 발행된 것이 없어요.</div>
+                  <div className="dk-empty">아직 내보낸 것이 없어요.<br/>글을 쓰고 공개하면 여기 뜹니다.</div>
                 ) : press.items.map(c => (
                   <div className="pr-row" key={c.id}>
                     <span className="pr-m">
@@ -4641,7 +4643,8 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
                   </div>
                 ))}
                 <div className="dk-foot">자리를 정하면 신문 1면에 오르고 아래 흐르는 줄에서는 빠집니다<br/>
-                  톱은 하나, 주요는 둘까지 실립니다</div>
+                  톱은 하나, 주요는 둘까지 실립니다<br/><br/>
+                  남이 올린 하루·책·글은 편집 없이<br/>각자의 구역으로 실시간으로 흘러갑니다</div>
               </div>
             );
           })()}
