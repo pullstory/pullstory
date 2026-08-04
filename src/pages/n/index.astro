@@ -107,6 +107,7 @@ import '../../styles/paper.css';
   </style>
 
   <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <script is:inline src="/js/reactions.js"></script>
   <script is:inline>
     (function () {
       var root = document.getElementById('note-root');
@@ -195,11 +196,14 @@ import '../../styles/paper.css';
             '<span class="go">→</span></a>';
         }
 
+        html += '<div id="rx"></div>';
         html += '<div class="foot">' + esc(pen) + '이 나눈 글입니다<br/>' +
           '<a href="' + shelf + '">책장에서 다른 글도 보기 →</a></div>';
 
         root.innerHTML = html;
         loadPhotos();
+        PS.reactions(root.querySelector('#rx'),
+          {targetId: handle + '_n' + noteId, ownerUid: (card && card.ownerUid) || null});
       }
 
       function loadPhotos() {

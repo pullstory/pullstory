@@ -641,6 +641,18 @@
   .bd-pvis.on{background:#5a8c4a;color:#fff8ea}
   .bd-pvis.off{background:rgba(120,90,40,.14);color:#8a7556}
 
+  /* 받은 댓글 */
+  .dk-tabs .dot{position:absolute;top:6px;right:14px;width:6px;height:6px;border-radius:50%;background:#b23f39}
+  .cm-row{display:block;padding:10px 2px;border-bottom:1px solid rgba(120,90,40,.13);
+    text-decoration:none;cursor:pointer;background:none;border-left:none;border-right:none;
+    border-top:none;width:100%;text-align:left;font-family:inherit}
+  .cm-row.new{background:rgba(178,63,57,.06)}
+  .cm-who{font-family:'Noto Serif KR',serif;font-size:11px;color:#8a6d3c}
+  .cm-who b{color:#2f2109;font-weight:700}
+  .cm-body{font-size:11.5px;color:#3a2818;line-height:1.7;margin-top:3px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .cm-at{font-family:'Cormorant Garamond',Georgia,serif;font-size:9px;color:#a89066;margin-left:5px}
+
   /* 신문 편집 — 편집부만 본다 */
   .pr-row{display:flex;align-items:center;gap:9px;padding:9px 2px;
     border-bottom:1px solid rgba(120,90,40,.13)}
@@ -4238,7 +4250,7 @@ function NavIcon({k, size=23}) {
 // Desk — 뒷면. 위는 쌓아 온 책, 아래는 아직 어디에도 묶이지 않은 낱장의 글.
 // 책은 각자의 자리에서 내보내고, 여기서는 글만 쓴다.
 // ═════════════════════════════════════════════════════════════════════
-function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNeedHandle, goPage, goBook}) {
+function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNeedHandle, goPage, goBook, onSaveProfile}) {
   const [view, setView] = useState("list");     // list | edit | bind
   const [editId, setEditId] = useState(null);
   const [picked, setPicked] = useState([]);
@@ -4277,6 +4289,47 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
     } catch (e) { console.warn("press set:", e); alert("자리를 바꾸지 못했어요."); }
     setPressBusy("");
   };
+
+  // 댓글이 달린 자리로 되짚어 가는 주소. 옛 댓글엔 주소가 없어 id에서 풀어낸다
+  const linkOfTarget = (t) => {
+    const id = String(t || "");
+    let m = id.match(/^(.+)_(\d{4}-\d{2}-\d{2})$/);
+    if (m) return `/p/${m[1]}/${m[2]}`;
+    m = id.match(/^(.+)_b([^_]+)$/);
+    if (m) return `/book/${m[1]}/${m[2]}`;
+    m = id.match(/^(.+)_n([^_]+)$/);
+    if (m) return `/n/${m[1]}/${m[2]}`;
+    return "/";
+  };
+
+  // 내 글에 달린 댓글 — 서버가 없으니 '마지막으로 본 시각'과 견줘 새 것을 센다
+  const [inbox, setInbox] = useState([]);
+  const seenAt = (profile && profile.commentsSeenAt) || 0;
+  const unread = inbox.filter(c => (c.at || 0) > seenAt).length;
+  useEffect(() => {
+    const uid = user && user.uid;
+    if (!FIREBASE_READY || !uid || uid === "local-user") return;
+    let alive = true;
+    fbDb.collection("comments").where("targetOwnerUid", "==", uid).get()
+      .then(snap => {
+        const rows = snap.docs.map(d => ({id: d.id, ...d.data()}))
+          .filter(c => c.uid !== uid);                    // 내가 내 글에 단 것은 알림이 아니다
+        rows.sort((a, b) => (b.at || 0) - (a.at || 0));
+        if (alive) setInbox(rows);
+      })
+      .catch(e => console.warn("comments inbox:", e));
+    return () => { alive = false; };
+  }, [user]);
+
+  // 서재 탭을 열면 다 본 것으로 친다
+  useEffect(() => {
+    if (tab !== "lib" || !unread || !user || !profile) return;
+    const t = setTimeout(() => {
+      onSaveProfile && onSaveProfile({commentsSeenAt: Date.now()});
+    }, 1200);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line
+  }, [tab, unread]);
 
   // 꽂아둔 책장 — 표시는 shelfmarks에 있고, 지은이 정보는 그때그때 users에서 가져온다
   const [shelves, setShelves] = useState(null);   // null = 아직 안 읽음
@@ -4584,6 +4637,7 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
         </button>
         <button className={tab === "lib" ? "on" : ""} onClick={()=>setTab("lib")}>
           LIBRARY<span className="ko">서재</span>
+          {unread > 0 && <span className="dot"/>}
         </button>
         {handle === DESK_HANDLE && (
           <button className={tab === "press" ? "on" : ""} onClick={()=>setTab("press")}>
@@ -4678,10 +4732,23 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
           <div className="dk-sect" style={{marginTop:"22px"}}><span className="k">Marks</span><span className="s">책갈피</span><span className="l"/></div>
           <div className="dk-empty">읽다가 접어 둔 글이 여기 모입니다.</div>
 
-          <div className="dk-sect" style={{marginTop:"22px"}}><span className="k">Letters</span><span className="s">받은 편지</span><span className="l"/></div>
-          <div className="dk-empty">아직 받은 편지가 없어요.</div>
+          <div className="dk-sect" style={{marginTop:"22px"}}>
+            <span className="k">Replies</span>
+            <span className="s">{unread > 0 ? `받은 말 · 새 ${unread}` : "받은 말"}</span>
+            <span className="l"/>
+          </div>
+          {inbox.length === 0 ? (
+            <div className="dk-empty">아직 받은 말이 없어요.</div>
+          ) : inbox.slice(0, 20).map(c => (
+            <button key={c.id} className={"cm-row" + ((c.at || 0) > seenAt ? " new" : "")}
+              onClick={()=>{ window.location.href = c.targetUrl || linkOfTarget(c.targetId); }}>
+              <span className="cm-who"><b>{c.penName || c.handle || "읽은 사람"}</b>가 남김
+                <span className="cm-at">{dateOf({ts: c.at})}</span></span>
+              <span className="cm-body">{c.body || ""}</span>
+            </button>
+          ))}
 
-          <div className="dk-foot">편지는 책장을 꽂아 둔 사람만 보낼 수 있어요</div>
+          <div className="dk-foot">내 하루·책·글에 남겨진 말입니다<br/>누르면 그 자리로 갑니다</div>
         </div>
       ) : (
       <div style={{animation:"fadeIn .3s"}}>
@@ -4840,7 +4907,7 @@ function PageBook({data, setData, onLogout, user, profile, onSaveProfile, notes,
       case "now":      return <HistoryPage  data={data} setData={setData} user={user}
                                 profile={profile} onNeedHandle={()=>setNeedHandle(true)}/>;
       case "workshop": return <DeskPage data={data} setData={setData} user={user} profile={profile}
-                                notes={notes} noteApi={noteApi}
+                                notes={notes} noteApi={noteApi} onSaveProfile={onSaveProfile}
                                 onEditPen={()=>setEditPen(true)} onNeedHandle={()=>setNeedHandle(true)}
                                 goPage={(k)=>setPageIdx(PAGES.findIndex(x=>x.key===k))}
                                 goBook={(id)=>{ setOpenBookId(id); setBookFrom("workshop");

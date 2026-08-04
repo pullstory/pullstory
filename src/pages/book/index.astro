@@ -236,6 +236,7 @@ import '../../styles/paper.css';
   </style>
 
   <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <script is:inline src="/js/reactions.js"></script>
   <script is:inline>
     (function () {
       var root = document.getElementById('book-root');
@@ -425,10 +426,13 @@ import '../../styles/paper.css';
             : '<p class="empty">아직 이 책에 실린 글이 없습니다.</p>') +
         '</div>';
 
+        html += '<div id="rx"></div>';
         html += '<div class="foot">' + esc(pen) + '이 펴낸 책입니다<br/>' +
           '<a href="' + shelf + '">책장에서 다른 책도 보기 →</a></div>';
 
         root.innerHTML = html;
+        PS.reactions(root.querySelector('#rx'),
+          {targetId: handle + '_b' + d.bookId, ownerUid: d.ownerUid || null});
         wireTabs();
         wireTally(d);
         loadPhotos();

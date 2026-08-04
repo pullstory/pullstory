@@ -115,6 +115,7 @@ import '../../styles/paper.css';
   </style>
 
   <script is:inline src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <script is:inline src="/js/reactions.js"></script>
   <script is:inline>
     (function () {
       var root = document.getElementById('page-root');
@@ -187,10 +188,13 @@ import '../../styles/paper.css';
               : '<p class="empty" style="background:none">이 하루엔 적힌 것이 없습니다.</p>') +
             '<div class="count">' + eps.length + (eps.length === 1 ? ' episode' : ' episodes') + '</div>' +
           '</div></div>' +
+          '<div id="rx"></div>' +
           '<div class="foot">' + esc(pen) + '이 나눈 하루입니다<br/>' +
             '<a href="' + shelf + '">책장에서 다른 날도 보기 →</a></div>';
 
         loadPhotos();
+        PS.reactions(root.querySelector('#rx'),
+          {targetId: handle + '_' + d.date, ownerUid: d.ownerUid || null});
       }
 
       // 사진은 한 장씩 따로 — 한 문서에 몰아 담지 않는다

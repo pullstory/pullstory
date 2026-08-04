@@ -107,3 +107,57 @@
 }
 .paper .foot a { color: var(--gold); text-decoration: none; font-weight: 700; font-style: normal; }
 .paper .foot a:hover { text-decoration: underline; }
+
+/* ── 반응 — 응원과 댓글. /p/ · /n/ · /book/ 이 함께 쓴다 ── */
+.paper .rx { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+
+.paper .cheer {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 15px; border-radius: 20px; cursor: pointer;
+  border: 1px solid rgba(156,116,32,.4); background: rgba(255,253,245,.75);
+  font-family: 'Noto Serif KR', Georgia, serif; font-size: 12px; color: var(--muted);
+  transition: background .18s, border-color .18s, color .18s;
+}
+.paper .cheer i { font-style: normal; font-size: 13px; line-height: 1; }
+.paper .cheer b { font-family: Georgia, serif; font-weight: 700; font-variant-numeric: tabular-nums; }
+.paper .cheer.on { background: #b23f39; border-color: #8f2f2a; color: #fff3f1; }
+.paper .cheer:disabled { opacity: .6; cursor: default; }
+
+.paper .rx-h {
+  display: flex; align-items: center; gap: 8px; margin: 20px 0 10px;
+}
+.paper .rx-h b {
+  font-family: 'Cormorant Garamond', Georgia, serif; font-size: 11px; letter-spacing: .24em;
+  color: var(--gold); text-transform: uppercase; font-weight: 700; white-space: nowrap;
+}
+.paper .rx-h u { flex: 1; height: 1px; background: var(--line); text-decoration: none; }
+
+.paper .cm { padding: 11px 0; border-bottom: 1px dotted var(--line); }
+.paper .cm:last-of-type { border-bottom: none; }
+.paper .cm .top { display: flex; align-items: baseline; gap: 7px; }
+.paper .cm .who { font-size: 11.5px; font-weight: 700; color: var(--deep); }
+.paper .cm .at { font-family: Georgia, serif; font-size: 9.5px; color: var(--faint);
+  font-variant-numeric: tabular-nums; }
+.paper .cm .del {
+  margin-left: auto; background: none; border: none; cursor: pointer;
+  font-family: 'Noto Serif KR', serif; font-size: 9.5px; color: #b8756a; padding: 0;
+}
+.paper .cm .body { font-size: 12px; color: var(--ink); line-height: 1.8; margin-top: 4px; white-space: pre-wrap; }
+
+.paper .cm-new { margin-top: 12px; }
+.paper .cm-new textarea {
+  width: 100%; box-sizing: border-box; border: 1px solid rgba(120,90,40,.28); border-radius: 4px;
+  background: rgba(255,253,245,.8); padding: 10px 11px; resize: vertical; min-height: 62px;
+  font-family: 'Noto Serif KR', Georgia, serif; font-size: 12px; color: var(--ink); line-height: 1.75;
+  outline: none;
+}
+.paper .cm-new textarea:focus { border-color: rgba(156,116,32,.55); }
+.paper .cm-new .row { display: flex; align-items: center; gap: 9px; margin-top: 8px; }
+.paper .cm-new .row span { flex: 1; font-size: 10px; color: var(--faint); font-style: italic; }
+.paper .cm-new button {
+  padding: 8px 17px; border: none; border-radius: 5px; cursor: pointer;
+  background: linear-gradient(135deg, #c8a05a, #96702a); color: #fff8ea;
+  font-family: 'Noto Serif KR', serif; font-size: 11.5px; font-weight: 700;
+}
+.paper .cm-new button:disabled { background: #ddd0b4; cursor: default; }
+.paper .cm-none { font-size: 11px; color: var(--faint); font-style: italic; padding: 10px 2px; }
