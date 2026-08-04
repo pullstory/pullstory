@@ -63,9 +63,14 @@
       }
       list.innerHTML = comments.map(function (c) {
         var mine = me && (c.uid === me.uid || (ownerUid && me.uid === ownerUid));
+        var name = esc(c.penName || c.handle || '읽은 사람');
+        // 핸들이 있으면 그 사람 책장으로 — 남긴 말에서 그 사람의 글로 건너간다
+        var who = c.handle
+          ? '<a class="who" href="/u/' + encodeURIComponent(c.handle) + '">' + name + '</a>'
+          : '<span class="who">' + name + '</span>';
         return '<div class="cm" data-id="' + esc(c.id) + '">' +
           '<div class="top">' +
-            '<span class="who">' + esc(c.penName || c.handle || '읽은 사람') + '</span>' +
+            who +
             '<span class="at">' + when(c.at) + '</span>' +
             (mine ? '<button class="del" type="button">지우기</button>' : '') +
           '</div>' +

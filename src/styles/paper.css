@@ -135,7 +135,9 @@
 .paper .cm { padding: 11px 0; border-bottom: 1px dotted var(--line); }
 .paper .cm:last-of-type { border-bottom: none; }
 .paper .cm .top { display: flex; align-items: baseline; gap: 7px; }
-.paper .cm .who { font-size: 11.5px; font-weight: 700; color: var(--deep); }
+.paper .cm .who { font-size: 11.5px; font-weight: 700; color: var(--deep); text-decoration: none; }
+.paper .cm a.who { border-bottom: 1px solid rgba(156,116,32,.4); }
+.paper .cm a.who:hover { color: var(--gold); border-bottom-color: var(--gold); }
 .paper .cm .at { font-family: Georgia, serif; font-size: 9.5px; color: var(--faint);
   font-variant-numeric: tabular-nums; }
 .paper .cm .del {
