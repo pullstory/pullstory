@@ -203,6 +203,13 @@ import '../../styles/paper.css';
       margin-bottom: 4px;
       font-variant-numeric: tabular-nums;
     }
+    #book-root .sub {
+      font-size: 14px; font-weight: 700; color: var(--deep);
+      margin: 18px 0 0; padding-left: 9px; border-left: 3px solid rgba(156,116,32,.55); line-height: 1.5;
+    }
+    #book-root .shot.pic { margin: 13px 0 0; padding: 0; background: none; box-shadow: none; transform: none; width: 100%; }
+    #book-root .shot.pic::before { display: none; }
+    #book-root .shot.pic img { max-height: none; width: 100%; border: 1px solid var(--line); }
     #book-root .post .p {
       font-size: 13px;
       line-height: 1.95;
@@ -363,8 +370,12 @@ import '../../styles/paper.css';
       // Write에 쓴 것만 — 인용해 둔 그날의 기록은 Story의 표에서 본다
       function block(b) {
         if (b.t === 'q') return '';
+        if (b.t === 'img') return b.photoId
+          ? '<div class="shot pic" data-photo="' + esc(b.photoId) + '"></div>' : '';
         var v = String(b.v || '');
-        return v.trim() ? '<div class="p">' + esc(v) + '</div>' : '';
+        if (!v.trim()) return '';
+        if (b.t === 'h') return '<h3 class="sub">' + esc(v) + '</h3>';
+        return '<div class="p">' + esc(v) + '</div>';
       }
 
       function post(p) {

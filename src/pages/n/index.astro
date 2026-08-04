@@ -39,6 +39,15 @@ import '../../styles/paper.css';
       background: linear-gradient(90deg, rgba(156,116,32,.45), transparent);
       margin: 15px 0 4px;
     }
+    #note-root .sub {
+      font-size: 15.5px; font-weight: 700; color: var(--deep);
+      margin: 22px 0 0; padding-left: 10px; border-left: 3px solid rgba(156,116,32,.55);
+      line-height: 1.5;
+    }
+    /* 글에 넣은 사진 — 인증 사진과 달리 테이프 없이 그대로 */
+    #note-root .shot.pic { margin: 16px 0 0; padding: 0; background: none; box-shadow: none; transform: none; width: 100%; }
+    #note-root .shot.pic::before { display: none; }
+    #note-root .shot.pic img { max-height: none; width: 100%; border: 1px solid var(--line); }
     #note-root .p {
       font-size: 13.5px;
       line-height: 2;
@@ -155,8 +164,12 @@ import '../../styles/paper.css';
       // 쓴 것만 — 인용해 둔 그날의 기록은 책의 표에서 본다
       function block(b) {
         if (b.t === 'q') return '';
+        if (b.t === 'img') return b.photoId
+          ? '<div class="shot pic" data-photo="' + esc(b.photoId) + '"></div>' : '';
         var v = String(b.v || '');
-        return v.trim() ? '<div class="p">' + esc(v) + '</div>' : '';
+        if (!v.trim()) return '';
+        if (b.t === 'h') return '<h2 class="sub">' + esc(v) + '</h2>';
+        return '<div class="p">' + esc(v) + '</div>';
       }
 
       function render(note, card, book) {

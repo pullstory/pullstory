@@ -641,6 +641,20 @@
   .bd-pvis.on{background:#5a8c4a;color:#fff8ea}
   .bd-pvis.off{background:rgba(120,90,40,.14);color:#8a7556}
 
+  /* 블록 편집기 — 문단·소제목·사진을 한 칸씩 쌓는다 */
+  .blk{position:relative;margin-bottom:10px}
+  .blk-x{position:absolute;top:-6px;right:-4px;z-index:2;width:20px;height:20px;border-radius:50%;
+    border:1px solid #d8c79a;background:#fffdf5;color:#a8564a;font-size:11px;line-height:1;
+    cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center}
+  .blk-h{width:100%;box-sizing:border-box;border:none;border-left:3px solid #c9a85a;background:rgba(255,253,245,.6);
+    padding:8px 10px;font-family:'Noto Serif KR',serif;font-size:14px;font-weight:700;color:#2f2109;outline:none}
+  .blk-img{display:block;width:100%;border:1px solid #d8c79a;border-radius:3px}
+  .blk-add{display:flex;gap:6px;margin:12px 0 4px;flex-wrap:wrap}
+  .blk-add button{flex:1;min-width:76px;padding:8px 6px;border-radius:6px;cursor:pointer;
+    border:1px solid rgba(156,116,32,.4);background:rgba(255,253,245,.75);
+    font-family:'Noto Serif KR',serif;font-size:10.5px;font-weight:700;color:#8a5f14}
+  .blk-add button:disabled{opacity:.5;cursor:default}
+
   /* 낱장을 고른 책에 넣기 */
   .dk-into{margin-top:11px;padding:11px;border-radius:6px;border:1px solid rgba(120,90,40,.28);
     background:rgba(255,255,255,.5)}
@@ -1123,7 +1137,12 @@ function noteBlocks(n) {
 
 function noteIsEmpty(n) {
   if (((n && n.title) || "").trim()) return false;
-  return !noteBlocks(n).some(b => b.t === "q" || String(b.v || "").trim());
+  return !noteBlocks(n).some(b => b.t === "q" || b.t === "img" || String(b.v || "").trim());
+}
+
+// 글 안의 사진들 — 내보낼 때 같이 열어 줘야 남이 볼 수 있다
+function notePhotoIds(n) {
+  return noteBlocks(n).filter(b => b.t === "img" && b.photoId).map(b => b.photoId);
 }
 
 // ── 하루 한 장 내보내기 ──────────────────────────────────────
@@ -1181,12 +1200,13 @@ async function publishDay(uid, profile, date, rec) {
     })),
   });
   // 진열대 카드 — 목록을 그리는 데 필요한 것만. 메모는 넣지 않는다
+  // 편집부가 찍어 둔 자리(slot)가 이 문서에 있을 수 있다 → 덮어쓰지 않고 합친다
   await fbDb.collection("feed").doc(id).set({
     ...common,
     kind: "page",
     titles: eps.map(t => t.text || "").slice(0, 6),
     count: eps.length,
-  });
+  }, {merge: true});
   await setPhotosVisibility(eps.map(t => t.photoId), "public");
 }
 
@@ -1249,8 +1269,10 @@ function bookPublishChecks(book, notes) {
 function resolvePostForPublic(book, post, records, span) {
   const resolved = noteBlocks(post)
     .filter(b => b.t !== "q")
-    .map(b => ({t: "p", v: String(b.v || "")}))
-    .filter(b => b.v.trim());
+    .map(b => b.t === "img"
+      ? {t: "img", photoId: b.photoId || null}
+      : {t: b.t === "h" ? "h" : "p", v: String(b.v || "")})
+    .filter(b => b.t === "img" ? b.photoId : b.v.trim());
   return {block: {id: post.id, title: post.title || "", blocks: resolved, ts: noteTs(post) || null}};
 }
 
@@ -1287,7 +1309,8 @@ async function publishBook(uid, profile, book, records, notes) {
 
   const pubPosts = posts.map(p => resolvePostForPublic(book, p, records, span).block);
   const marks = isColl ? {days: {}, photoIds: []} : bookDays(book, records, span);
-  const photoIds = marks.photoIds;
+  // 표 칸의 사진 + 글 안에 넣은 사진을 함께 연다
+  const photoIds = marks.photoIds.concat(posts.reduce((a, p) => a.concat(notePhotoIds(p)), []));
 
   const id = handle + "_b" + book.id;
   const now = Date.now();
@@ -1320,7 +1343,7 @@ async function publishBook(uid, profile, book, records, notes) {
     postCount: pubPosts.length,
     filled: isColl ? 0 : (sub.done || []).length,
     total: isColl ? 0 : (span.duration || 0),
-  });
+  }, {merge: true});
 
   // 책 안의 글도 각자 진열대에 오른다 — 읽고 나서 그 책으로 건너갈 수 있게
   await Promise.all(posts.map(p => syncNoteCard(uid, profile, p, book, true)));
@@ -1338,15 +1361,18 @@ async function publishBook(uid, profile, book, records, notes) {
 async function publishNote(uid, profile, note, book) {
   const handle = (profile && profile.handle) || "";
   if (!FIREBASE_READY || !uid || uid === "local-user" || !handle) return;
-  const text = noteBlocks(note).filter(b => b.t === "p").map(b => b.v).join("\n").trim();
+  const text = noteBlocks(note).filter(b => b.t === "p" || b.t === "h").map(b => b.v).join("\n").trim();
+  const pics = notePhotoIds(note);
+  await setPhotosVisibility(pics, "public");
   await fbDb.collection("feed").doc(handle + "_n" + note.id).set({
     kind: "note", ownerUid: uid, handle, penName: (profile && profile.penName) || "",
     noteId: String(note.id), title: note.title || "",
     excerpt: text.slice(0, 120),
+    keyPhotoId: pics[0] || null,
     bookId: book ? String(book.id) : null,
     bookTitle: book ? (book.text || "") : null,
     visibility: "public", publishedAt: noteTs(note) || Date.now(),
-  });
+  }, {merge: true});
 }
 
 async function unpublishNote(uid, handle, noteId) {
@@ -2360,6 +2386,72 @@ function BufferedTA({value, onSave, className, placeholder}) {
     onChange={e=>{ onChange(e.target.value); resize(); }} onInput={resize} onBlur={flush}/>;
 }
 
+// 블록 편집기 — 문단·소제목·사진을 한 칸씩 쌓는다.
+// 커서를 넘나들지 않으니 한글 조합이 깨질 일이 없고, 두 편집기가 같은 것을 쓴다.
+function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass}) {
+  const bs = noteBlocks(note);
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef(null);
+
+  const write = (nbs) => {
+    const out = nbs.length ? nbs : [{t: "p", v: ""}];
+    onWrite({blocks: out, body: ""});
+  };
+  const at = (i, patch) => write(bs.map((x, j) => (j === i ? {...x, ...patch} : x)));
+  const drop = (i) => write(bs.filter((_, j) => j !== i));
+  const add = (blk) => write([...bs, blk]);
+
+  const pickPhoto = async (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!f) return;
+    setBusy(true);
+    try {
+      const b64 = await compressPhoto(f, 900, 0.72);      // 글에 넣는 사진은 날짜 각인 없이
+      const saved = await savePhoto(uid, b64);
+      if (saved && saved.id) add({t: "img", photoId: saved.id});
+      else if (saved && saved.inline) add({t: "img", src: saved.inline});   // 서버가 없을 때는 글 안에 담는다
+      else alert("사진을 저장하지 못했어요.");
+    } catch (err) { console.warn("block photo:", err); alert("사진을 저장하지 못했어요."); }
+    setBusy(false);
+  };
+
+  return (
+    <div>
+      {bs.map((b, i) => {
+        if (b.t === "q") return renderQuote ? renderQuote(b.d, i, () => drop(i)) : null;
+        if (b.t === "img") return (
+          <div className="blk" key={"i" + i}>
+            <button className="blk-x" onClick={()=>drop(i)} title="사진 빼기">✕</button>
+            <Photo src={b.src} id={b.photoId} className="blk-img"/>
+          </div>
+        );
+        if (b.t === "h") return (
+          <div className="blk" key={"h" + i}>
+            <button className="blk-x" onClick={()=>drop(i)} title="소제목 빼기">✕</button>
+            <BufferedInput className="blk-h" value={b.v || ""} placeholder="소제목"
+              onSave={(v)=>at(i, {v})}/>
+          </div>
+        );
+        return (
+          <BufferedTA key={"p" + i} className={textClass} value={b.v || ""}
+            placeholder={i === 0 ? placeholder : ""}
+            onSave={(v)=>at(i, {v})}/>
+        );
+      })}
+
+      <div className="blk-add">
+        <button onClick={()=>add({t:"p", v:""})}>＋ 문단</button>
+        <button onClick={()=>add({t:"h", v:""})}>＋ 소제목</button>
+        <button onClick={()=>fileRef.current && fileRef.current.click()} disabled={busy}>
+          {busy ? "올리는 중…" : "＋ 사진"}
+        </button>
+      </div>
+      <input ref={fileRef} type="file" accept="image/*" style={{display:"none"}} onChange={pickPhoto}/>
+    </div>
+  );
+}
+
 function Spine({b}) {
   return <div className="sf-sp" style={{width:b.w+"px",height:b.h+"px",background:b.c}}>{b.d ? <span className={b.d}/> : null}</div>;
 }
@@ -2730,19 +2822,10 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
             <div>
               <BufferedInput className="bd-edt" value={editing.title || ""} placeholder="제목"
                 onSave={(v)=>updatePost(editing.id,{title:v})}/>
-              {(() => {
-                const bs = toBlocks(editing);
-                const write = (nbs) => updatePost(editing.id, {blocks: nbs, body: ""});
-                return bs.map((b, i) => b.t === "p" ? (
-                  <BufferedTA key={"p"+i} className="bd-edb" value={b.v}
-                    placeholder={i === 0 ? "여기에 경험과 정보를 엮어 써 내려가 보세요…" : ""}
-                    onSave={(v)=>write(bs.map((x,j)=> j===i ? {...x, v} : x))}/>
-                ) : quoteCard(b.d, i, () => {
-                  const nbs = bs.filter((_,j)=>j!==i);
-                  if (!nbs.length || nbs[nbs.length-1].t !== "p") nbs.push({t:"p", v:""});
-                  write(nbs);
-                }));
-              })()}
+              <BlockEditor note={editing} uid={uid} textClass="bd-edb"
+                placeholder="여기에 경험과 정보를 엮어 써 내려가 보세요…"
+                renderQuote={quoteCard}
+                onWrite={(patch)=>updatePost(editing.id, patch)}/>
               <div className="mb-foot">
                 <button className="mb-fbtn done" onClick={()=>setEditId(null)}>✓ 다 썼어요</button>
                 <button className="mb-fbtn del" onClick={()=>deletePost(editing.id)}>삭제</button>
@@ -4315,8 +4398,9 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
         </div>
         <BufferedInput className="dk-tin" value={editing.title || ""} placeholder="제목"
           onSave={(v)=>noteApi.update(editing.id, {title: v})}/>
-        <BufferedTA className="dk-bin" value={bodyOf(editing)} placeholder="자유롭게 써 내려가세요…"
-          onSave={(v)=>noteApi.update(editing.id, {blocks: [{t:"p", v}], body: ""})}/>
+        <BlockEditor note={editing} uid={user && user.uid} textClass="dk-bin"
+          placeholder="자유롭게 써 내려가세요…"
+          onWrite={(patch)=>noteApi.update(editing.id, patch)}/>
         <div className={"dk-pub" + (editing.visibility === "public" ? " on" : "")}>
           <span className="t">이 글 내보내기</span>
           <button className={"dk-sw" + (editing.visibility === "public" ? " on" : "")}
