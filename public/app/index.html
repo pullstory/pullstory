@@ -641,6 +641,25 @@
   .bd-pvis.on{background:#5a8c4a;color:#fff8ea}
   .bd-pvis.off{background:rgba(120,90,40,.14);color:#8a7556}
 
+  /* 신문 편집 — 편집부만 본다 */
+  .pr-row{display:flex;align-items:center;gap:9px;padding:9px 2px;
+    border-bottom:1px solid rgba(120,90,40,.13)}
+  .pr-m{flex:1;min-width:0}
+  .pr-t{display:block;font-family:'Noto Serif KR',serif;font-size:12px;font-weight:700;color:#2f2109;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pr-s{display:block;font-family:'Cormorant Garamond',Georgia,serif;font-size:9px;color:#a89066;
+    letter-spacing:.06em;margin-top:2px}
+  .pr-sel{flex-shrink:0;padding:5px 6px;border-radius:5px;border:1px solid #d8c79a;
+    background:rgba(255,253,245,.9);font-family:'Noto Serif KR',serif;font-size:10.5px;color:#3a2818}
+  .pr-sel.on{border-color:#b8862f;background:rgba(212,168,81,.16);font-weight:700;color:#8a5f14}
+  .pr-front{border:1px solid rgba(156,116,32,.35);border-radius:6px;background:rgba(255,253,245,.6);
+    padding:11px 12px;margin-bottom:14px}
+  .pr-fl{display:flex;gap:7px;font-size:10.5px;color:#8a6d3c;padding:3px 0;line-height:1.6}
+  .pr-fl b{flex:0 0 42px;font-family:'Cormorant Garamond',Georgia,serif;letter-spacing:.14em;
+    color:#9c7420;font-size:9.5px;text-transform:uppercase;padding-top:2px}
+  .pr-fl span{flex:1;min-width:0;color:#2f2109}
+  .pr-fl i{font-style:italic;color:#b09a6e}
+
   /* 블록 편집기 — 문단·소제목·사진을 한 칸씩 쌓는다 */
   .blk{position:relative;margin-bottom:10px}
   .blk-x{position:absolute;top:-6px;right:-4px;z-index:2;width:20px;height:20px;border-radius:50%;
@@ -1354,6 +1373,18 @@ async function publishBook(uid, profile, book, records, notes) {
     await setPhotosVisibility(photoIds, "public");
     photoSyncSig.set(id, sig);
   }
+}
+
+// 신문 편집 — 자리는 발행과 다른 층이라 press에 따로 둔다.
+// 지은이가 자기 글을 1면에 올리는 게 아니라 편집부가 배치한다.
+const DESK_HANDLE = "pullstory";      // 편집부 책장 주소
+const PRESS_SLOTS = [["", "자리 없음"], ["top", "톱"], ["major", "주요"], ["brief", "단신"]];
+
+async function setPressSlot(feedId, slot) {
+  if (!FIREBASE_READY || !feedId) return;
+  const ref = fbDb.collection("press").doc(feedId);
+  if (slot) await ref.set({slot, at: Date.now()});
+  else await ref.delete().catch(e => console.warn("press clear:", e));
 }
 
 // 글도 진열대에 오른다 — 원본은 notes에 그대로 있고 카드만 만든다.
@@ -4216,7 +4247,34 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
   const [busy, setBusy] = useState(false);
 
   const [collId, setCollId] = useState(null);   // 펼쳐 본 묶음 책
-  const [tab, setTab] = useState("mine");       // mine(내가 쓴 것) | lib(내가 읽는 것)
+  const [tab, setTab] = useState("mine");       // mine(쓴 것) | lib(읽는 것) | press(편집, 편집부만)
+
+  // 신문 편집 — 최근 발행된 것 전부와 지금 배치를 함께 읽는다
+  const [press, setPress] = useState(null);    // {items, slots}
+  const [pressBusy, setPressBusy] = useState("");
+  const loadPress = async () => {
+    if (!FIREBASE_READY) { setPress({items: [], slots: {}}); return; }
+    try {
+      const [fs, ps] = await Promise.all([
+        fbDb.collection("feed").orderBy("publishedAt", "desc").limit(60).get(),
+        fbDb.collection("press").get(),
+      ]);
+      const items = fs.docs.map(d => ({id: d.id, ...d.data()}));
+      const slots = {};
+      ps.forEach(d => { slots[d.id] = (d.data() || {}).slot || ""; });
+      setPress({items, slots});
+    } catch (e) { console.warn("press load:", e); setPress({items: [], slots: {}, err: e.message}); }
+  };
+  useEffect(() => { if (tab === "press") loadPress(); /* eslint-disable-next-line */ }, [tab]);
+
+  const pickSlot = async (id, slot) => {
+    setPressBusy(id);
+    try {
+      await setPressSlot(id, slot);
+      setPress(p => ({...p, slots: {...p.slots, [id]: slot}}));
+    } catch (e) { console.warn("press set:", e); alert("자리를 바꾸지 못했어요."); }
+    setPressBusy("");
+  };
 
   // 꽂아둔 책장 — 표시는 shelfmarks에 있고, 지은이 정보는 그때그때 users에서 가져온다
   const [shelves, setShelves] = useState(null);   // null = 아직 안 읽음
@@ -4525,9 +4583,70 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
         <button className={tab === "lib" ? "on" : ""} onClick={()=>setTab("lib")}>
           LIBRARY<span className="ko">서재</span>
         </button>
+        {handle === DESK_HANDLE && (
+          <button className={tab === "press" ? "on" : ""} onClick={()=>setTab("press")}>
+            PRESS<span className="ko">편집</span>
+          </button>
+        )}
       </div>
 
-      {tab === "lib" ? (
+      {tab === "press" ? (
+        <div style={{animation:"fadeIn .3s"}}>
+          {press === null ? (
+            <div className="dk-empty">지면을 펴는 중…</div>
+          ) : press.err ? (
+            <div className="dk-empty">불러오지 못했어요.<br/>
+              <span style={{fontSize:"9.5px",opacity:.75}}>{press.err}</span></div>
+          ) : (() => {
+            const titleOf = (c) =>
+              c.kind === "page" ? (c.caption || (c.date + "의 하루")) : (c.title || "(제목 없음)");
+            const kindOf = (c) => c.kind === "page" ? "하루" : c.kind === "book" ? "책" : "글";
+            const front = {top: [], major: [], brief: []};
+            press.items.forEach(c => {
+              const sl = press.slots[c.id];
+              if (sl && front[sl]) front[sl].push(c);
+            });
+            const line = (k, label) => (
+              <div className="pr-fl" key={k}>
+                <b>{label}</b>
+                {front[k].length
+                  ? <span>{front[k].map(titleOf).join(" · ")}</span>
+                  : <i>비어 있음</i>}
+              </div>
+            );
+            return (
+              <div>
+                <div className="dk-sect"><span className="k">Front</span><span className="s">지금 1면</span><span className="l"/></div>
+                <div className="pr-front">
+                  {line("top", "톱")}
+                  {line("major", "주요")}
+                  {line("brief", "단신")}
+                </div>
+
+                <div className="dk-sect"><span className="k">Published</span><span className="s">최근 발행된 것</span><span className="l"/></div>
+                {press.items.length === 0 ? (
+                  <div className="dk-empty">아직 발행된 것이 없어요.</div>
+                ) : press.items.map(c => (
+                  <div className="pr-row" key={c.id}>
+                    <span className="pr-m">
+                      <span className="pr-t">{titleOf(c)}</span>
+                      <span className="pr-s">{kindOf(c)} · {c.penName || c.handle}</span>
+                    </span>
+                    <select className={"pr-sel" + (press.slots[c.id] ? " on" : "")}
+                      value={press.slots[c.id] || ""}
+                      disabled={pressBusy === c.id}
+                      onChange={(e)=>pickSlot(c.id, e.target.value)}>
+                      {PRESS_SLOTS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+                    </select>
+                  </div>
+                ))}
+                <div className="dk-foot">자리를 정하면 신문 1면에 오르고 아래 흐르는 줄에서는 빠집니다<br/>
+                  톱은 하나, 주요는 둘까지 실립니다</div>
+              </div>
+            );
+          })()}
+        </div>
+      ) : tab === "lib" ? (
         <div style={{animation:"fadeIn .3s"}}>
           <div className="dk-sect"><span className="k">Shelves</span><span className="s">꽂아둔 책장</span><span className="l"/></div>
           {shelves === null ? (

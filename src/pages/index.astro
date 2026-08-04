@@ -297,11 +297,18 @@ const DESK = 'pullstory';   // 편집부 핸들
         });
       }
 
-      // 한 번만 읽고 종류별로 나눈다 — 복합 색인이 필요 없다
-      db.collection('feed').orderBy('publishedAt', 'desc').limit(60).get()
-        .then(function (snap) {
+      // 발행된 것과 편집부가 정한 자리를 함께 읽는다 — 자리는 press에 따로 산다
+      Promise.all([
+        db.collection('feed').orderBy('publishedAt', 'desc').limit(60).get(),
+        db.collection('press').get().catch(function () { return { forEach: function () {} }; })
+      ])
+        .then(function (res) {
+          var snap = res[0], ps = res[1];
+          var slots = {};
+          ps.forEach(function (d) { slots[d.id] = (d.data() || {}).slot || ''; });
+
           var all = [];
-          snap.forEach(function (d) { all.push(d.data()); });
+          snap.forEach(function (d) { var x = d.data(); x.slot = slots[d.id] || null; all.push(x); });
 
           // slot이 붙은 것은 1면 위로 올라가고 아래에서는 빠진다
           var SLOT = {top: [], major: [], brief: []};
