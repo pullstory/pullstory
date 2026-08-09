@@ -1,15 +1,35 @@
 ---
 // About = 브랜드/공간 소개, 이용법, 공지 (Notion 'About' 페이지)
-// 맨 위엔 방이 돌아가는 장면 — 스크롤이 곧 회전각이다.
+// 맨 위엔 방이 돌아가는 장면 — 스크롤이 곧 회전각이고, 장면마다 읽을 것이 붙는다.
 import { marked } from 'marked';
 import Base from '../layouts/Base.astro';
 import { getPage } from '../lib/notion.js';
 
 const md = await getPage('about');
 const html = md ? marked.parse(md) : '';
+
+// ── 카피는 여기만 고치면 된다 ──────────────────────────
+// win = 스크롤 진행도(0=시작, 1=끝) 위에서 [떠오르기 시작, 다 보임, 머무는 끝, 다 사라짐]
+const COPY = [
+  {
+    win: [-1, -1, 0.24, 0.36],
+    title: '한 사람의 방',
+    body: '누구의 삶에나 아직 쓰이지 않은 방이 하나 있습니다.\n책상과 의자, 그리고 비어 있는 서가.',
+  },
+  {
+    win: [0.42, 0.5, 0.6, 0.7],
+    title: '쓰는 동안',
+    body: '하루가 한 장이 되고, 쌓인 장이 한 권이 됩니다.',
+  },
+  {
+    win: [0.76, 0.86, 2, 2],
+    title: '누군가 읽는다',
+    body: '다 쓴 책은 서가에 꽂힙니다.\n당신의 하루가 누군가의 읽을거리가 되는 자리.',
+  },
+];
 ---
 <Base title="About · PULLSTORY" description="PULLSTORY — 이 공간이 어떤 곳인지, 어떻게 이용하는지 안내합니다.">
-  <!-- 돌아가는 방 — 스크롤한 만큼 돈다 -->
+  <!-- 돌아가는 방 — 스크롤한 만큼 돌고, 도는 동안 읽는다 -->
   <section class="turn" id="turn" aria-label="스토리 룸">
     <div class="turn-stage">
       <div class="turn-obj">
@@ -17,7 +37,17 @@ const html = md ? marked.parse(md) : '';
         <img class="f b" src="/img/story-room-open.webp" alt="책을 펼쳐 서가에 꽂는 사람" aria-hidden="true" />
         <span class="turn-shadow" aria-hidden="true"></span>
       </div>
-      <span class="turn-hint" aria-hidden="true">스크롤</span>
+
+      <div class="turn-copy">
+        {COPY.map((c) => (
+          <div class="cp" data-win={c.win.join(',')}>
+            <b>{c.title}</b>
+            <p>{c.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <span class="turn-hint" aria-hidden="true"></span>
     </div>
   </section>
 
@@ -27,21 +57,23 @@ const html = md ? marked.parse(md) : '';
 
   <style is:global>
     /* 스크롤 길이가 곧 회전 각도 — 이 구간을 지나는 동안 180° 돈다 */
-    .turn { height: 240vh; margin: -1rem 0 2rem; }
+    .turn { height: 300vh; margin: -1rem 0 2rem; }
     .turn-stage {
       position: sticky;
       top: 0;
       height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       perspective: 1500px;
-      perspective-origin: 50% 45%;
+      perspective-origin: 50% 42%;
     }
     .turn-obj {
       position: relative;
       width: 100%;
-      height: 76vh;
+      flex: 1 1 auto;
+      min-height: 0;
       transform-style: preserve-3d;
     }
     .turn-obj .f {
@@ -64,9 +96,9 @@ const html = md ? marked.parse(md) : '';
     .turn-shadow {
       position: absolute;
       left: 50%;
-      bottom: -3%;
-      width: 46%;
-      height: 3.2vh;
+      bottom: -2%;
+      width: 44%;
+      height: 2.6vh;
       transform: translateX(-50%);
       border-radius: 50%;
       background: radial-gradient(ellipse at center, rgba(60,40,15,.28), rgba(60,40,15,0) 70%);
@@ -74,28 +106,67 @@ const html = md ? marked.parse(md) : '';
       pointer-events: none;
     }
 
-    .turn-hint {
-      position: absolute;
-      bottom: 5vh;
-      left: 50%;
-      transform: translateX(-50%);
-      font-family: 'Cormorant Garamond', Georgia, serif;
-      font-size: 11px;
-      letter-spacing: .3em;
-      text-transform: uppercase;
-      color: #a89066;
-      will-change: opacity;
+    /* 읽는 자리 — 장면이 바뀌면 글도 바뀐다 */
+    .turn-copy {
+      position: relative;
+      flex: 0 0 25vh;
+      width: 100%;
+      max-width: 460px;
     }
-    .turn-hint::after {
+    .turn-copy .cp {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      text-align: center;
+      font-family: 'Noto Serif KR', Georgia, serif;
+      will-change: opacity, transform;
+      pointer-events: none;
+    }
+    .turn-copy .cp b {
+      display: block;
+      font-size: 17px;
+      font-weight: 700;
+      color: #2f2109;
+      letter-spacing: -.01em;
+    }
+    .turn-copy .cp b::after {
       content: '';
       display: block;
-      width: 1px;
-      height: 26px;
-      margin: 7px auto 0;
-      background: linear-gradient(#c9ab6b, transparent);
+      width: 26px;
+      height: 1px;
+      margin: 11px auto;
+      background: rgba(156,116,32,.55);
+    }
+    .turn-copy .cp p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 2;
+      color: #6b5a3c;
+      white-space: pre-line;
+      text-wrap: balance;
     }
 
-    /* 움직임을 원치 않는 사람에겐 두 장면을 그냥 위아래로 */
+    /* 더 내려가라는 얇은 표시 */
+    .turn-hint {
+      position: absolute;
+      bottom: 3vh;
+      left: 50%;
+      width: 1px;
+      height: 28px;
+      transform: translateX(-50%);
+      background: linear-gradient(#c9ab6b, transparent);
+      will-change: opacity;
+    }
+
+    @media (max-width: 640px) {
+      .turn-copy { flex-basis: 27vh; }
+      .turn-copy .cp b { font-size: 15.5px; }
+      .turn-copy .cp p { font-size: 12px; line-height: 1.95; }
+    }
+
+    /* 움직임을 원치 않는 사람에겐 장면과 글을 그냥 위아래로 */
     @media (prefers-reduced-motion: reduce) {
       .turn { height: auto; }
       .turn-stage { position: static; height: auto; display: block; perspective: none; }
@@ -103,10 +174,18 @@ const html = md ? marked.parse(md) : '';
       .turn-obj .f {
         position: static;
         display: block;
-        margin: 0 auto 24px;
-        max-height: 70vh;
+        margin: 0 auto;
+        max-height: 62vh;
         transform: none !important;
         backface-visibility: visible;
+      }
+      .turn-obj .b { margin-top: 40px; }
+      .turn-copy { position: static; height: auto; margin: 22px auto 0; max-width: 460px; }
+      .turn-copy .cp {
+        position: static;
+        opacity: 1 !important;
+        transform: none !important;
+        margin-bottom: 26px;
       }
       .turn-shadow, .turn-hint { display: none; }
     }
@@ -120,8 +199,20 @@ const html = md ? marked.parse(md) : '';
       var b = sec.querySelector('.f.b');
       var sh = sec.querySelector('.turn-shadow');
       var hint = sec.querySelector('.turn-hint');
+      var caps = [].map.call(sec.querySelectorAll('.cp'), function (el) {
+        return {el: el, w: (el.getAttribute('data-win') || '').split(',').map(Number)};
+      });
 
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      // 창(win) 안에서의 밝기 — 떠오르고, 머물고, 사라진다
+      function fade(p, w) {
+        if (p <= w[0]) return 0;
+        if (p < w[1]) return (p - w[0]) / (w[1] - w[0]);
+        if (p <= w[2]) return 1;
+        if (p < w[3]) return 1 - (p - w[2]) / (w[3] - w[2]);
+        return 0;
+      }
 
       var ticking = false;
 
@@ -133,9 +224,10 @@ const html = md ? marked.parse(md) : '';
         var p = span > 0 ? -rect.top / span : 0;
         p = p < 0 ? 0 : p > 1 ? 1 : p;
 
-        // 스크롤 = 회전각. 다만 옆면(90°)은 납작해서 안 보이므로 그 근처를 빨리 지나간다
+        // 스크롤 = 회전각. 양 끝은 천천히(읽는 동안 가만히), 가운데서 빨리 돈다.
+        // 옆면(90°)은 납작해서 아무것도 안 보이는 순간이라 거기를 서둘러 지난다.
         var u = 2 * p - 1;
-        var deg = 90 + 90 * (u < 0 ? -1 : 1) * Math.pow(Math.abs(u), 0.5);
+        var deg = 90 + 90 * (u < 0 ? -1 : 1) * Math.pow(Math.abs(u), 0.4);
         var r = deg * Math.PI / 180;
         var s = Math.sin(r);
         var z = -170 * s;                       // 돌면서 한 번 물러났다 돌아온다
@@ -149,7 +241,15 @@ const html = md ? marked.parse(md) : '';
         var flat = Math.abs(Math.cos(r));       // 정면일수록 1, 옆면일 때 0
         sh.style.transform = 'translateX(-50%) scaleX(' + (0.45 + 0.55 * flat).toFixed(3) + ')';
         sh.style.opacity = (0.35 + 0.65 * flat).toFixed(3);
-        hint.style.opacity = Math.max(0, 1 - p * 6).toFixed(3);
+
+        for (var i = 0; i < caps.length; i++) {
+          var o = fade(p, caps[i].w);
+          caps[i].el.style.opacity = o.toFixed(3);
+          // 덜 보일수록 조금 아래에 — 떠오르듯 들어오고 가라앉듯 나간다
+          caps[i].el.style.transform = 'translateY(' + ((1 - o) * 12).toFixed(1) + 'px)';
+        }
+
+        hint.style.opacity = Math.max(0, 1 - p * 5).toFixed(3);
       }
 
       function onScroll() {
