@@ -1,5 +1,6 @@
 ---
 // About = 브랜드/공간 소개, 이용법, 공지 (Notion 'About' 페이지)
+// 맨 위엔 방이 돌아가는 장면 — 스크롤이 곧 회전각이다.
 import { marked } from 'marked';
 import Base from '../layouts/Base.astro';
 import { getPage } from '../lib/notion.js';
@@ -8,7 +9,158 @@ const md = await getPage('about');
 const html = md ? marked.parse(md) : '';
 ---
 <Base title="About · PULLSTORY" description="PULLSTORY — 이 공간이 어떤 곳인지, 어떻게 이용하는지 안내합니다.">
+  <!-- 돌아가는 방 — 스크롤한 만큼 돈다 -->
+  <section class="turn" id="turn" aria-label="스토리 룸">
+    <div class="turn-stage">
+      <div class="turn-obj">
+        <img class="f a" src="/img/story-room.webp" alt="책 속에 지어진 방 — 책상과 서가" />
+        <img class="f b" src="/img/story-room-open.webp" alt="책을 펼쳐 서가에 꽂는 사람" aria-hidden="true" />
+        <span class="turn-shadow" aria-hidden="true"></span>
+      </div>
+      <span class="turn-hint" aria-hidden="true">스크롤</span>
+    </div>
+  </section>
+
   {html
     ? <article set:html={html} />
     : <article><h1>About</h1><p>준비 중입니다.</p></article>}
+
+  <style is:global>
+    /* 스크롤 길이가 곧 회전 각도 — 이 구간을 지나는 동안 180° 돈다 */
+    .turn { height: 240vh; margin: -1rem 0 2rem; }
+    .turn-stage {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 1500px;
+      perspective-origin: 50% 45%;
+    }
+    .turn-obj {
+      position: relative;
+      width: 100%;
+      height: 76vh;
+      transform-style: preserve-3d;
+    }
+    .turn-obj .f {
+      position: absolute;
+      inset: 0;
+      margin: auto;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      /* 뒷면은 감춘다 — 돌아서 등을 보이면 사라지고 반대쪽이 나타난다 */
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      will-change: transform;
+      transform: rotateY(0deg);
+    }
+    .turn-obj .b { transform: rotateY(180deg); }
+
+    /* 바닥 그림자 — 돌아가는 내내 남아서 '같은 물건'이라고 알려 준다 */
+    .turn-shadow {
+      position: absolute;
+      left: 50%;
+      bottom: -3%;
+      width: 46%;
+      height: 3.2vh;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center, rgba(60,40,15,.28), rgba(60,40,15,0) 70%);
+      will-change: transform, opacity;
+      pointer-events: none;
+    }
+
+    .turn-hint {
+      position: absolute;
+      bottom: 5vh;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 11px;
+      letter-spacing: .3em;
+      text-transform: uppercase;
+      color: #a89066;
+      will-change: opacity;
+    }
+    .turn-hint::after {
+      content: '';
+      display: block;
+      width: 1px;
+      height: 26px;
+      margin: 7px auto 0;
+      background: linear-gradient(#c9ab6b, transparent);
+    }
+
+    /* 움직임을 원치 않는 사람에겐 두 장면을 그냥 위아래로 */
+    @media (prefers-reduced-motion: reduce) {
+      .turn { height: auto; }
+      .turn-stage { position: static; height: auto; display: block; perspective: none; }
+      .turn-obj { height: auto; }
+      .turn-obj .f {
+        position: static;
+        display: block;
+        margin: 0 auto 24px;
+        max-height: 70vh;
+        transform: none !important;
+        backface-visibility: visible;
+      }
+      .turn-shadow, .turn-hint { display: none; }
+    }
+  </style>
+
+  <script is:inline>
+    (function () {
+      var sec = document.getElementById('turn');
+      if (!sec) return;
+      var a = sec.querySelector('.f.a');
+      var b = sec.querySelector('.f.b');
+      var sh = sec.querySelector('.turn-shadow');
+      var hint = sec.querySelector('.turn-hint');
+
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      var ticking = false;
+
+      function paint() {
+        ticking = false;
+        var rect = sec.getBoundingClientRect();
+        // 이 구간을 얼마나 지나왔나 — 0(막 닿음) ~ 1(다 지남)
+        var span = rect.height - window.innerHeight;
+        var p = span > 0 ? -rect.top / span : 0;
+        p = p < 0 ? 0 : p > 1 ? 1 : p;
+
+        // 스크롤 = 회전각. 다만 옆면(90°)은 납작해서 안 보이므로 그 근처를 빨리 지나간다
+        var u = 2 * p - 1;
+        var deg = 90 + 90 * (u < 0 ? -1 : 1) * Math.pow(Math.abs(u), 0.5);
+        var r = deg * Math.PI / 180;
+        var s = Math.sin(r);
+        var z = -170 * s;                       // 돌면서 한 번 물러났다 돌아온다
+        var tilt = -7 * s;                      // 옆을 보일 때 살짝 기운다
+        var base = 'translateZ(' + z.toFixed(1) + 'px) rotateX(' + tilt.toFixed(2) + 'deg) rotateY(';
+
+        a.style.transform = base + (-deg).toFixed(2) + 'deg)';
+        // 뒷장은 사람이 함께 있어 책이 작게 잡힌다 — 책 크기를 맞춰 준다
+        b.style.transform = base + (180 - deg).toFixed(2) + 'deg) scale(1.08)';
+
+        var flat = Math.abs(Math.cos(r));       // 정면일수록 1, 옆면일 때 0
+        sh.style.transform = 'translateX(-50%) scaleX(' + (0.45 + 0.55 * flat).toFixed(3) + ')';
+        sh.style.opacity = (0.35 + 0.65 * flat).toFixed(3);
+        hint.style.opacity = Math.max(0, 1 - p * 6).toFixed(3);
+      }
+
+      function onScroll() {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(paint);
+      }
+
+      addEventListener('scroll', onScroll, {passive: true});
+      addEventListener('resize', onScroll);
+      paint();
+    })();
+  </script>
 </Base>
