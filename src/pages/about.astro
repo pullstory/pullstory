@@ -1,7 +1,6 @@
 ---
-// About = 브랜드/공간 소개 (Notion 'About' 페이지가 아래에 붙는다)
-// 위에서 아래로 불이 켜진다 — 어두운 거리에서 시작해 방 안이 환해질 때 끝난다.
-// 스크롤이 곧 조명이고, 가운데 대목에선 스크롤이 곧 회전각이다.
+// About = 브랜드/공간 소개, 이용법, 공지 (Notion 'About' 페이지)
+// 맨 위엔 방이 돌아가는 장면 — 스크롤이 곧 회전각이고, 장면마다 읽을 것이 붙는다.
 import { marked } from 'marked';
 import Base from '../layouts/Base.astro';
 import { getPage } from '../lib/notion.js';
@@ -10,18 +9,12 @@ const md = await getPage('about');
 const html = md ? marked.parse(md) : '';
 
 // ── 카피는 여기만 고치면 된다 ──────────────────────────
-const LEAD = '누구나 자기 이야기의\n주인이 되는 곳,\nPULLSTORY입니다.';   // 어두운 거리, 흰 글씨
-const MID = '문 앞에 서 보면 알게 됩니다';                                  // 가게를 올려다본 다음
-const OUTRO = '당신의 방은 아직 비어 있습니다';                             // 회전이 끝난 뒤
-const OUTRO_SUB = '아래에서 이 공간을 조금 더 소개합니다';
-
-// 회전하는 동안 말풍선에 뜨는 말. win = 스크롤 진행도(0=시작, 1=끝) 위에서
-// [떠오르기 시작, 다 보임, 머무는 끝, 다 사라짐]
+// win = 스크롤 진행도(0=시작, 1=끝) 위에서 [떠오르기 시작, 다 보임, 머무는 끝, 다 사라짐]
 const COPY = [
   {
     win: [-1, -1, 0.24, 0.36],
     title: '혼자 쓰는 방',
-    body: '누구에게나 자기만의 방이 있습니다.\n책상 하나, 등 하나, 아직 쓰이는 중인 이야기.',
+    body: '누구의 삶에나 자기만의 방이 하나 있습니다.\n책상 하나, 등 하나, 그리고 아직 쓰이는 중인 이야기.',
   },
   {
     win: [0.42, 0.5, 0.6, 0.7],
@@ -36,174 +29,59 @@ const COPY = [
 ];
 ---
 <Base title="About · PULLSTORY" description="PULLSTORY — 이 공간이 어떤 곳인지, 어떻게 이용하는지 안내합니다.">
-  <div class="hero">
-    <!-- 1. 어두운 거리 — 가게 앞에 선다 -->
-    <section class="act street">
-      <p class="lead">{LEAD}</p>
-      <img class="shop" src="/img/pullstory-shop.webp" alt="PULLSTORY 간판이 걸린 가게" />
-      <img class="visitor" src="/img/pullstory-visitor.webp" alt="가게를 바라보고 선 사람" />
-    </section>
+  <!-- 문 앞 — 아직 들어가기 전 -->
+  <section class="street">
+    <img src="/img/pullstory-street.webp" alt="PULLSTORY 가게 앞에 선 사람" />
+  </section>
 
-    <!-- 2. 문 앞 한 줄 -->
-    <section class="act line">
-      <p>{MID}</p>
-    </section>
-
-    <!-- 3. 안으로 — 스크롤한 만큼 방이 돌고, 돌 때마다 하는 말이 바뀐다 -->
-    <section class="act turn" id="turn" aria-label="스토리 룸">
-      <div class="turn-stage">
-        <div class="turn-obj">
-          <img class="f a" src="/img/story-room-writing.webp" alt="책 속에 지어진 방에서 글을 쓰는 사람" />
-          <img class="f b" src="/img/story-room-open.webp" alt="책을 펼쳐 서가에 꽂는 사람" aria-hidden="true" />
-        </div>
-
-        <div class="turn-copy">
-          <svg class="tail" viewBox="0 0 60 60" aria-hidden="true">
-            <path d="M56 6 C34 10, 14 26, 4 54 M4 54 L16 44 M4 54 L8 40" />
-          </svg>
-          {COPY.map((c) => (
-            <div class="cp" data-win={c.win.join(',')}>
-              <b>{c.title}</b>
-              <p>{c.body}</p>
-            </div>
-          ))}
-        </div>
+  <!-- 돌아가는 방 — 스크롤한 만큼 돌고, 도는 동안 읽는다 -->
+  <section class="turn" id="turn" aria-label="스토리 룸">
+    <div class="turn-stage">
+      <div class="turn-obj">
+        <img class="f a" src="/img/story-room-writing.webp" alt="책 속에 지어진 방에서 글을 쓰는 사람" />
+        <img class="f b" src="/img/story-room-open.webp" alt="책을 펼쳐 서가에 꽂는 사람" aria-hidden="true" />
       </div>
-    </section>
 
-    <!-- 4. 불이 다 켜진 자리 -->
-    <section class="act line outro">
-      <p>{OUTRO}</p>
-      <span>{OUTRO_SUB}</span>
-    </section>
-  </div>
+      <div class="turn-copy">
+        {COPY.map((c) => (
+          <div class="cp" data-win={c.win.join(',')}>
+            <b>{c.title}</b>
+            <p>{c.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <span class="turn-hint" aria-hidden="true"></span>
+    </div>
+  </section>
 
   {html
     ? <article set:html={html} />
     : <article><h1>About</h1><p>준비 중입니다.</p></article>}
 
   <style is:global>
-    /* 배경 띠가 칼럼 밖으로 나가야 해서 — clip은 hidden과 달리 sticky를 안 깨뜨린다 */
-    html { overflow-x: clip; }
+    /* 문 앞 한 장 — 회전이 시작되기 전에 */
+    .street { margin: 0 0 2vh; }
+    .street img { display: block; width: 100%; margin: 0; border-radius: 0; }
 
-    /* 이 페이지에선 메뉴가 어둠 위에 얹힌다 — 배경 띠가 덮지 않도록 위로 올린다 */
-    nav { position: relative; z-index: 1; }
-    nav a, nav .brand { color: #e8e2cf; }
-    nav a:hover, nav .brand:hover { color: #cbe08a; }
-    .nav-login { background: rgba(255,253,245,.12); border-color: rgba(232,226,207,.45); color: #e8e2cf; }
-    .nav-login:hover { background: #cbe08a; color: #23300f; border-color: #cbe08a; }
-
-    /* ── 불이 켜지는 띠 ── 어두운 거리에서 환한 방까지 한 번에 흐른다 */
-    .hero { position: relative; z-index: 0; }
-    .hero::before {
-      content: '';
-      position: absolute;
-      top: -16rem;         /* 메뉴 위까지 넉넉히 덮어 화면 맨 위부터 어둡게 */
-      bottom: 0;
-      left: calc(50% - 50vw);
-      width: 100vw;
-      z-index: -1;
-      background: linear-gradient(
-        180deg,
-        #080a06 0%,
-        #0e1309 12%,
-        #24330f 26%,
-        #4d7226 40%,
-        #86b34e 54%,
-        #b8dc7e 66%,
-        #d9f0ae 76%,
-        #eef8d8 86%,
-        #ffffff 96%
-      );
-    }
-    .hero img { margin: 0; border-radius: 0; }        /* Base의 전역 img 규칙 끄기 */
-    .act { position: relative; }
-
-    /* ── 1. 어두운 거리 ── */
-    .street {
-      display: grid;
-      grid-template-columns: 1fr 1.15fr;
-      grid-template-areas: 'lead shop' 'who shop';
-      align-items: start;
-      align-content: start;
-      column-gap: 4%;
-      padding: 4vh 0 2vh;
-      min-height: 88vh;
-    }
-    .lead {
-      grid-area: lead;
-      margin: 0;
-      align-self: start;
-      font-family: 'Noto Serif KR', Georgia, serif;
-      font-weight: 700;
-      font-size: clamp(21px, 4.6vw, 34px);
-      line-height: 1.45;
-      color: #fffdf4;
-      white-space: pre-line;
-      letter-spacing: -.02em;
-      word-break: keep-all;
-      text-shadow: 0 2px 18px rgba(0,0,0,.5);
-    }
-    .shop { grid-area: shop; width: 100%; align-self: start; }
-    .visitor {
-      grid-area: who;
-      /* 사람은 폭이 아니라 키로 재야 한다 — 세로로 긴 그림이라 폭으로 맞추면 거인이 된다 */
-      width: auto;
-      height: clamp(110px, 24vh, 230px);
-      align-self: start;
-      justify-self: center;
-      margin-top: 3vh;
-    }
-
-    /* ── 2·4. 한 줄짜리 대목 ── */
-    .line {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      min-height: 46vh;
-      padding: 0 4%;
-    }
-    .line p {
-      margin: 0;
-      font-family: 'Noto Serif KR', Georgia, serif;
-      font-weight: 700;
-      font-size: clamp(18px, 3.6vw, 27px);
-      line-height: 1.5;
-      /* 이 줄은 아직 밤중이다 — 불이 다 켜진 뒤의 outro만 검은 글씨 */
-      color: #f2f6e4;
-      letter-spacing: -.02em;
-      word-break: keep-all;
-      text-wrap: balance;
-      text-shadow: 0 2px 16px rgba(0,0,0,.45);
-    }
-    .outro { min-height: 40vh; }
-    .outro p { color: #1c1408; text-shadow: none; }
-    .outro span {
-      margin-top: 12px;
-      font-family: 'Noto Serif KR', Georgia, serif;
-      font-size: 13px;
-      color: #7a7060;
-    }
-
-    /* ── 3. 도는 방 + 말풍선 ── */
-    .turn { height: 300vh; }
+    /* 스크롤 길이가 곧 회전 각도 — 이 구간을 지나는 동안 180° 돈다 */
+    .turn { height: 300vh; margin: -1rem 0 2rem; }
     .turn-stage {
       position: sticky;
       top: 0;
       height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 3%;
-      perspective: 1400px;
-      perspective-origin: 50% 45%;
+      perspective: 1500px;
+      perspective-origin: 50% 42%;
     }
     .turn-obj {
       position: relative;
-      flex: 0 0 46%;
-      height: 46vh;
+      width: 100%;
+      flex: 1 1 auto;
+      min-height: 0;
       transform-style: preserve-3d;
     }
     .turn-obj .f {
@@ -222,34 +100,16 @@ const COPY = [
     }
     .turn-obj .b { transform: rotateY(180deg); }
 
-    /* 말풍선 — 그림이 하는 말 */
+    /* 읽는 자리 — 장면이 바뀌면 글도 바뀐다 */
     .turn-copy {
       position: relative;
-      flex: 0 0 47%;
-      aspect-ratio: 1 / .92;
-      max-height: 46vh;
-      border: 2px solid #14180d;
-      border-radius: 50% 50% 50% 50% / 54% 54% 46% 46%;
-      background: #fffdf6;
-      box-shadow: 0 6px 26px rgba(20,30,8,.16);
-    }
-    .turn-copy .tail {
-      position: absolute;
-      left: -13%;
-      bottom: -9%;
-      width: 34%;
-      height: auto;
-      overflow: visible;
-      fill: none;
-      stroke: #14180d;
-      stroke-width: 2.6;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      vector-effect: non-scaling-stroke;
+      flex: 0 0 25vh;
+      width: 100%;
+      max-width: 460px;
     }
     .turn-copy .cp {
       position: absolute;
-      inset: 17% 16%;
+      inset: 0;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -260,70 +120,68 @@ const COPY = [
     }
     .turn-copy .cp b {
       display: block;
-      font-size: clamp(14px, 2.4vw, 19px);
+      font-size: 17px;
       font-weight: 700;
-      color: #14180d;
-      letter-spacing: -.02em;
-      line-height: 1.4;
-      word-break: keep-all;
-      text-wrap: balance;
+      color: #2f2109;
+      letter-spacing: -.01em;
     }
     .turn-copy .cp b::after {
       content: '';
       display: block;
-      width: 24px;
+      width: 26px;
       height: 1px;
-      margin: 9px auto;
-      background: rgba(20,24,13,.35);
+      margin: 11px auto;
+      background: rgba(156,116,32,.55);
     }
     .turn-copy .cp p {
       margin: 0;
-      font-size: clamp(10px, 1.45vw, 12.5px);
-      line-height: 1.8;
-      color: #4d5340;
+      font-size: 13px;
+      line-height: 2;
+      color: #6b5a3c;
       white-space: pre-line;
-      word-break: keep-all;
       text-wrap: balance;
     }
 
-    @media (max-width: 560px) {
-      .street { grid-template-columns: .85fr 1.15fr; column-gap: 2%; }
-      .turn-stage { gap: 1.5%; }
-      .turn-obj { flex-basis: 43%; height: 38vh; }
-      .turn-copy { flex-basis: 53%; max-height: 40vh; }
-      .turn-copy .cp { inset: 15% 13%; }
+    /* 더 내려가라는 얇은 표시 */
+    .turn-hint {
+      position: absolute;
+      bottom: 3vh;
+      left: 50%;
+      width: 1px;
+      height: 28px;
+      transform: translateX(-50%);
+      background: linear-gradient(#c9ab6b, transparent);
+      will-change: opacity;
+    }
+
+    @media (max-width: 640px) {
+      .turn-copy { flex-basis: 27vh; }
+      .turn-copy .cp b { font-size: 15.5px; }
+      .turn-copy .cp p { font-size: 12px; line-height: 1.95; }
     }
 
     /* 움직임을 원치 않는 사람에겐 장면과 글을 그냥 위아래로 */
     @media (prefers-reduced-motion: reduce) {
-      .turn { height: auto; padding: 6vh 0; }
+      .turn { height: auto; }
       .turn-stage { position: static; height: auto; display: block; perspective: none; }
       .turn-obj { height: auto; }
       .turn-obj .f {
         position: static;
         display: block;
         margin: 0 auto;
-        max-height: 56vh;
+        max-height: 62vh;
         transform: none !important;
         backface-visibility: visible;
       }
       .turn-obj .b { margin-top: 40px; }
-      .turn-copy {
-        position: static;
-        aspect-ratio: auto;
-        max-height: none;
-        border-radius: 22px;
-        margin: 26px auto 0;
-        padding: 22px 20px;
-      }
-      .turn-copy .tail { display: none; }
+      .turn-copy { position: static; height: auto; margin: 22px auto 0; max-width: 460px; }
       .turn-copy .cp {
         position: static;
-        inset: auto;
         opacity: 1 !important;
         transform: none !important;
-        margin-bottom: 22px;
+        margin-bottom: 26px;
       }
+      .turn-hint { display: none; }
     }
   </style>
 
@@ -333,6 +191,7 @@ const COPY = [
       if (!sec) return;
       var a = sec.querySelector('.f.a');
       var b = sec.querySelector('.f.b');
+      var hint = sec.querySelector('.turn-hint');
       var caps = [].map.call(sec.querySelectorAll('.cp'), function (el) {
         return {el: el, w: (el.getAttribute('data-win') || '').split(',').map(Number)};
       });
@@ -364,7 +223,7 @@ const COPY = [
         var deg = 90 + 90 * (u < 0 ? -1 : 1) * Math.pow(Math.abs(u), 0.4);
         var r = deg * Math.PI / 180;
         var s = Math.sin(r);
-        var z = -130 * s;                       // 돌면서 한 번 물러났다 돌아온다
+        var z = -170 * s;                       // 돌면서 한 번 물러났다 돌아온다
         var tilt = -7 * s;                      // 옆을 보일 때 살짝 기운다
         var base = 'translateZ(' + z.toFixed(1) + 'px) rotateX(' + tilt.toFixed(2) + 'deg) rotateY(';
 
@@ -378,6 +237,8 @@ const COPY = [
           // 덜 보일수록 조금 아래에 — 떠오르듯 들어오고 가라앉듯 나간다
           caps[i].el.style.transform = 'translateY(' + ((1 - o) * 12).toFixed(1) + 'px)';
         }
+
+        hint.style.opacity = Math.max(0, 1 - p * 5).toFixed(3);
       }
 
       function onScroll() {
