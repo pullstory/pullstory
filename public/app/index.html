@@ -1423,6 +1423,48 @@ async function unpublishNote(uid, handle, noteId) {
     .catch(e => console.warn("unpublish note:", e));
 }
 
+// 새 책으로 시작할 때, 밖에 나가 있는 것까지 거둔다.
+// scashbook 문서만 비우면 앱 안은 깨끗해지지만 메인 신문과 책장은 옛 기록을 계속 읽는다
+// — 내보낸 사본은 따로 사는 문서라서 본 문서를 덮어써도 안 지워지기 때문이다.
+async function sweepPublished(uid, handle) {
+  if (!FIREBASE_READY || !uid || uid === "local-user") return {swept: 0, failed: 0};
+  const jobs = [];
+  let failed = 0;
+  // 남아 있으면 남의 눈에 보이는 것만 실패로 센다. press·photos는 규칙상 거절될 수
+  // 있는데(편집부만 쓰기 / 지우기 규칙 없음) 그건 사용자가 할 수 있는 일이 아니다
+  const add = (p, counted) => jobs.push(p.catch(e => {
+    if (counted) failed++;
+    console.warn("sweep:", e.code || e);
+  }));
+
+  if (handle) {
+    // 진열대 카드 — 메인 신문과 책장이 읽는 것이 이것이다
+    const feed = await fbDb.collection("feed").where("handle", "==", handle).get();
+    feed.forEach(d => {
+      add(d.ref.delete(), true);
+      if (handle === DESK_HANDLE) add(fbDb.collection("press").doc(d.id).delete(), false);
+    });
+    const pages = await fbDb.collection("publicPages").where("handle", "==", handle).get();
+    pages.forEach(d => add(d.ref.delete(), true));
+    const books = await fbDb.collection("publicBooks").where("handle", "==", handle).get();
+    books.forEach(d => add(d.ref.delete(), true));
+  }
+
+  // 글과 사진은 handle이 아니라 uid로 달려 있다 — 주소를 정하기 전에 쓴 것도 거둬진다
+  const notes = await fbDb.collection("notes").where("ownerUid", "==", uid).get();
+  notes.forEach(d => add(d.ref.delete(), true));
+  const photos = await fbDb.collection("photos").where("ownerUid", "==", uid).get();
+  photos.forEach(d => add(d.ref.delete(), false));
+
+  // 내 것에 달렸던 말 — 가리키던 글이 사라졌으니 같이 거둔다.
+  // (응원은 누른 사람만 지울 수 있어서 남는다. 가리키는 글이 없으니 어디에도 안 보인다)
+  const said = await fbDb.collection("comments").where("targetOwnerUid", "==", uid).get();
+  said.forEach(d => add(d.ref.delete(), true));
+
+  await Promise.all(jobs);
+  return {swept: jobs.length - failed, failed};
+}
+
 // 글 카드가 진열대에 있어야 하는 이유는 둘이다 — 글 자체를 내보냈거나, 담긴 책이 나갔거나.
 // 어느 쪽이든 카드는 하나뿐이고, 책 이름은 그 책이 나가 있을 때만 붙는다
 // (나가지 않은 책의 제목을 읽는 사람에게 보일 이유가 없다).
@@ -5211,13 +5253,20 @@ function App() {
     setOpened(false);
   };
 
-  // 새 책으로 시작 — 전부 지우고 고른 날짜를 DAY 1로
+  // 새 책으로 시작 — 전부 지우고 고른 날짜를 DAY 1로.
+  // 앱 안을 비우는 것과 내보낸 사본을 거두는 것은 다른 일이라 둘 다 해야 한다
   const handleReset = useCallback(async (startDate) => {
     const fresh = {...defaultData(), startDate: startDate || todayStr()};
+    const uid = user && user.uid;
+    const handle = (profileRef.current && profileRef.current.handle) || "";
     setDataState(fresh);
     setOpened(false);
-    try { await resetSave(user && user.uid, fresh); }
+    try { await resetSave(uid, fresh); }
     catch (e) { console.warn("Reset save failed:", e); }
+    try {
+      const r = await sweepPublished(uid, handle);
+      if (r && r.failed) alert(`내보낸 기록 ${r.failed}개를 거두지 못했어요.\n새로고침한 뒤 다시 시도해 주세요.`);
+    } catch (e) { console.warn("Reset sweep failed:", e); }
   }, [user]);
 
   // 책장에 내걸 숫자 — scashbook 문서는 본인만 읽을 수 있어서 남의 책장에선 못 본다.
