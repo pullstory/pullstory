@@ -5807,12 +5807,14 @@ function App() {
     if (!FIREBASE_READY || !uid || uid === "local-user") return;
     const unsub = fbDb.collection("scashbook").doc(uid).onSnapshot(
       (snap) => {
-        if (!snap.exists || snap.metadata.hasPendingWrites) return;  // 내가 쓴 것의 메아리
-        if (savePending()) return;                                   // 아직 안 보낸 내 손길이 있다
-        const d = snap.data();
-        if (!d) return;
-        setDataState((cur) => (JSON.stringify(cur) === JSON.stringify(d) ? cur : d));
-        saveLocal(d);
+        try {
+          if (!snap.exists || (snap.metadata && snap.metadata.hasPendingWrites)) return;
+          if (savePending()) return;                                 // 아직 안 보낸 내 손길이 있다
+          const d = snap.data();
+          if (!d) return;
+          setDataState((cur) => (JSON.stringify(cur) === JSON.stringify(d) ? cur : d));
+          saveLocal(d);
+        } catch (e) { console.warn("sync apply:", e); }
       },
       (e) => console.warn("sync:", e)
     );
@@ -5833,34 +5835,45 @@ function App() {
   useEffect(() => {
     const uid = user && user.uid;
     if (!data || !uid || uid === "local-user" || !FIREBASE_READY || movedRef.current) return;
-    const recs = data.pageRecords || {};
-    const stuck = [];
-    Object.keys(recs).forEach(d => (recs[d].tasks || []).forEach(t => {
-      if (t && typeof t.photo === "string" && t.photo.length > 2000) stuck.push([d, t.id, t.photo]);
-    }));
+    // 기록 하나가 이상해도 앱 전체가 날아가면 안 된다 — 청소는 거들 뿐이다
+    let stuck = [];
+    try {
+      const recs = data.pageRecords || {};
+      Object.keys(recs).forEach(d => {
+        const ts = (recs[d] && recs[d].tasks) || [];
+        if (!Array.isArray(ts)) return;
+        ts.forEach(t => {
+          if (t && typeof t.photo === "string" && t.photo.length > 2000) stuck.push([d, t.id, t.photo]);
+        });
+      });
+    } catch (e) { console.warn("photo scan:", e); movedRef.current = true; return; }
     if (!stuck.length) { movedRef.current = true; return; }
     movedRef.current = true;
     (async () => {
-      const moved = {};
-      for (const [d, id, uri] of stuck) {
-        const saved = await savePhoto(uid, uri);
-        if (saved && saved.id) moved[d + "|" + id] = saved.id;
-      }
-      if (!Object.keys(moved).length) return;
-      setDataState(cur => {
-        const next = {...cur, pageRecords: {...(cur.pageRecords || {})}};
-        Object.keys(next.pageRecords).forEach(d => {
-          const rec = next.pageRecords[d];
-          if (!rec || !rec.tasks) return;
-          next.pageRecords[d] = {...rec, tasks: rec.tasks.map(t => {
-            const got = moved[d + "|" + t.id];
-            return got ? {...t, photoId: t.photoId || got, photo: null} : t;
-          })};
+      try {
+        const moved = {};
+        for (const [d, id, uri] of stuck) {
+          const saved = await savePhoto(uid, uri);
+          if (saved && saved.id) moved[d + "|" + id] = saved.id;
+        }
+        if (!Object.keys(moved).length) return;
+        let merged = null;
+        setDataState(cur => {
+          const next = {...cur, pageRecords: {...((cur && cur.pageRecords) || {})}};
+          Object.keys(next.pageRecords).forEach(d => {
+            const rec = next.pageRecords[d];
+            if (!rec || !Array.isArray(rec.tasks)) return;
+            next.pageRecords[d] = {...rec, tasks: rec.tasks.map(t => {
+              const got = t && moved[d + "|" + t.id];
+              return got ? {...t, photoId: t.photoId || got, photo: null} : t;
+            })};
+          });
+          merged = next;
+          return next;
         });
-        scheduleSave(uid, next);
-        return next;
-      });
-      console.log("본문에 있던 사진 " + Object.keys(moved).length + "장을 밖으로 옮겼습니다");
+        if (merged) scheduleSave(uid, merged);     // 저장은 상태를 고친 뒤에 따로
+        console.log("본문에 있던 사진 " + Object.keys(moved).length + "장을 밖으로 옮겼습니다");
+      } catch (e) { console.warn("photo move:", e); }
     })();
   }, [data, user]);
 
@@ -6107,7 +6120,33 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+// 어느 한 곳이 터져도 까만 화면만 남지 않게 — 무엇이 터졌는지 보여 주고
+// 기록은 기기에 그대로 있다고 알려 준다
+class Guard extends React.Component {
+  constructor(p) { super(p); this.state = {err: null}; }
+  static getDerivedStateFromError(err) { return {err}; }
+  componentDidCatch(err, info) { console.error("앱이 멈췄습니다:", err, info); }
+  render() {
+    if (!this.state.err) return this.props.children;
+    const msg = String((this.state.err && (this.state.err.message || this.state.err)) || "");
+    return (
+      <div style={{padding:"28px 22px",color:"#e8dcc0",fontFamily:"'Noto Serif KR',serif",lineHeight:1.8}}>
+        <div style={{fontSize:"15px",fontWeight:700,color:"#f0e2c0",marginBottom:"10px"}}>앱이 잠시 멈췄어요</div>
+        <div style={{fontSize:"12px",color:"#b9a888"}}>
+          기록은 이 기기에 그대로 있습니다. 새로고침하면 대개 다시 열립니다.
+        </div>
+        <div style={{marginTop:"14px",padding:"10px 12px",borderRadius:"7px",
+          background:"rgba(255,255,255,.07)",fontSize:"11px",color:"#c9b998",
+          wordBreak:"break-all",fontFamily:"ui-monospace,monospace"}}>{msg}</div>
+        <button onClick={()=>location.reload()} style={{marginTop:"16px",padding:"11px 18px",
+          border:"1px solid #b8862f",borderRadius:"7px",background:"rgba(212,168,81,.18)",
+          color:"#f0d9a0",fontFamily:"inherit",fontSize:"12px",cursor:"pointer"}}>새로고침</button>
+      </div>
+    );
+  }
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Guard><App/></Guard>);
 </script>
 
 <script>
