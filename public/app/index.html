@@ -261,6 +261,8 @@
     border-top:1px dotted rgba(120,90,40,.25);font-family:'Cormorant Garamond',Georgia,serif;
     font-size:9.5px;letter-spacing:.06em;color:#a89066}
   .dk-diag .warn{color:#a8483f;font-weight:700}
+  .dk-diagb{margin-left:auto;background:none;border:1px solid rgba(120,90,40,.4);border-radius:5px;
+    padding:3px 8px;font-family:inherit;font-size:9px;color:#8a5f14;cursor:pointer}
 
   /* 쓰던 챕터 이어 가기 */
   .td-cont{width:100%;display:flex;align-items:center;gap:7px;padding:7px 10px;margin:-2px 0 6px 14px;
@@ -1299,7 +1301,20 @@ let onSaveError = () => {};
 function setSaveErrorHandler(fn) { onSaveError = fn || (() => {}); }
 // 저장과 연동이 실제로 되고 있는지 — 짐작 대신 앱이 말하게 한다
 const saveState = {at: 0, ok: null, err: "", bytes: 0, sync: false};
-function saveStatus() { return saveState; }                      // 보냈지만 아직 끝나지 않은 저장
+function saveStatus() { return saveState; }
+// 상태 줄의 '지금 저장' — 기다리지 않고 지금 한 번 보내 결과를 본다
+let forceSaveUid = null;
+function setForceSaveUid(u) { forceSaveUid = u; }
+function forceSave(data) {
+  if (!FIREBASE_READY || !forceSaveUid || forceSaveUid === "local-user") { saveState.ok = false; saveState.err = "로그인 안 됨"; saveState.at = Date.now(); return; }
+  try { saveState.bytes = JSON.stringify(data).length; } catch (e) {}
+  saveFlying++;
+  fbDb.collection("scashbook").doc(forceSaveUid).set(data, {merge: true})
+    .then(() => { saveState.at = Date.now(); saveState.ok = true; saveState.err = ""; })
+    .catch(e => { saveState.at = Date.now(); saveState.ok = false;
+      saveState.err = (e && (e.code || e.message)) || "알 수 없음"; })
+    .then(() => { saveFlying = Math.max(0, saveFlying - 1); });
+}                      // 보냈지만 아직 끝나지 않은 저장
 // 아직 서버에 안 닿은 내 손길이 있는가 — 다른 기기의 기록으로 갈아끼우기 전에 묻는다
 function savePending() { return !!saveTimer || saveFlying > 0; }
 function scheduleSave(uid, data) {
@@ -2921,19 +2936,23 @@ const BC = {
 const CASH4 = ["C","A","S","H"];
 
 // 저장과 연동이 지금 어떤 상태인지 — 안 되면 짐작하지 말고 이 줄을 읽으면 된다
-function SaveLine() {
+function SaveLine({data}) {
   const [, tick] = useState(0);
   useEffect(() => { const t = setInterval(() => tick(n => n + 1), 2000); return () => clearInterval(t); }, []);
   const st = saveStatus();
-  const when = st.at ? new Date(st.at).toLocaleTimeString("ko-KR", {hour:"2-digit", minute:"2-digit", second:"2-digit"}) : "아직 없음";
-  const kb = st.bytes ? Math.round(st.bytes / 1024) : 0;
+  const when = st.at ? new Date(st.at).toLocaleTimeString("ko-KR", {hour:"2-digit", minute:"2-digit", second:"2-digit"}) : "아직";
+  // 크기는 저장을 기다리지 않고 지금 들고 있는 기록에서 바로 잰다
+  let kb = 0;
+  try { kb = Math.round(JSON.stringify(data || {}).length / 1024); } catch (e) {}
   const big = kb > 900;
+  const sv = st.ok === null ? "아직" : st.ok ? "성공" : "실패";
   return (
     <div className="dk-diag">
-      <span>저장 {st.ok === null ? "대기" : st.ok ? "성공" : "실패"} · {when}</span>
+      <span className={st.ok === false ? "warn" : ""}>저장 {sv} · {when}</span>
       <span className={big ? "warn" : ""}>기록 {kb}KB{big ? " · 한도에 가까움" : ""}</span>
       <span className={st.sync ? "" : "warn"}>연동 {st.sync ? "켜짐" : "꺼짐"}</span>
-      {!st.ok && st.err && <span className="warn">{st.err}</span>}
+      {st.ok === false && st.err && <span className="warn">{st.err}</span>}
+      <button className="dk-diagb" onClick={()=>{ saveState.ok = null; forceSave(data); }}>지금 저장</button>
     </div>
   );
 }
@@ -5591,7 +5610,7 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
           notes={notes} noteApi={noteApi}/>
       )}
 
-      <SaveLine/>
+      <SaveLine data={data}/>
     </div>
   );
 }
@@ -5885,6 +5904,7 @@ function App() {
     const uid = user && user.uid;
     if (!FIREBASE_READY || !uid || uid === "local-user") return;
     saveState.sync = true;
+    setForceSaveUid(uid);
     const unsub = fbDb.collection("scashbook").doc(uid).onSnapshot(
       (snap) => {
         try {
