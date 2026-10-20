@@ -1300,7 +1300,7 @@ let saveFlying = 0;
 let onSaveError = () => {};
 function setSaveErrorHandler(fn) { onSaveError = fn || (() => {}); }
 // 저장과 연동이 실제로 되고 있는지 — 짐작 대신 앱이 말하게 한다
-const saveState = {at: 0, ok: null, err: "", bytes: 0, sync: false};
+const saveState = {at: 0, ok: null, err: "", bytes: 0, sync: false, uid: ""};
 function saveStatus() { return saveState; }
 // 상태 줄의 '지금 저장' — 기다리지 않고 지금 한 번 보내 결과를 본다
 let forceSaveUid = null;
@@ -2946,11 +2946,18 @@ function SaveLine({data}) {
   try { kb = Math.round(JSON.stringify(data || {}).length / 1024); } catch (e) {}
   const big = kb > 900;
   const sv = st.ok === null ? "아직" : st.ok ? "성공" : "실패";
+  // 크기만으로는 두 기기가 같은 것을 보는지 알 수 없다 — 오늘 몇 개를 끝냈는지로 견준다
+  const todayK = todayStr();
+  const ts = (((data || {}).pageRecords || {})[todayK] || {}).tasks || [];
+  const done = ts.filter(t => t && t.done).length;
+  const who = (saveState.uid || "").slice(-5);
   return (
     <div className="dk-diag">
       <span className={st.ok === false ? "warn" : ""}>저장 {sv} · {when}</span>
       <span className={big ? "warn" : ""}>기록 {kb}KB{big ? " · 한도에 가까움" : ""}</span>
       <span className={st.sync ? "" : "warn"}>연동 {st.sync ? "켜짐" : "꺼짐"}</span>
+      <span>오늘 {done}/{ts.length}</span>
+      <span>계정 …{who}</span>
       {st.ok === false && st.err && <span className="warn">{st.err}</span>}
       <button className="dk-diagb" onClick={()=>{ saveState.ok = null; forceSave(data); }}>지금 저장</button>
     </div>
@@ -5904,6 +5911,7 @@ function App() {
     const uid = user && user.uid;
     if (!FIREBASE_READY || !uid || uid === "local-user") return;
     saveState.sync = true;
+    saveState.uid = uid;
     setForceSaveUid(uid);
     const unsub = fbDb.collection("scashbook").doc(uid).onSnapshot(
       (snap) => {
