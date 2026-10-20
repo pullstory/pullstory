@@ -257,12 +257,43 @@
   .td-cont .v{flex:1;min-width:0;font-size:11px;color:#3a2818;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .td-cont .d{flex-shrink:0;font-family:Georgia,serif;font-size:9px;color:#a89066}
 
-  /* 과정 기록 — 하는 동안 남기는 자리 */
-  .td-rec{border:1px solid rgba(120,90,40,.28);border-radius:7px;background:rgba(255,253,246,.6);padding:10px}
-  .td-rect{width:100%;box-sizing:border-box;border:none;border-bottom:1px solid rgba(120,90,40,.2);
-    background:none;padding:2px 0 7px;font-family:'Noto Serif KR',serif;font-size:13px;font-weight:700;
-    color:#2f2109;outline:none;margin-bottom:8px}
-  .td-recb{font-size:12px;line-height:1.75}
+  /* 과정 기록 — 서랍엔 요약만, 쓰는 건 펼친 창에서 */
+  .td-recsum{width:100%;display:block;text-align:left;border:1px solid rgba(120,90,40,.3);
+    border-left:3px solid #b8862f;border-radius:7px;background:rgba(255,253,246,.7);
+    padding:10px 12px;cursor:pointer;font-family:inherit}
+  .td-recsum:active{background:#f3e8cd}
+  .td-recsum .tt{display:block;font-family:'Noto Serif KR',serif;font-size:12.5px;font-weight:700;color:#2f2109}
+  .td-recsum .ex{display:block;font-size:11px;color:#6b5a3c;line-height:1.6;margin-top:3px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .td-recsum .mt{display:flex;align-items:center;gap:7px;margin-top:7px}
+  .td-recsum .mt i{font-style:normal;font-size:9px;color:#9c8460}
+  .td-recsum .mt i.pub{color:#4a7c3a;font-weight:700}
+  .td-recsum .mt b{margin-left:auto;font-size:10px;color:#8a5f14}
+
+  /* 펼친 기록 창 */
+  .rw-ov{position:fixed;inset:0;z-index:9998;background:rgba(32,22,10,.82);
+    display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .18s}
+  .rw-sheet{width:100%;max-width:var(--app-w);height:94vh;background:linear-gradient(#fffdf6,#f7eed9);
+    border-radius:14px 14px 0 0;display:flex;flex-direction:column;overflow:hidden;
+    box-shadow:0 -8px 30px rgba(0,0,0,.4)}
+  .rw-top{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:13px 15px;
+    border-bottom:1px solid rgba(120,90,40,.22);background:rgba(255,253,246,.9)}
+  .rw-x{background:none;border:none;font-family:'Noto Serif KR',serif;font-size:12px;
+    color:#8a5f14;cursor:pointer;padding:0;font-weight:700}
+  .rw-who{flex:1;min-width:0;text-align:right;font-family:'Noto Serif KR',serif;font-size:11px;
+    color:#9c8460;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rw-body{flex:1;overflow:auto;padding:16px 15px 40px}
+  .rw-plan{border-left:2px solid rgba(156,116,32,.5);padding:2px 0 2px 10px;margin-bottom:14px;
+    font-size:11.5px;color:#6b5a3c;line-height:1.7;white-space:pre-wrap}
+  .rw-plan b{display:block;font-family:'Cormorant Garamond',Georgia,serif;font-size:9px;
+    letter-spacing:.2em;text-transform:uppercase;color:#9c7420;margin-bottom:3px}
+  .rw-title{width:100%;box-sizing:border-box;border:none;border-bottom:1px solid rgba(120,90,40,.25);
+    background:none;padding:0 0 9px;font-family:'Noto Serif KR',serif;font-size:19px;font-weight:700;
+    color:#2f2109;outline:none;margin-bottom:14px;letter-spacing:-.02em}
+  .rw-text{font-size:14px;line-height:2;min-height:120px}
+  .rw-done{width:100%;margin-top:18px;padding:13px;border:none;border-radius:8px;
+    background:linear-gradient(135deg,#e7c574,#b8862f);color:#fff8e5;
+    font-family:'Noto Serif KR',serif;font-weight:700;font-size:13px;letter-spacing:.14em;cursor:pointer}
   .td-chap{display:flex;align-items:flex-start;gap:7px;margin-top:11px;cursor:pointer}
   .td-chap input{margin-top:2px;flex-shrink:0;accent-color:#b8862f}
   .td-chap span{font-family:'Noto Serif KR',serif;font-size:10.5px;font-weight:700;color:#5c3f1c;line-height:1.5}
@@ -3319,7 +3350,7 @@ function HomePage({data, setData, user, profile, onNeedHandle, notes, noteApi, o
 // 챕터에서 정한 월별 계획을 하루 단위로 가져와 실행, 사진+메모로 인증.
 // 모두 완료 시 자정에 page +1 (게임 경험치처럼).
 // ═════════════════════════════════════════════════════════════════════
-function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi, goBook}) {
+function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi, notesLoaded, goBook}) {
   const todayKey = todayStr();
   const todayDate = new Date();
   const wd = ["SUN","MON","TUE","WED","THU","FRI","SAT"][todayDate.getDay()];
@@ -3603,6 +3634,8 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
 
   // 체크박스 클릭 — 사진+메모 인증 후에만 완료.
   // 한번 완료한 기록은 되돌릴 수 없음(스토리로 넘어감) → done인 항목은 no-op
+  const [recFor, setRecFor] = useState(null);         // 넓게 펴서 쓰는 중인 할 일
+
   // 과정 기록은 메모가 아니라 글 한 편이다. 처음부터 notes에 세워 두면
   // 책에서 가져온 계획은 그 책의 Write에 바로 들어가고, 다 쓰면 그대로 작품이 된다.
   // (t.note는 짤 때 적어 두는 세부 계획이다 — 기록과 섞지 않는다)
@@ -3611,7 +3644,9 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
 
   const startRecord = async (t) => {
     if (!noteApi || !noteApi.live) { alert("로그인하면 과정을 글로 남길 수 있어요."); return; }
-    if (t.recId) return;
+    // recId가 있어도 그 글이 지워졌으면 새로 세운다 —
+    // 안 그러면 없는 글을 가리킨 채 다시 시작할 수도 없는 막다른 길이 된다
+    if (t.recId && recOf(t)) { setRecFor(t.id); return; }
     const id = await noteApi.create({
       title: t.text || "",
       blocks: [{t: "p", v: ""}],
@@ -3619,7 +3654,7 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
       visibility: "private",
       from: {date: todayKey, taskId: String(t.id)},
     });
-    if (id) updateTodayTask(t.id, {recId: id});
+    if (id) { updateTodayTask(t.id, {recId: id}); setRecFor(t.id); }
   };
 
   // 글은 글대로 두고, 하루의 기록에는 그 첫머리와 첫 사진만 옮겨 적는다
@@ -3943,30 +3978,26 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                     {(() => {
                       const rec = recOf(t);
                       if (!rec) return (
-                        <button className="td-npb" onClick={()=>startRecord(t)}>✎ 기록 시작하기</button>
+                        <button className="td-npb" onClick={()=>startRecord(t)}
+                          disabled={!notesLoaded && !!(noteApi && noteApi.live)}>
+                          ✎ 기록 시작하기
+                        </button>
                       );
+                      const bs = noteBlocks(rec);
+                      const lines = bs.filter(b => b.t === "p" || b.t === "h")
+                        .map(b => String(b.v || "").trim()).filter(Boolean);
+                      const pics = bs.filter(b => b.t === "img").length;
                       return (
-                        <div className="td-rec">
-                          <BufferedInput className="td-rect" value={rec.title || ""} placeholder="제목"
-                            onSave={(v)=>noteApi.update(rec.id, {title: v})}/>
-                          <BlockEditor note={rec} uid={user && user.uid} textClass="td-recb"
-                            placeholder="읽은 문장, 떠오른 생각, 오늘의 기획…"
-                            onWrite={(patch)=>noteApi.update(rec.id, patch)}/>
-                          <div className={"dk-pub" + (rec.visibility === "public" ? " on" : "")} style={{marginTop:"11px"}}>
-                            <span className="t">이 글 내보내기</span>
-                            <button className={"dk-sw" + (rec.visibility === "public" ? " on" : "")}
-                              onClick={()=>toggleRecVis(rec)}/>
-                          </div>
-                          {t.sourceTaskId && (
-                            <label className="td-chap">
-                              <input type="checkbox" checked={!!t.chapterDone}
-                                onChange={e=>updateTodayTask(t.id,{chapterDone:e.target.checked})}/>
-                              <span>이 챕터를 다 썼어요
-                                <i>{t.chapterDone ? "다음에 새 챕터로 시작합니다" : "체크하지 않으면 내일 '이어서 쓰기'로 이 글을 계속 씁니다"}</i>
-                              </span>
-                            </label>
-                          )}
-                        </div>
+                        <button className="td-recsum" onClick={()=>setRecFor(t.id)}>
+                          <span className="tt">{rec.title || "(제목 없음)"}</span>
+                          <span className="ex">{lines[0] || "아직 쓴 내용이 없어요"}</span>
+                          <span className="mt">
+                            {lines.length > 0 && <i>{lines.length}문단</i>}
+                            {pics > 0 && <i>사진 {pics}</i>}
+                            {rec.visibility === "public" && <i className="pub">공개</i>}
+                            <b>이어 쓰기 ›</b>
+                          </span>
+                        </button>
                       );
                     })()}
                     {hasRecord(t) && (
@@ -4176,6 +4207,47 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
       )}
 
       {/* 인증 모달 (Portal) */}
+      {/* 과정 기록 — 서랍에선 좁으니 펴서 쓴다 */}
+      {(() => {
+        const t = recFor ? tasks.find(x => x.id === recFor) : null;
+        const rec = t ? recOf(t) : null;
+        if (!t || !rec) return null;
+        return ReactDOM.createPortal(
+          <div className="rw-ov">
+            <div className="rw-sheet">
+              <div className="rw-top">
+                <button className="rw-x" onClick={()=>setRecFor(null)}>‹ 닫기</button>
+                <span className="rw-who">{t.text}</span>
+              </div>
+              <div className="rw-body">
+                {t.note && <div className="rw-plan"><b>오늘의 계획</b>{t.note}</div>}
+                <BufferedInput className="rw-title" value={rec.title || ""} placeholder="제목"
+                  onSave={(v)=>noteApi.update(rec.id, {title: v})}/>
+                <BlockEditor note={rec} uid={user && user.uid} textClass="rw-text"
+                  placeholder="읽은 문장, 떠오른 생각, 오늘의 기획…"
+                  onWrite={(patch)=>noteApi.update(rec.id, patch)}/>
+                <div className={"dk-pub" + (rec.visibility === "public" ? " on" : "")}>
+                  <span className="t">이 글 내보내기</span>
+                  <button className={"dk-sw" + (rec.visibility === "public" ? " on" : "")}
+                    onClick={()=>toggleRecVis(rec)}/>
+                </div>
+                {t.sourceTaskId && (
+                  <label className="td-chap">
+                    <input type="checkbox" checked={!!t.chapterDone}
+                      onChange={e=>updateTodayTask(t.id,{chapterDone:e.target.checked})}/>
+                    <span>이 챕터를 다 썼어요
+                      <i>{t.chapterDone ? "다음엔 새 챕터로 시작합니다" : "체크하지 않으면 내일 '이어서 쓰기'로 이 글을 계속 씁니다"}</i>
+                    </span>
+                  </label>
+                )}
+                <button className="rw-done" onClick={()=>setRecFor(null)}>✓ 오늘은 여기까지</button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        );
+      })()}
+
       {/* 글감 → 글 — 어디에 둘지, 공개할지만 고르면 된다 */}
       {seed && ReactDOM.createPortal(
         <div onClick={()=>setSeed(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.72)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px",animation:"fadeIn .2s"}}>
@@ -5383,7 +5455,7 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
   );
 }
 
-function PageBook({data, setData, onLogout, user, profile, onSaveProfile, notes, noteApi}) {
+function PageBook({data, setData, onLogout, user, profile, onSaveProfile, notes, noteApi, notesLoaded}) {
   const [pageIdx, setPageIdx] = useState(() => PAGES.findIndex(p=>p.key==="future"));  // 시작: 미래
   const [menu, setMenu] = useState(false);
   const [editPen, setEditPen] = useState(false);
@@ -5473,7 +5545,7 @@ function PageBook({data, setData, onLogout, user, profile, onSaveProfile, notes,
                                   if (k) setPageIdx(PAGES.findIndex(x=>x.key===k)); }}/>;
       case "writing":  return <EpisodePage  data={data} setData={setData} user={user}
                                 profile={profile} onNeedHandle={()=>setNeedHandle(true)}
-                                notes={notes} noteApi={noteApi}
+                                notes={notes} noteApi={noteApi} notesLoaded={notesLoaded}
                                 goBook={(id)=>{ setOpenBookId(id); setBookFrom("writing");
                                   setPageIdx(PAGES.findIndex(x=>x.key==="chapters")); }}/>;
       case "now":      return <HistoryPage  data={data} setData={setData} user={user}
@@ -5893,7 +5965,8 @@ function App() {
   }
 
   return <PageBook data={data} setData={setData} onLogout={handleLogout} user={user}
-    profile={profile} onSaveProfile={handleSaveProfile} notes={notes} noteApi={noteApi}/>;
+    profile={profile} onSaveProfile={handleSaveProfile} notes={notes} noteApi={noteApi}
+    notesLoaded={notesLoaded}/>;
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
