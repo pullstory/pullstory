@@ -196,8 +196,12 @@
   .mb-cttl{font-family:'Noto Serif KR',serif;font-size:12px;font-weight:700;color:#fff8e5;line-height:1.35;margin-top:auto;text-shadow:0 1px 4px rgba(0,0,0,.4);position:relative;
     overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;word-break:break-word}
   .mb-cst{font-family:'Cormorant Garamond',serif;font-size:9px;font-style:italic;color:rgba(255,248,220,.75);margin-top:4px;position:relative}
-  .mb-ov{position:fixed;inset:0;max-width:var(--app-w);margin:0 auto;z-index:10000;background:rgba(20,12,5,.55);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:18px 12px;box-sizing:border-box;animation:fadeIn .2s}
-  .mb-page{width:100%;max-width:400px;border-radius:9px;background:#f3e9d1;background-image:radial-gradient(circle at 60% 0%,#f8f1de,#eaddbf 75%);overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+  /* 책을 펼치는 창 — 글을 쓰는 창(.rw-sheet)과 같은 크기로. 두 창이 달리 서면 세계가 끊긴다 */
+  .mb-ov{position:fixed;inset:0;z-index:10000;background:rgba(32,22,10,.82);
+    display:flex;align-items:flex-end;justify-content:center;overflow:hidden;animation:fadeIn .2s}
+  .mb-page{width:100%;max-width:var(--app-w);height:94vh;border-radius:14px 14px 0 0;
+    background:#f3e9d1;background-image:radial-gradient(circle at 60% 0%,#f8f1de,#eaddbf 75%);
+    overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:0 -8px 30px rgba(0,0,0,.45)}
   .mb-dbar{display:flex;align-items:center;justify-content:space-between;padding:12px 13px 10px}
   .mb-back{background:none;border:none;color:#8a6a3a;font-family:'Noto Serif KR',serif;font-size:12px;font-weight:700;cursor:pointer}
   .mb-pill{border:none;font-family:'Noto Serif KR',serif;font-size:10px;font-weight:700;padding:4px 12px;border-radius:20px;background:rgba(212,168,81,.18);color:#9c7a2a;cursor:pointer}
