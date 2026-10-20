@@ -1440,10 +1440,16 @@ async function sweepPublished(uid, handle) {
   if (handle) {
     // 진열대 카드 — 메인 신문과 책장이 읽는 것이 이것이다
     const feed = await fbDb.collection("feed").where("handle", "==", handle).get();
-    feed.forEach(d => {
-      add(d.ref.delete(), true);
-      if (handle === DESK_HANDLE) add(fbDb.collection("press").doc(d.id).delete(), false);
-    });
+    feed.forEach(d => add(d.ref.delete(), true));
+
+    // 1면에 올려 둔 자리는 따로 쓸어야 한다 — feed를 돌며 짝을 지우면
+    // 카드가 이미 사라진 뒤 남은 자리(짝 없는 것)는 차례가 안 온다
+    if (handle === DESK_HANDLE) {
+      const press = await fbDb.collection("press").get();
+      press.forEach(d => {
+        if (d.id.indexOf(handle + "_") === 0) add(d.ref.delete(), false);
+      });
+    }
     const pages = await fbDb.collection("publicPages").where("handle", "==", handle).get();
     pages.forEach(d => add(d.ref.delete(), true));
     const books = await fbDb.collection("publicBooks").where("handle", "==", handle).get();
