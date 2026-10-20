@@ -2956,7 +2956,7 @@ function SaveLine({data}) {
       <span className={st.ok === false ? "warn" : ""}>저장 {sv} · {when}</span>
       <span className={big ? "warn" : ""}>기록 {kb}KB{big ? " · 한도에 가까움" : ""}</span>
       <span className={st.sync ? "" : "warn"}>연동 {st.sync ? "켜짐" : "꺼짐"}</span>
-      <span>오늘 {done}/{ts.length}</span>
+      <span>오늘 {todayK.slice(5)} · {done}/{ts.length}</span>
       <span>계정 …{who}</span>
       {st.ok === false && st.err && <span className="warn">{st.err}</span>}
       <button className="dk-diagb" onClick={()=>{ saveState.ok = null; forceSave(data); }}>지금 저장</button>
