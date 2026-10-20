@@ -248,7 +248,25 @@
     padding:4px 9px;font-family:inherit;font-size:10px;color:#8a5f14;cursor:pointer}
   .td-bynote button:active{background:#e9d7ad}
 
+  /* 쓰던 챕터 이어 가기 */
+  .td-cont{width:100%;display:flex;align-items:center;gap:7px;padding:7px 10px;margin:-2px 0 6px 14px;
+    width:calc(100% - 14px);background:rgba(212,168,81,.1);border:1px dashed rgba(184,134,47,.5);
+    border-radius:6px;cursor:pointer;font-family:inherit;text-align:left}
+  .td-cont:active{background:rgba(212,168,81,.2)}
+  .td-cont .k{flex-shrink:0;font-family:'Noto Serif KR',serif;font-size:9px;font-weight:700;color:#8a5f14}
+  .td-cont .v{flex:1;min-width:0;font-size:11px;color:#3a2818;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .td-cont .d{flex-shrink:0;font-family:Georgia,serif;font-size:9px;color:#a89066}
+
   /* 과정 기록 — 하는 동안 남기는 자리 */
+  .td-rec{border:1px solid rgba(120,90,40,.28);border-radius:7px;background:rgba(255,253,246,.6);padding:10px}
+  .td-rect{width:100%;box-sizing:border-box;border:none;border-bottom:1px solid rgba(120,90,40,.2);
+    background:none;padding:2px 0 7px;font-family:'Noto Serif KR',serif;font-size:13px;font-weight:700;
+    color:#2f2109;outline:none;margin-bottom:8px}
+  .td-recb{font-size:12px;line-height:1.75}
+  .td-chap{display:flex;align-items:flex-start;gap:7px;margin-top:11px;cursor:pointer}
+  .td-chap input{margin-top:2px;flex-shrink:0;accent-color:#b8862f}
+  .td-chap span{font-family:'Noto Serif KR',serif;font-size:10.5px;font-weight:700;color:#5c3f1c;line-height:1.5}
+  .td-chap i{display:block;font-style:normal;font-weight:400;font-size:9.5px;color:#9c8460;margin-top:2px}
   .td-npb{width:100%;padding:9px;border:1.5px dashed rgba(184,146,74,.55);border-radius:7px;
     background:rgba(255,253,245,.5);color:#b8924a;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit}
   .td-npb:active{background:#f3e8cd}
@@ -3551,7 +3569,20 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
     addToToday({cat: newCat, text: t});
   };
 
-  const addFromSource = (st) => {
+  // 하루 분량을 마쳤다고 그 챕터가 끝난 건 아니다.
+  // 책에서 가져온 계획 중 아직 닫지 않은 챕터를 찾아 이어 쓸 수 있게 한다
+  const openChapter = (bookId) => {
+    const recs = data.pageRecords || {};
+    const days = Object.keys(recs).filter(d => d < todayKey).sort().reverse().slice(0, 90);
+    for (const d of days) {
+      const found = (recs[d].tasks || []).find(t =>
+        String(t.sourceTaskId) === String(bookId) && t.recId && !t.chapterDone);
+      if (found) return {date: d, note: found.note || "", recId: found.recId};
+    }
+    return null;
+  };
+
+  const addFromSource = (st, carry) => {
     // 습관일 경우 알람 시간을 source에서 자동 연동 (변경 가능)
     const srcAlarm = (st.habit && st.habit.alarmTime) || "";
     addToToday({
@@ -3560,7 +3591,8 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
       sourceTaskId: st.id,
       sourceType: st.type,
       alarmTime: srcAlarm,
-      note: ""
+      note: carry ? carry.note : "",
+      recId: carry ? carry.recId : undefined,   // 같은 글을 이어 쓴다
     });
     setShowPicker(false);
   };
@@ -3571,56 +3603,48 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
 
   // 체크박스 클릭 — 사진+메모 인증 후에만 완료.
   // 한번 완료한 기록은 되돌릴 수 없음(스토리로 넘어감) → done인 항목은 no-op
-  // 하는 동안 남긴 것이 있으면 그게 곧 기록이다 — 끝나고 또 증명할 이유가 없다
-  const hasRecord = (t) => !!(String(t.note || "").trim() || t.notePhotoId || t.notePhoto);
+  // 과정 기록은 메모가 아니라 글 한 편이다. 처음부터 notes에 세워 두면
+  // 책에서 가져온 계획은 그 책의 Write에 바로 들어가고, 다 쓰면 그대로 작품이 된다.
+  // (t.note는 짤 때 적어 두는 세부 계획이다 — 기록과 섞지 않는다)
+  const recOf = (t) => (t && t.recId) ? (notes || []).find(n => n.id === t.recId) : null;
+  const hasRecord = (t) => { const n = recOf(t); return !!(n && !noteIsEmpty(n)); };
 
-  const noteFileRef = useRef(null);
-  const [photoFor, setPhotoFor] = useState(null);     // 사진을 붙일 할 일
-
-  const pickNotePhoto = (t) => {
-    setPhotoFor(t.id);
-    if (noteFileRef.current) noteFileRef.current.click();
-  };
-  const handleNotePhoto = async (e) => {
-    const f = e.target.files[0];
-    e.target.value = "";
-    if (!f || !photoFor) return;
-    const b64 = await compressPhoto(f, 720, 0.7, true);
-    const saved = await savePhoto(user && user.uid, b64);
-    updateTodayTask(photoFor, saved && saved.id
-      ? {notePhotoId: saved.id, notePhoto: null}
-      : {notePhoto: (saved && saved.inline) || b64});
-    setPhotoFor(null);
+  const startRecord = async (t) => {
+    if (!noteApi || !noteApi.live) { alert("로그인하면 과정을 글로 남길 수 있어요."); return; }
+    if (t.recId) return;
+    const id = await noteApi.create({
+      title: t.text || "",
+      blocks: [{t: "p", v: ""}],
+      bookId: t.sourceTaskId ? String(t.sourceTaskId) : null,
+      visibility: "private",
+      from: {date: todayKey, taskId: String(t.id)},
+    });
+    if (id) updateTodayTask(t.id, {recId: id});
   };
 
-  // 과정 기록을 그대로 완료 기록으로 옮긴다
-  const completeWithRecord = async (t) => {
-    const memo = String(t.note || "").trim();
-    const fields = {
-      done: true, doneAt: Date.now(), memo,
-      photoId: t.notePhotoId || t.photoId || null,
-      photo: t.notePhoto || null,
-      note: "", notePhotoId: null, notePhoto: null,
-    };
+  // 글은 글대로 두고, 하루의 기록에는 그 첫머리와 첫 사진만 옮겨 적는다
+  const completeWithRecord = (t) => {
+    const n = recOf(t);
+    const bs = noteBlocks(n);
+    const memo = bs.filter(b => b.t === "p" || b.t === "h")
+      .map(b => String(b.v || "").trim()).filter(Boolean).join("\n").slice(0, 200);
+    const pic = bs.find(b => b.t === "img" && (b.photoId || b.src)) || {};
+    const fields = {done: true, doneAt: Date.now(),
+      memo: memo || (n && n.title) || "", photoId: pic.photoId || null, photo: pic.src || null};
     const newTasks = tasks.map(x => x.id === t.id ? {...x, ...fields} : x);
     let next = {...data, pageRecords: {...(data.pageRecords||{}), [todayKey]: {...(data.pageRecords||{})[todayKey]||{}, tasks: newTasks}}, startDate: data.startDate||todayKey};
     if (t.sourceTaskId) next = syncHabitDoneInData(next, t.sourceTaskId, true);
     setData(next);
+  };
 
-    // 책에서 가져온 계획이면 그 책에도 한 편으로 들어간다
-    if (t.sourceTaskId && noteApi && noteApi.live) {
-      const blocks = [];
-      if (t.notePhotoId) blocks.push({t: "img", photoId: t.notePhotoId});
-      else if (t.notePhoto) blocks.push({t: "img", src: t.notePhoto});
-      blocks.push({t: "p", v: memo});
-      try {
-        await noteApi.create({
-          title: t.text || "", blocks,
-          bookId: String(t.sourceTaskId), visibility: "private",
-          from: {date: todayKey, taskId: String(t.id)},
-        });
-      } catch (e) { console.warn("book note:", e); }
-    }
+  // 과정 기록을 내보낼지 — 하루를 나눴는지와는 상관없다
+  const toggleRecVis = async (n) => {
+    const next = n.visibility === "public" ? "private" : "public";
+    if (next === "public" && !(profile && profile.handle)) { onNeedHandle && onNeedHandle(); return; }
+    await noteApi.update(n.id, {visibility: next});
+    const b = n.bookId ? allBooks.find(x => String(x.id) === String(n.bookId)) : null;
+    try { await syncNoteCard(user && user.uid, profile, {...n, visibility: next}, b, !!(b && b.published)); }
+    catch (e) { console.warn("record feed:", e); }
   };
 
   const handleToggle = (t) => {
@@ -3898,25 +3922,55 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                         <button onClick={()=>goBook && goBook(t.sourceTaskId)}>📚 이 책 열기</button>
                       </div>
                     )}
+                    {/* 짤 때 적어 두는 것 — 오늘 무엇을 어디까지 할지 */}
                     <div className="td-dl">
-                      📝 과정 기록
+                      📋 세부 계획
                       <span style={{color:"#b89066",fontWeight:500,marginLeft:"6px"}}>
-                        {t.sourceTaskId ? "· 완료하면 이 책에도 한 편으로 들어갑니다" : "· 남겨 두면 완료할 때 따로 인증하지 않아도 됩니다"}
+                        {t.sourceTaskId ? "· 이 책의 오늘 챕터" : "· 어디까지 할지"}
                       </span>
                     </div>
                     <textarea value={t.note||""} onChange={e=>updateTodayTask(t.id,{note:e.target.value})} className="input" rows={2}
-                      placeholder="하는 동안 남기고 싶은 것을 적어 두세요…"
-                      style={{fontSize:"12px",lineHeight:1.6,marginBottom:"8px"}}/>
-                    {(t.notePhotoId || t.notePhoto) ? (
-                      <div className="td-npic">
-                        <Photo src={t.notePhoto} id={t.notePhotoId} alt=""/>
-                        <button onClick={()=>updateTodayTask(t.id,{notePhotoId:null,notePhoto:null})} title="사진 떼기">✕</button>
-                      </div>
-                    ) : (
-                      <button className="td-npb" onClick={()=>pickNotePhoto(t)}>📷 사진 붙이기</button>
-                    )}
+                      placeholder={t.sourceTaskId ? "예: 책 읽고 10월 기획하기" : "예: 7km 이상 달리기"}
+                      style={{fontSize:"12px",lineHeight:1.6,marginBottom:"13px"}}/>
+
+                    {/* 하면서 남기는 것 — 메모가 아니라 글 한 편 */}
+                    <div className="td-dl">
+                      ✎ 과정 기록
+                      <span style={{color:"#b89066",fontWeight:500,marginLeft:"6px"}}>
+                        {t.sourceTaskId ? "· 이 책의 글로 바로 들어갑니다" : "· 다 쓰면 글 한 편이 됩니다"}
+                      </span>
+                    </div>
+                    {(() => {
+                      const rec = recOf(t);
+                      if (!rec) return (
+                        <button className="td-npb" onClick={()=>startRecord(t)}>✎ 기록 시작하기</button>
+                      );
+                      return (
+                        <div className="td-rec">
+                          <BufferedInput className="td-rect" value={rec.title || ""} placeholder="제목"
+                            onSave={(v)=>noteApi.update(rec.id, {title: v})}/>
+                          <BlockEditor note={rec} uid={user && user.uid} textClass="td-recb"
+                            placeholder="읽은 문장, 떠오른 생각, 오늘의 기획…"
+                            onWrite={(patch)=>noteApi.update(rec.id, patch)}/>
+                          <div className={"dk-pub" + (rec.visibility === "public" ? " on" : "")} style={{marginTop:"11px"}}>
+                            <span className="t">이 글 내보내기</span>
+                            <button className={"dk-sw" + (rec.visibility === "public" ? " on" : "")}
+                              onClick={()=>toggleRecVis(rec)}/>
+                          </div>
+                          {t.sourceTaskId && (
+                            <label className="td-chap">
+                              <input type="checkbox" checked={!!t.chapterDone}
+                                onChange={e=>updateTodayTask(t.id,{chapterDone:e.target.checked})}/>
+                              <span>이 챕터를 다 썼어요
+                                <i>{t.chapterDone ? "다음에 새 챕터로 시작합니다" : "체크하지 않으면 내일 '이어서 쓰기'로 이 글을 계속 씁니다"}</i>
+                              </span>
+                            </label>
+                          )}
+                        </div>
+                      );
+                    })()}
                     {hasRecord(t) && (
-                      <div className="td-ready">✓ 남긴 기록이 있어요 — 체크하면 바로 완료됩니다</div>
+                      <div className="td-ready">✓ 기록이 있어요 — 체크하면 인증 없이 바로 완료됩니다</div>
                     )}
                     <div style={{height:"11px"}}/>
                     <div className="td-dl">
@@ -4014,9 +4068,6 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
             <div className="td-hint">한번 추가한 에피소드는 삭제할 수 없어요</div>
           </div>
 
-          <input type="file" accept="image/*" capture="environment" ref={noteFileRef} onChange={handleNotePhoto}
-            style={{position:"absolute",left:"-9999px",width:"1px",height:"1px",opacity:0}}/>
-
           <DayShare date={todayKey} rec={todayRec} updateRec={updateTodayRec}
             uid={user && user.uid} profile={profile} onNeedHandle={onNeedHandle} todayLabel/>
 
@@ -4053,8 +4104,10 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                     </div>
                     {items.map(st => {
                       const already = addedSourceIds.has(st.id);
+                      const cont = already ? null : openChapter(st.id);
                       return (
-                        <button key={st.id} onClick={()=>!already && addFromSource(st)} disabled={already} style={{
+                        <React.Fragment key={st.id}>
+                        <button onClick={()=>!already && addFromSource(st)} disabled={already} style={{
                           width:"100%",display:"flex",alignItems:"center",gap:"8px",
                           padding:"9px 10px",marginBottom:"4px",
                           background: already ? "rgba(184,134,47,.08)" : "rgba(255,253,245,.7)",
@@ -4073,6 +4126,14 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                             <span style={{fontSize:"14px",color:"#d4a851",fontWeight:700,flexShrink:0}}>+</span>
                           )}
                         </button>
+                        {cont && (
+                          <button className="td-cont" onClick={()=>addFromSource(st, cont)}>
+                            <span className="k">이어서 쓰기</span>
+                            <span className="v">{String(cont.note).split("\n")[0].trim() || "쓰던 챕터"}</span>
+                            <span className="d">{cont.date.slice(5).replace("-", ".")}부터</span>
+                          </button>
+                        )}
+                        </React.Fragment>
                       );
                     })}
                   </div>
