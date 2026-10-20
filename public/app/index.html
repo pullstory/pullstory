@@ -282,20 +282,28 @@
     color:#8a5f14;cursor:pointer;padding:0;font-weight:700}
   .rw-who{flex:1;min-width:0;text-align:right;font-family:'Noto Serif KR',serif;font-size:11px;
     color:#9c8460;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .rw-body{flex:1;overflow:auto;padding:16px 15px 40px}
+  .rw-head{flex-shrink:0;padding:14px 15px 0}
+  /* 종이는 고정, 글만 흐른다 — 끝없이 늘어나지 않게 */
+  .rw-ed{flex:1;min-height:0;display:flex;flex-direction:column;padding:0 15px}
+  .rw-ed .blk-list{flex:1;min-height:0;overflow-y:auto;padding:2px 2px 10px;
+    -webkit-overflow-scrolling:touch}
+  .rw-ed .blk-add{flex-shrink:0;margin:8px 0 0;padding-top:9px;border-top:1px solid rgba(120,90,40,.2)}
+  .rw-foot{flex-shrink:0;padding:10px 15px 14px;border-top:1px solid rgba(120,90,40,.18);
+    background:rgba(255,253,246,.92)}
+  .rw-foot .td-chap{margin-top:9px}
   .rw-plan{border-left:2px solid rgba(156,116,32,.5);padding:2px 0 2px 10px;margin-bottom:14px;
     font-size:11.5px;color:#6b5a3c;line-height:1.7;white-space:pre-wrap}
   .rw-plan b{display:block;font-family:'Cormorant Garamond',Georgia,serif;font-size:9px;
     letter-spacing:.2em;text-transform:uppercase;color:#9c7420;margin-bottom:3px}
   .rw-title{width:100%;box-sizing:border-box;border:none;border-bottom:1px solid rgba(120,90,40,.25);
     background:none;padding:0 0 9px;font-family:'Noto Serif KR',serif;font-size:19px;font-weight:700;
-    color:#2f2109;outline:none;margin-bottom:14px;letter-spacing:-.02em}
+    color:#2f2109;outline:none;margin-bottom:10px;letter-spacing:-.02em}
   .rw-text{width:100%;box-sizing:border-box;margin-top:12px;background:transparent;border:none;resize:none;
     outline:none;overflow:hidden;display:block;font-family:'Noto Serif KR',serif;font-size:14px;
     line-height:28px;color:#3a2818;padding:0 2px;
     background-image:linear-gradient(rgba(120,90,40,.13) 1px,transparent 1px);
     background-size:100% 28px;background-position:0 26px}
-  .rw-done{width:100%;margin-top:18px;padding:13px;border:none;border-radius:8px;
+  .rw-done{width:100%;margin-top:10px;padding:12px;border:none;border-radius:8px;
     background:linear-gradient(135deg,#e7c574,#b8862f);color:#fff8e5;
     font-family:'Noto Serif KR',serif;font-weight:700;font-size:13px;letter-spacing:.14em;cursor:pointer}
   .td-chap{display:flex;align-items:flex-start;gap:7px;margin-top:11px;cursor:pointer}
@@ -2531,33 +2539,6 @@ function DayShare({date, rec, updateRec, uid, profile, onNeedHandle, todayLabel}
   return (
     <div>
       <div className="ks">
-        <div className="ks-h">
-          <span className="k">KEY SCENE</span>
-          <span className="s">{todayLabel ? "오늘의 한 장면" : "이 날의 한 장면"}</span>
-        </div>
-
-        {withPhoto.length === 0 ? (
-          <div className="ks-n">인증한 사진이 생기면 여기서 고를 수 있어요</div>
-        ) : (
-          <div>
-            <div className="ks-row">
-              {withPhoto.map(t => (
-                <button key={t.id} className={"ks-t" + (keyId === t.id ? " on" : "")}
-                  title={t.text}
-                  onClick={()=>updateRec({keyScene: keyId === t.id ? null : t.id})}>
-                  <Photo src={t.photo} id={t.photoId}
-                    style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
-                  {keyId === t.id && <b>★</b>}
-                </button>
-              ))}
-            </div>
-            <div className="ks-n">
-              {keyId ? "이 장면이 진열대의 얼굴이 됩니다"
-                     : "대표하는 한 장면을 고르세요 · 안 고르면 첫 사진으로 나갑니다"}
-            </div>
-          </div>
-        )}
-
         <div className="ks-cap">
           <div className="ks-cl">한 줄 <span>· 선택</span></div>
           <AutoTA className="ks-ci" value={(rec && rec.caption) || ""}
@@ -2631,13 +2612,22 @@ function BufferedInput({value, onSave, ...rest}) {
   return <input {...rest} value={v} onChange={e=>onChange(e.target.value)} onBlur={flush}/>;
 }
 
-function BufferedTA({value, onSave, className, placeholder}) {
+function BufferedTA({value, onSave, className, placeholder, onFocus, onEmptyBack}) {
   const [v, onChange, flush] = useBuffered(value, onSave);
   const ref = useRef(null);
   const resize = () => { const el = ref.current; if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; } };
   useEffect(() => { resize(); }, [v]);
+  // 빈 칸에서 백스페이스를 누르면 그 칸이 사라진다 — ✕를 찾아 누르지 않아도 되게
+  const onKeyDown = (e) => {
+    if (e.key !== "Backspace" || !onEmptyBack) return;
+    if (e.nativeEvent && e.nativeEvent.isComposing) return;
+    if (String(v || "").length) return;
+    e.preventDefault();
+    onEmptyBack();
+  };
   return <textarea ref={ref} className={className} rows={1} value={v} placeholder={placeholder}
-    onChange={e=>{ onChange(e.target.value); resize(); }} onInput={resize} onBlur={flush}/>;
+    onChange={e=>{ onChange(e.target.value); resize(); }} onInput={resize}
+    onFocus={onFocus} onKeyDown={onKeyDown} onBlur={flush}/>;
 }
 
 // 블록 편집기 — 문단·소제목·사진을 한 칸씩 쌓는다.
@@ -2662,9 +2652,10 @@ function SeedCard({b, onRemove}) {
   );
 }
 
-function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass}) {
+function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, className}) {
   const bs = noteBlocks(note);
   const [busy, setBusy] = useState(false);
+  const [at_, setAt_] = useState(-1);      // 마지막으로 손을 둔 칸 — 새 칸은 그 다음에 선다
   const fileRef = useRef(null);
 
   const write = (nbs) => {
@@ -2672,8 +2663,15 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass}) 
     onWrite({blocks: out, body: ""});
   };
   const at = (i, patch) => write(bs.map((x, j) => (j === i ? {...x, ...patch} : x)));
-  const drop = (i) => write(bs.filter((_, j) => j !== i));
-  const add = (blk) => write([...bs, blk]);
+  const drop = (i) => { setAt_(-1); write(bs.filter((_, j) => j !== i)); };
+  // 맨 끝에만 붙으면 인용과 인용 사이에 문단을 못 넣는다 — 커서가 있던 칸 다음에 끼운다
+  const insertAfter = (blk) => {
+    const k = (at_ >= 0 && at_ < bs.length) ? at_ + 1 : bs.length;
+    const next = bs.slice(0, k).concat([blk], bs.slice(k));
+    setAt_(k);
+    write(next);
+  };
+
 
   const pickPhoto = async (e) => {
     const f = e.target.files && e.target.files[0];
@@ -2683,15 +2681,16 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass}) 
     try {
       const b64 = await compressPhoto(f, 900, 0.72);      // 글에 넣는 사진은 날짜 각인 없이
       const saved = await savePhoto(uid, b64);
-      if (saved && saved.id) add({t: "img", photoId: saved.id});
-      else if (saved && saved.inline) add({t: "img", src: saved.inline});   // 서버가 없을 때는 글 안에 담는다
+      if (saved && saved.id) insertAfter({t: "img", photoId: saved.id});
+      else if (saved && saved.inline) insertAfter({t: "img", src: saved.inline});   // 서버가 없을 때는 글 안에 담는다
       else alert("사진을 저장하지 못했어요.");
     } catch (err) { console.warn("block photo:", err); alert("사진을 저장하지 못했어요."); }
     setBusy(false);
   };
 
   return (
-    <div>
+    <div className={className || ""}>
+      <div className="blk-list">
       {bs.map((b, i) => {
         if (b.t === "q") return renderQuote ? renderQuote(b.d, i, () => drop(i)) : null;
         if (b.t === "seed") return <SeedCard key={"s"+i} b={b} onRemove={() => drop(i)}/>;
@@ -2705,6 +2704,7 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass}) 
           <div className="blk" key={"bq" + i}>
             <button className="blk-x" onClick={()=>drop(i)} title="인용 빼기">✕</button>
             <BufferedTA className="blk-bq" value={b.v || ""} placeholder="옮겨 적을 문장"
+              onFocus={()=>setAt_(i)} onEmptyBack={()=>bs.length > 1 && drop(i)}
               onSave={(v)=>at(i, {v})}/>
           </div>
         );
@@ -2712,20 +2712,22 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass}) 
           <div className="blk" key={"h" + i}>
             <button className="blk-x" onClick={()=>drop(i)} title="소제목 빼기">✕</button>
             <BufferedInput className="blk-h" value={b.v || ""} placeholder="소제목"
-              onSave={(v)=>at(i, {v})}/>
+              onFocus={()=>setAt_(i)} onSave={(v)=>at(i, {v})}/>
           </div>
         );
         return (
           <BufferedTA key={"p" + i} className={textClass} value={b.v || ""}
             placeholder={i === 0 ? placeholder : ""}
+            onFocus={()=>setAt_(i)} onEmptyBack={()=>bs.length > 1 && drop(i)}
             onSave={(v)=>at(i, {v})}/>
         );
       })}
+      </div>
 
       <div className="blk-add">
-        <button onClick={()=>add({t:"p", v:""})}>＋ 문단</button>
-        <button onClick={()=>add({t:"bq", v:""})}>＋ 인용</button>
-        <button onClick={()=>add({t:"h", v:""})}>＋ 소제목</button>
+        <button onClick={()=>insertAfter({t:"p", v:""})}>＋ 문단</button>
+        <button onClick={()=>insertAfter({t:"bq", v:""})}>＋ 인용</button>
+        <button onClick={()=>insertAfter({t:"h", v:""})}>＋ 소제목</button>
         <button onClick={()=>fileRef.current && fileRef.current.click()} disabled={busy}>
           {busy ? "올리는 중…" : "＋ 사진"}
         </button>
@@ -4236,14 +4238,16 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                 <button className="rw-x" onClick={()=>setRecFor(null)}>‹ 닫기</button>
                 <span className="rw-who">{t.text}</span>
               </div>
-              <div className="rw-body">
+              <div className="rw-head">
                 {t.note && <div className="rw-plan"><b>오늘의 계획</b>{t.note}</div>}
                 <BufferedInput className="rw-title" value={rec.title || ""} placeholder="제목"
                   onSave={(v)=>noteApi.update(rec.id, {title: v})}/>
-                <BlockEditor note={rec} uid={user && user.uid} textClass="rw-text"
-                  placeholder="읽은 문장, 떠오른 생각, 오늘의 기획…"
-                  onWrite={(patch)=>noteApi.update(rec.id, patch)}/>
-                <div className={"dk-pub" + (rec.visibility === "public" ? " on" : "")}>
+              </div>
+              <BlockEditor className="rw-ed" note={rec} uid={user && user.uid} textClass="rw-text"
+                placeholder="읽은 문장, 떠오른 생각, 오늘의 기획…"
+                onWrite={(patch)=>noteApi.update(rec.id, patch)}/>
+              <div className="rw-foot">
+                <div className={"dk-pub" + (rec.visibility === "public" ? " on" : "")} style={{marginTop:0}}>
                   <span className="t">이 글 내보내기</span>
                   <button className={"dk-sw" + (rec.visibility === "public" ? " on" : "")}
                     onClick={()=>toggleRecVis(rec)}/>
