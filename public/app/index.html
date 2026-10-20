@@ -1127,6 +1127,9 @@ if (FIREBASE_READY) {
     firebase.initializeApp(FIREBASE_CONFIG);
     fbAuth = firebase.auth();
     fbDb = firebase.firestore();
+    // 값이 undefined인 칸 하나가 저장 전체를 거부시킨다 —
+    // 그 한 칸 때문에 그날 체크한 것까지 서버에 못 닿는 일을 막는다
+    try { fbDb.settings({ignoreUndefinedProperties: true}); } catch (e) { console.warn("firestore settings:", e); }
     googleProvider = new firebase.auth.GoogleAuthProvider();
   } catch(e) { console.warn("Firebase init failed:", e); }
 }
@@ -3783,7 +3786,7 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
       sourceType: st.type,
       alarmTime: srcAlarm,
       note: carry ? carry.note : "",
-      recId: carry ? carry.recId : undefined,   // 같은 글을 이어 쓴다
+      ...(carry && carry.recId ? {recId: carry.recId} : {}),   // 같은 글을 이어 쓴다
     });
     setShowPicker(false);
   };
@@ -3888,7 +3891,8 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
     const targetTask = tgt;
     const memo = verifyMemo.trim() || (byBook ? "이 책에 글로 남겼습니다" : "");
     // doneAt = 완료한 시각 → 스토리 정렬 기준
-    const fresh = {done: true, doneAt: Date.now(), ...photoFields, memo, byBook: byBook || undefined};
+    const fresh = {done: true, doneAt: Date.now(), ...photoFields, memo};
+    if (byBook) fresh.byBook = true;            // 없는 값은 칸을 비우지 말고 아예 만들지 않는다
     const newTasks = pending && pending.id === verifyId
       ? [...tasks, {note: "", alarmTime: "", photo: null, ...pending, ...fresh}]
       : tasks.map(t => t.id === verifyId ? {...t, ...fresh} : t);
