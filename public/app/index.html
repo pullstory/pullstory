@@ -1064,13 +1064,26 @@
       'border-radius:7px;background:rgba(212,168,81,.18);color:#f0d9a0;font-family:inherit;font-size:12px">새로고침</button>';
     document.body.appendChild(box);
   }
-  window.addEventListener("error", function (e) { paint("error", e.error || e.message); });
-  window.addEventListener("unhandledrejection", function (e) { paint("promise", e.reason); });
-  // 10초가 지나도 아무것도 안 그려졌으면 그것도 알려 준다
-  setTimeout(function () {
+  // 에러가 났다고 바로 덮지 않는다. 바깥 스크립트는 사소한 일로도 자주 울고,
+  // 그때마다 화면을 가리면 멀쩡한 앱을 못 보게 된다. 적어 두었다가
+  // '정말 아무것도 안 그려졌을 때'만 그 기록과 함께 보여 준다.
+  var noted = [];
+  function note(kind, err) {
+    var m = (err && (err.stack || err.message)) || String(err || "");
+    noted.push(kind + ": " + m);
+    if (noted.length > 5) noted.shift();
+  }
+  window.addEventListener("error", function (e) { note("error", e.error || e.message); });
+  window.addEventListener("unhandledrejection", function (e) { note("promise", e.reason); });
+
+  function check(waited) {
     var r = document.getElementById("root");
-    if (r && r.children.length === 0) paint("빈 화면", "10초 동안 아무것도 그려지지 않았습니다");
-  }, 10000);
+    var drawn = r && r.children.length > 0 && r.getBoundingClientRect().height > 40;
+    if (drawn) return;                      // 그려졌으면 아무 일도 하지 않는다
+    if (waited < 12000) { setTimeout(function () { check(waited + 1500); }, 1500); return; }
+    paint("아무것도 그려지지 않았습니다", noted.length ? noted.join("\n\n") : "(기록된 오류 없음)");
+  }
+  setTimeout(function () { check(0); }, 2500);
 })();
 </script>
 
@@ -1079,9 +1092,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
 
 <script type="text/babel" data-presets="env,react">
 const {useState, useEffect, useRef, useCallback, useMemo} = React;
