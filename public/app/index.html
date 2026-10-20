@@ -216,6 +216,18 @@
   .mb-cal{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px}
   .mb-cell{aspect-ratio:1;border-radius:3px;font-size:8px;font-weight:700;background:rgba(245,236,217,.8);border:1px solid #ddcb9f;color:#a08a5e;font-family:Georgia,serif;cursor:default;padding:0}
   .mb-cell.on{background:#5a8c4a;border-color:#4a7c3a;color:#fff}
+  /* 성취의 숫자 세기 — 작은 세그먼트와 ＋/− 단추 */
+  .ach-seg{margin-left:auto;display:flex;border:1px solid #d8c79a;border-radius:6px;overflow:hidden}
+  .ach-seg span{padding:3px 8px;font-family:'Noto Serif KR',serif;font-size:9px;color:#9c7a2a;cursor:pointer}
+  .ach-seg span.on{background:#e9d7ad;color:#5c3f1c;font-weight:700}
+  .ach-row{display:flex;align-items:center;gap:9px;margin-top:9px}
+  .ach-row .mb-bar{flex:1;margin-top:0}
+  .ach-btn{flex-shrink:0;width:30px;height:30px;border:1px solid #d8c79a;border-radius:7px;
+    background:#fffdf6;color:#8a5f14;font-size:15px;line-height:1;cursor:pointer;font-family:inherit}
+  .ach-btn:disabled{opacity:.4;cursor:default}
+  .ach-btn:not(:disabled):active{background:#e9d7ad}
+  .ach-big{font-family:'Cormorant Garamond',Georgia,serif;font-size:15px;font-weight:700;
+    color:#5a8c4a;font-variant-numeric:tabular-nums}
   .mb-bar{height:5px;background:#e8dcb5;border-radius:3px;overflow:hidden;margin-top:9px}
   .mb-bar span{display:block;height:100%;background:linear-gradient(90deg,#5a8c4a,#4a7c3a);border-radius:3px}
   .mb-foot{display:flex;gap:9px;margin-top:16px}
@@ -1264,6 +1276,25 @@ function bookPosts(book, notes) {
   return src.filter(p => !noteIsEmpty(p)).slice().sort((a, b) => noteTs(a) - noteTs(b));
 }
 
+// 책 표지에 적히는 한 줄 — 숫자로 재는 성취면 몇 개 했는지가 상태다
+function bookCardStatus(b) {
+  if (b && b.status === "완료") return "✓ 완료";
+  const ac = achCount(b);
+  return ac && ac.target ? `${ac.count}/${ac.target}${ac.unit}` : "진행중";
+}
+
+// 성취의 측정 — 기본은 서술형('판매 시작하기')이고, 숫자로 바꾸면 개수를 센다
+// ('유튜브 영상 10개 만들기'처럼 며칠 걸렸나가 아니라 몇 개 했나가 중요한 책).
+// 서술형 책에서는 null을 돌려주므로 호출하는 쪽은 그것만 보면 된다.
+function achCount(book) {
+  const a = (book && book.ach) || {};
+  if (a.mode !== "count") return null;
+  const target = Math.max(0, parseInt(a.target) || 0);
+  const count = Math.max(0, parseInt(a.count) || 0);
+  return {target, count, unit: (a.unit || "개").trim() || "개",
+          pct: target ? Math.min(100, Math.round(count / target * 100)) : 0};
+}
+
 function bookPublishChecks(book, notes) {
   // 묶음 책은 표도 데드라인도 없다 — 기준 없이 바로 내보낼 수 있다
   if (book.type === "collection") return {checks: [], ok: true};
@@ -1283,8 +1314,17 @@ function bookPublishChecks(book, notes) {
       text: dl ? (passed ? `D-DAY가 지났습니다 (${dl})` : `D-DAY가 지나야 합니다 (${dl})`)
                : "데드라인을 먼저 정해 주세요"});
   }
-  checks.push({ok: pct >= needPct,
-    text: `${isHabit ? "습관 일정표" : "D-DAY 표"}를 ${needPct}% 이상 — 현재 ${pct}%`});
+  const cnt = achCount(book);
+  if (cnt) {
+    // 개수로 재기로 한 책에 '표를 60% 채웠나'를 묻는 건 엉뚱하다
+    checks.push({ok: cnt.target > 0 && cnt.count >= cnt.target,
+      text: cnt.target > 0
+        ? `${cnt.target}${cnt.unit}를 채워야 합니다 — 현재 ${cnt.count}${cnt.unit}`
+        : "목표 개수를 먼저 정해 주세요"});
+  } else {
+    checks.push({ok: pct >= needPct,
+      text: `${isHabit ? "습관 일정표" : "D-DAY 표"}를 ${needPct}% 이상 — 현재 ${pct}%`});
+  }
   checks.push({ok: posts >= BOOK_MIN_POSTS,
     text: posts >= BOOK_MIN_POSTS
       ? `Write에 글 ${BOOK_MIN_POSTS}편 이상 — 현재 ${posts}편`
@@ -1362,7 +1402,7 @@ async function publishBook(uid, profile, book, records, notes) {
       : isHabit
       ? {freq: sub.freq || "", time: sub.time || ""}
       : {criteria: (book.ach || {}).criteria || "", deadline: (book.ach || {}).deadline || "",
-         steps: (book.ach || {}).steps || ""},
+         steps: (book.ach || {}).steps || "", count: achCount(book)},
     days: marks.days,
     posts: pubPosts,
   });
@@ -2643,6 +2683,7 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
 
   const span = bookSpan(book);
   const dur = span.duration;
+  const cnt = achCount(book);                     // 숫자로 재는 성취면 {count,target,unit,pct}
   const doneSet = new Set((book[span.key] || {}).done || []);
   const pct = dur ? Math.round(doneSet.size / dur * 100) : 0;
   // 이 책에 묶인 글 — notes 한 곳에서 bookId로 찾는다
@@ -2848,7 +2889,49 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
                     <div className="mb-fld"><div className="mb-fl">시작일</div><input type="date" className="input" value={a.start||""} onChange={e=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),start:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
                     <div className="mb-fld"><div className="mb-fl">데드라인</div><input type="date" className="input" value={a.deadline||""} onChange={e=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),deadline:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
                   </div>
-                  <div className="mb-fld" style={{marginBottom:"11px"}}><div className="mb-fl">측정 기준</div><input type="text" className="input" value={a.criteria||""} placeholder="예: 판매 시작하기" onChange={e=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),criteria:e.target.value}}))} style={{fontSize:"11px",padding:"7px 8px"}}/></div>
+                  <div className="mb-fld" style={{marginBottom:"11px"}}>
+                    <div className="mb-fl" style={{display:"flex",alignItems:"center"}}>
+                      <span>측정 기준</span>
+                      <span className="ach-seg">
+                        <span className={cnt?"":"on"} onClick={()=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),mode:"text"}}))}>서술형</span>
+                        <span className={cnt?"on":""} onClick={()=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),mode:"count"}}))}>숫자</span>
+                      </span>
+                    </div>
+                    <input type="text" className="input" value={a.criteria||""}
+                      placeholder={cnt ? "예: 유튜브 영상 만들기" : "예: 판매 시작하기"}
+                      onChange={e=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),criteria:e.target.value}}))}
+                      style={{fontSize:"11px",padding:"7px 8px"}}/>
+                    {cnt && (
+                      <div className="mb-g2" style={{marginTop:"7px"}}>
+                        <div className="mb-fld" style={{marginBottom:0}}><div className="mb-fl">목표 개수</div>
+                          <input type="number" className="input" value={a.target ?? ""} min={1} max={9999} placeholder="10"
+                            onChange={e=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),target:e.target.value}}))}
+                            onBlur={e=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),target:Math.min(9999,Math.max(1,parseInt(e.target.value)||10))}}))}
+                            style={{fontSize:"11px",padding:"7px 8px"}}/></div>
+                        <div className="mb-fld" style={{marginBottom:0}}><div className="mb-fl">단위</div>
+                          <input type="text" className="input" value={a.unit ?? ""} placeholder="개" maxLength={6}
+                            onChange={e=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),unit:e.target.value}}))}
+                            style={{fontSize:"11px",padding:"7px 8px"}}/></div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 몇 개 했나 — 표는 날짜를 세고 이건 결과물을 센다 */}
+                  {cnt && cnt.target > 0 && (
+                    <div style={{marginBottom:"11px"}}>
+                      <div className="mb-callbl">
+                        <span>{a.criteria || "만든 것"} <span style={{color:"#b89a68",fontWeight:400}}>· 직접 세어 올립니다</span></span>
+                        <span className="ach-big">{cnt.count}/{cnt.target}{cnt.unit} <b style={{fontSize:"11px"}}>{cnt.pct}%</b></span>
+                      </div>
+                      <div className="ach-row">
+                        <button className="ach-btn" disabled={cnt.count <= 0} title="하나 줄이기"
+                          onClick={()=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),count:Math.max(0,(parseInt((t.ach||{}).count)||0)-1)}}))}>−</button>
+                        <div className="mb-bar"><span style={{width:cnt.pct+"%"}}/></div>
+                        <button className="ach-btn" title="하나 늘리기"
+                          onClick={()=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),count:(parseInt((t.ach||{}).count)||0)+1}}))}>＋</button>
+                      </div>
+                    </div>
+                  )}
                   <div className="mb-fld"><div className="mb-fl">목표 상세 <span style={{color:"#b89a68",fontWeight:400}}>(한 줄에 한 단계씩)</span></div><textarea className="input" rows={5} value={a.steps||""} placeholder={"1. 주제 선정 + 목차 구성\n2. 매일 한 꼭지씩 초고\n3. 전체 퇴고 + 교정\n4. 출간 / 첫 독자 피드백"} onChange={e=>updateBook(book.id, t=>({...t,ach:{...(t.ach||{}),steps:e.target.value}}))} style={{fontSize:"12px",fontFamily:"inherit",lineHeight:1.6}}/></div>
                 </div>
               )}
@@ -3108,7 +3191,7 @@ function HomePage({data, setData, user, profile, onNeedHandle, notes, noteApi, o
                   <div className="mb-cfr"/>
                   <div className="mb-ctype">{isHabit?"🔁 습관":"🏆 성취"}</div>
                   <div className="mb-cttl">{b.text||"(제목 없음)"}</div>
-                  <div className="mb-cst">{b.status==="완료"?"✓ 완료":"진행중"}</div>
+                  <div className="mb-cst">{bookCardStatus(b)}</div>
                 </div>
               </div>
             );
@@ -4531,8 +4614,10 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
     const span = bookSpan(b);
     const filled = ((b[span.key] || {}).done || []).length;
     const cnt = notesOf(b.id).filter(n => !noteIsEmpty(n)).length;
+    const ac = achCount(b);                        // 숫자로 재는 성취면 '진행중'보다 개수가 낫다
     const st = isColl ? `글 ${cnt}편`
       : t === "habit" ? `${filled}/${span.duration || 0} · 글 ${cnt}`
+      : ac && ac.target ? `${ac.count}/${ac.target}${ac.unit} · 글 ${cnt}`
       : `${b.status === "완료" ? "완료" : "진행중"} · 글 ${cnt}`;
     return (
       <button className="dk-bk" onClick={onOpen || (()=>goBook(b.id))} title={b.text}>

@@ -115,6 +115,25 @@ import '../../styles/paper.css';
       white-space: pre-wrap;
     }
 
+    /* 몇 개 채웠나 — 개수로 잰 성취 책에만 있다 */
+    #book-root .cnt { margin-top: 12px; }
+    #book-root .cnt .h {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-size: 11px; color: var(--muted); margin-bottom: 7px;
+    }
+    #book-root .cnt .h b {
+      font-family: Georgia, serif; font-size: 13px; color: var(--gold);
+      font-variant-numeric: tabular-nums;
+    }
+    #book-root .cnt .bar {
+      height: 6px; border-radius: 3px; overflow: hidden;
+      background: rgba(120,90,40,.16);
+    }
+    #book-root .cnt .bar span {
+      display: block; height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, #5a8c4a, #4a7c3a);
+    }
+
     /* 표 — 며칠을 채웠나. 읽기만 한다 */
     #book-root .tally { margin-top: 12px; }
     /* 표 — 앱의 일정표와 같은 눈금 */
@@ -303,9 +322,28 @@ import '../../styles/paper.css';
         var body = d.type === 'habit'
           ? row('빈도', i.freq) + row('시간', i.time) +
             row('기간', d.start ? fullDate(d.start) + ' 부터 ' + (d.duration || 0) + '일' : '')
-          : row('측정 기준', i.criteria) + row('시작', fullDate(d.start)) +
+          : row('측정 기준', criteriaText(i)) + row('시작', fullDate(d.start)) +
             row('데드라인', fullDate(i.deadline)) + row('목표 상세', i.steps);
-        return body ? '<div class="card">' + body + '</div>' : '';
+        return body ? '<div class="card">' + body + '</div>' + counter(i) : '';
+      }
+
+      // 개수로 잰 책은 기준 줄에 목표가 함께 적힌다
+      function criteriaText(i) {
+        var c = i.count;
+        if (!c || !c.target) return i.criteria;
+        return (i.criteria ? i.criteria + ' — ' : '') + c.target + (c.unit || '개');
+      }
+
+      // 몇 개 채웠나 — 날짜를 세는 표와 달리 결과물을 센다
+      function counter(i) {
+        var c = i.count;
+        if (!c || !c.target) return '';
+        var pct = Math.min(100, Math.round(c.count / c.target * 100));
+        return '<div class="cnt">' +
+          '<div class="h"><span>' + esc(i.criteria || '채운 것') + '</span>' +
+            '<b>' + c.count + '/' + c.target + esc(c.unit || '개') + ' · ' + pct + '%</b></div>' +
+          '<div class="bar"><span style="width:' + pct + '%"></span></div>' +
+        '</div>';
       }
 
       // 표 — 채운 날이 금박으로 남는다
