@@ -1235,12 +1235,19 @@ function saveLocal(d) {
 }
 
 let saveTimer = null;
+let saveFlying = 0;                      // 보냈지만 아직 끝나지 않은 저장
+// 아직 서버에 안 닿은 내 손길이 있는가 — 다른 기기의 기록으로 갈아끼우기 전에 묻는다
+function savePending() { return !!saveTimer || saveFlying > 0; }
 function scheduleSave(uid, data) {
   saveLocal(data);
   if (!FIREBASE_READY || !uid || uid === "local-user") return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    fbDb.collection("scashbook").doc(uid).set(data, {merge:true}).catch(e => console.warn("Save failed:", e));
+    saveTimer = null;
+    saveFlying++;
+    fbDb.collection("scashbook").doc(uid).set(data, {merge: true})
+      .catch(e => console.warn("Save failed:", e))
+      .then(() => { saveFlying = Math.max(0, saveFlying - 1); });
   }, 800);
 }
 
@@ -1248,7 +1255,7 @@ function scheduleSave(uid, data) {
 // (set(...,{merge:true})는 pageRecords·chapters 같은 맵 안의 키를 지우지 않아서
 //  다른 기기에서 열거나 다시 로그인하면 옛 기록이 되살아난다)
 async function resetSave(uid, data) {
-  clearTimeout(saveTimer);   // 예약된 merge 저장이 뒤늦게 옛 데이터를 되살리지 못하게
+  clearTimeout(saveTimer); saveTimer = null;   // 예약된 merge 저장이 뒤늦게 옛 데이터를 되살리지 못하게
   saveLocal(data);
   if (!FIREBASE_READY || !uid || uid === "local-user") return;
   await fbDb.collection("scashbook").doc(uid).set(data);
@@ -3677,14 +3684,12 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
   };
 
   // 글은 글대로 두고, 하루의 기록에는 그 첫머리와 첫 사진만 옮겨 적는다
+  // 하루의 기록에는 오늘 하기로 한 것 한 줄만 남긴다. 과정 기록은 그 자체로
+  // 글 한 편이라 하루 종이에 통째로 옮겨 적을 것이 아니다 —
+  // 더 쓸 말이 있으면 스토리에서 탭해 고쳐 쓰면 된다.
   const completeWithRecord = (t) => {
-    const n = recOf(t);
-    const bs = noteBlocks(n);
-    const memo = bs.filter(b => b.t === "p" || b.t === "h")
-      .map(b => String(b.v || "").trim()).filter(Boolean).join("\n").slice(0, 200);
-    const pic = bs.find(b => b.t === "img" && (b.photoId || b.src)) || {};
     const fields = {done: true, doneAt: Date.now(),
-      memo: memo || (n && n.title) || "", photoId: pic.photoId || null, photo: pic.src || null};
+      memo: String(t.note || "").trim(), photoId: null, photo: null};
     const newTasks = tasks.map(x => x.id === t.id ? {...x, ...fields} : x);
     let next = {...data, pageRecords: {...(data.pageRecords||{}), [todayKey]: {...(data.pageRecords||{})[todayKey]||{}, tasks: newTasks}}, startDate: data.startDate||todayKey};
     if (t.sourceTaskId) next = syncHabitDoneInData(next, t.sourceTaskId, true);
@@ -5757,6 +5762,26 @@ function App() {
   const [notesLoaded, setNotesLoaded] = useState(false);
   const [opened, setOpened] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // 한 번만 읽고 말면 다른 기기에서 바꾼 것을 영영 모른다. 더 나쁜 건, 오래된
+  // 화면이 제 상태를 저장하면서 저쪽에서 끝낸 일을 덮어쓰는 것 — tasks는 배열이라
+  // merge가 통째로 갈아끼운다. 그래서 문서를 계속 듣는다.
+  useEffect(() => {
+    const uid = user && user.uid;
+    if (!FIREBASE_READY || !uid || uid === "local-user") return;
+    const unsub = fbDb.collection("scashbook").doc(uid).onSnapshot(
+      (snap) => {
+        if (!snap.exists || snap.metadata.hasPendingWrites) return;  // 내가 쓴 것의 메아리
+        if (savePending()) return;                                   // 아직 안 보낸 내 손길이 있다
+        const d = snap.data();
+        if (!d) return;
+        setDataState((cur) => (JSON.stringify(cur) === JSON.stringify(d) ? cur : d));
+        saveLocal(d);
+      },
+      (e) => console.warn("sync:", e)
+    );
+    return () => unsub();
+  }, [user]);
 
   // 초기화: 기존 세션 확인
   useEffect(() => {
