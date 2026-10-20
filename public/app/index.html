@@ -256,6 +256,12 @@
     border-radius:5px;color:#fff;padding:4px 9px;font-size:10px;font-family:inherit;cursor:pointer}
   .save-err button.x{background:none;border:none;padding:2px 4px;font-size:13px}
 
+  /* 저장·연동 상태 한 줄 */
+  .dk-diag{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:14px;padding-top:10px;
+    border-top:1px dotted rgba(120,90,40,.25);font-family:'Cormorant Garamond',Georgia,serif;
+    font-size:9.5px;letter-spacing:.06em;color:#a89066}
+  .dk-diag .warn{color:#a8483f;font-weight:700}
+
   /* 쓰던 챕터 이어 가기 */
   .td-cont{width:100%;display:flex;align-items:center;gap:7px;padding:7px 10px;margin:-2px 0 6px 14px;
     width:calc(100% - 14px);background:rgba(212,168,81,.1);border:1px dashed rgba(184,134,47,.5);
@@ -1290,7 +1296,10 @@ let saveTimer = null;
 let saveFlying = 0;
 // 저장이 실패하면 알려야 한다. 조용히 묻히면 쓴 것이 사라진 줄도 모른다
 let onSaveError = () => {};
-function setSaveErrorHandler(fn) { onSaveError = fn || (() => {}); }                      // 보냈지만 아직 끝나지 않은 저장
+function setSaveErrorHandler(fn) { onSaveError = fn || (() => {}); }
+// 저장과 연동이 실제로 되고 있는지 — 짐작 대신 앱이 말하게 한다
+const saveState = {at: 0, ok: null, err: "", bytes: 0, sync: false};
+function saveStatus() { return saveState; }                      // 보냈지만 아직 끝나지 않은 저장
 // 아직 서버에 안 닿은 내 손길이 있는가 — 다른 기기의 기록으로 갈아끼우기 전에 묻는다
 function savePending() { return !!saveTimer || saveFlying > 0; }
 function scheduleSave(uid, data) {
@@ -1300,8 +1309,14 @@ function scheduleSave(uid, data) {
   saveTimer = setTimeout(() => {
     saveTimer = null;
     saveFlying++;
+    try { saveState.bytes = JSON.stringify(data).length; } catch (e) {}
     fbDb.collection("scashbook").doc(uid).set(data, {merge: true})
-      .catch(e => { console.warn("Save failed:", e); onSaveError(e); })
+      .then(() => { saveState.at = Date.now(); saveState.ok = true; saveState.err = ""; })
+      .catch(e => {
+        saveState.at = Date.now(); saveState.ok = false;
+        saveState.err = (e && (e.code || e.message)) || "알 수 없음";
+        console.warn("Save failed:", e); onSaveError(e);
+      })
       .then(() => { saveFlying = Math.max(0, saveFlying - 1); });
   }, 800);
 }
@@ -2904,6 +2919,24 @@ const BC = {
   H:{col:"#46834a",nc:"#3a6e3e",cat:"건강",   en:"Health",  g:"linear-gradient(140deg,#4f9354,#37703c)", sp:"#3a6e3e"},
 };
 const CASH4 = ["C","A","S","H"];
+
+// 저장과 연동이 지금 어떤 상태인지 — 안 되면 짐작하지 말고 이 줄을 읽으면 된다
+function SaveLine() {
+  const [, tick] = useState(0);
+  useEffect(() => { const t = setInterval(() => tick(n => n + 1), 2000); return () => clearInterval(t); }, []);
+  const st = saveStatus();
+  const when = st.at ? new Date(st.at).toLocaleTimeString("ko-KR", {hour:"2-digit", minute:"2-digit", second:"2-digit"}) : "아직 없음";
+  const kb = st.bytes ? Math.round(st.bytes / 1024) : 0;
+  const big = kb > 900;
+  return (
+    <div className="dk-diag">
+      <span>저장 {st.ok === null ? "대기" : st.ok ? "성공" : "실패"} · {when}</span>
+      <span className={big ? "warn" : ""}>기록 {kb}KB{big ? " · 한도에 가까움" : ""}</span>
+      <span className={st.sync ? "" : "warn"}>연동 {st.sync ? "켜짐" : "꺼짐"}</span>
+      {!st.ok && st.err && <span className="warn">{st.err}</span>}
+    </div>
+  );
+}
 
 // 책 상세 (표지 탭 → 전체화면 오버레이. Portal로 body에 렌더 → 캐러셀 transform 영향 X)
 // Story = 책의 정보 + 표(습관 일정표 / D-DAY 표) · Write = 그 경험을 엮은 연재
@@ -5557,6 +5590,8 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
           uid={user && user.uid} profile={profile} onNeedHandle={onNeedHandle}
           notes={notes} noteApi={noteApi}/>
       )}
+
+      <SaveLine/>
     </div>
   );
 }
@@ -5849,6 +5884,7 @@ function App() {
   useEffect(() => {
     const uid = user && user.uid;
     if (!FIREBASE_READY || !uid || uid === "local-user") return;
+    saveState.sync = true;
     const unsub = fbDb.collection("scashbook").doc(uid).onSnapshot(
       (snap) => {
         try {
@@ -5862,7 +5898,7 @@ function App() {
       },
       (e) => console.warn("sync:", e)
     );
-    return () => unsub();
+    return () => { saveState.sync = false; unsub(); };
   }, [user]);
 
   // 저장이 막히면 알린다 — 조용히 묻히면 쓴 것이 사라진 줄도 모른다
