@@ -1054,7 +1054,8 @@ function isPageDone(r) {
   if (!r) return false;
   if (r.pageEarned || r.completed) return true;
   if (r.processed) return false;          // 자정에 미완으로 판정된 날
-  const ts = r.tasks || [];
+  // 변수(계획 밖에서 마주친 일)는 세지 않는다 — page는 계획한 것을 끝냈는가의 표시다
+  const ts = (r.tasks || []).filter(t => !t.adhoc);
   return ts.length > 0 && ts.every(t => t.done);
 }
 
@@ -3263,7 +3264,8 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
 
       // 새 포맷 (tasks 배열에 cat 필드)
       if (rec.tasks && rec.tasks.length > 0 && rec.tasks[0] && rec.tasks[0].cat) {
-        const allDone = rec.tasks.every(t => t.done);
+        const planned = rec.tasks.filter(t => !t.adhoc);     // 변수는 page 판정에서 뺀다
+        const allDone = planned.length > 0 && planned.every(t => t.done);
         if (allDone) { pageCount++; rec.pageEarned = true; }
         else { rec.pageEarned = false; }
         rec.processed = true;
@@ -3286,8 +3288,10 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
   // 오늘 기록
   const todayRec = (data.pageRecords||{})[todayKey] || {tasks: []};
   const tasks = (todayRec.tasks||[]).filter(t => t && t.cat);
-  const totalT = tasks.length;
-  const doneT = tasks.filter(t => t.done).length;
+  // 완료%는 계획한 것만 센다 — 변수는 해냈다/못했다로 잴 일이 아니다
+  const planned = tasks.filter(t => !t.adhoc);
+  const totalT = planned.length;
+  const doneT = planned.filter(t => t.done).length;
   const pct = totalT ? Math.round(doneT/totalT*100) : 0;
   const allDone = totalT > 0 && doneT === totalT;
   const pageNumDisplay = (data.pageCount||0) + 1;
@@ -3470,6 +3474,9 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
   // 상수는 계획해서 해내는 것, 변수는 계획 밖에서 마주치는 것.
   // 변수는 이미 벌어진 일이라 '남은 할 일'을 거치지 않고 바로 인증으로 간다
   const [newNow, setNewNow] = useState(false);
+  // 변수는 '남은 할 일'을 거치지 않는다. 남겨야 비로소 생기는 기록이라
+  // 다 적기 전까지는 어디에도 만들어 두지 않는다 (취소하면 흔적이 없다)
+  const [pending, setPending] = useState(null);
 
   const addNew = () => {
     const t = newText.trim();
@@ -3477,9 +3484,16 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
       alert("에피소드를 입력하거나 'My Books에서 가져오기'를 선택해주세요.");
       return;
     }
-    const made = addToToday({cat: newCat, text: t, adhoc: newNow});
     setNewText("");
-    if (newNow && made) handleToggle(made);     // 사진과 메모를 바로 받는다
+    if (newNow) {
+      const draft = {id: Date.now() + Math.random(), cat: newCat, text: t, adhoc: true};
+      setPending(draft);
+      setVerifyId(draft.id);
+      setVerifyPhoto(null);
+      setVerifyMemo("");
+      return;
+    }
+    addToToday({cat: newCat, text: t});
   };
 
   const addFromSource = (st) => {
@@ -3520,10 +3534,16 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
   const [saving, setSaving] = useState(false);
 
   const submitVerify = async () => {
-    const tgt = tasks.find(t => t.id === verifyId);
+    const tgt = tasks.find(t => t.id === verifyId)
+      || (pending && pending.id === verifyId ? pending : null);
     const byBook = !!(tgt && bookNoteToday(tgt.sourceTaskId));   // 그 책에 오늘 쓴 글이 대신한다
-    if (!verifyPhoto && !byBook) { alert("인증 사진을 찍어주세요."); return; }
-    if (!verifyMemo.trim() && !byBook) { alert("간단한 메모를 작성해주세요."); return; }
+    const free = !!(tgt && tgt.adhoc);                          // 변수는 사진도 메모도 고르는 것
+    if (free) {
+      if (!verifyPhoto && !verifyMemo.trim()) { alert("사진이나 메모 중 하나는 남겨 주세요."); return; }
+    } else {
+      if (!verifyPhoto && !byBook) { alert("인증 사진을 찍어주세요."); return; }
+      if (!verifyMemo.trim() && !byBook) { alert("간단한 메모를 작성해주세요."); return; }
+    }
     if (saving) return;
     setSaving(true);
     // 사진은 photos 컬렉션에 따로 저장하고 기록엔 id만 남긴다 (본 문서 1MB 한도 회피)
@@ -3538,17 +3558,22 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
     const targetTask = tgt;
     const memo = verifyMemo.trim() || (byBook ? "이 책에 글로 남겼습니다" : "");
     // doneAt = 완료한 시각 → 스토리 정렬 기준
-    const newTasks = tasks.map(t => t.id === verifyId ? {...t, done: true, doneAt: Date.now(), ...photoFields, memo, byBook: byBook || undefined} : t);
+    const fresh = {done: true, doneAt: Date.now(), ...photoFields, memo, byBook: byBook || undefined};
+    const newTasks = pending && pending.id === verifyId
+      ? [...tasks, {note: "", alarmTime: "", photo: null, ...pending, ...fresh}]
+      : tasks.map(t => t.id === verifyId ? {...t, ...fresh} : t);
     let next = {...data, pageRecords: {...(data.pageRecords||{}), [todayKey]: {...(data.pageRecords||{})[todayKey]||{}, tasks: newTasks}}, startDate: data.startDate||todayKey};
     // 습관 자동 연동
     if (targetTask && targetTask.sourceTaskId) {
       next = syncHabitDoneInData(next, targetTask.sourceTaskId, true);
     }
     setData(next);
+    setPending(null);
     setVerifyId(null); setVerifyPhoto(null); setVerifyMemo("");
   };
 
   const cancelVerify = () => {
+    setPending(null);
     setVerifyId(null); setVerifyPhoto(null); setVerifyMemo("");
   };
 
@@ -3556,7 +3581,7 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
   const stories = tasks.filter(t => t.done)
     .slice()
     .sort((a,b) => (a.doneAt || a.id || 0) - (b.doneAt || b.id || 0));
-  const remaining = tasks.filter(t => !t.done);
+  const remaining = tasks.filter(t => !t.done && !t.adhoc);
   const adhocCount = stories.filter(t => t.adhoc).length;   // 마주친 것
   const planCount = stories.length - adhocCount;            // 계획해서 해낸 것
 
@@ -3635,7 +3660,9 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
   // 이미 추가된 source task id 집합 (중복 표시용)
   const addedSourceIds = new Set(tasks.filter(t => t.sourceTaskId).map(t => t.sourceTaskId));
 
-  const verifyingTask = verifyId ? tasks.find(t => t.id === verifyId) : null;
+  const verifyingTask = verifyId
+    ? (tasks.find(t => t.id === verifyId) || (pending && pending.id === verifyId ? pending : null))
+    : null;
 
   return (
     <div style={{animation:"fadeIn .4s"}}>
@@ -3999,7 +4026,7 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
           <div onClick={e=>e.stopPropagation()} className="paper paper-edge" style={{maxWidth:"380px",width:"100%",maxHeight:"90vh",borderRadius:"12px",padding:"18px",overflow:"auto"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"12px",paddingBottom:"10px",borderBottom:"1px dashed #d8c79a",gap:"8px"}}>
               <div>
-                <div className="heading-serif" style={{fontWeight:700,color:"#6b4f30",fontSize:"14px"}}>✍️ 에피소드 인증</div>
+                <div className="heading-serif" style={{fontWeight:700,color:"#6b4f30",fontSize:"14px"}}>{verifyingTask.adhoc ? "⚡ 방금 남기기" : "✍️ 에피소드 인증"}</div>
                 <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"6px"}}>
                   <span style={{padding:"2px 6px",background:CC[verifyingTask.cat],color:"#fff",borderRadius:"3px",fontSize:"9px",fontWeight:700}}>{verifyingTask.cat}</span>
                   <span style={{fontSize:"12px",color:"#3a2818",fontWeight:500}}>{verifyingTask.text}</span>
@@ -4022,7 +4049,7 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
             )}
 
             <div style={{marginBottom:"12px"}}>
-              <div className="heading-serif" style={{fontSize:"12px",color:"#6b4f30",fontWeight:700,marginBottom:"6px"}}>📷 인증 사진 {bookNoteToday(verifyingTask.sourceTaskId) && <span style={{color:"#4a7c3a",fontWeight:400,fontSize:"10px"}}>· 선택</span>} <span style={{color:"#b89a68",fontWeight:400,fontSize:"10px"}}>· 찍은 시각이 사진에 새겨집니다</span></div>
+              <div className="heading-serif" style={{fontSize:"12px",color:"#6b4f30",fontWeight:700,marginBottom:"6px"}}>📷 {verifyingTask.adhoc ? "사진" : "인증 사진"} {(verifyingTask.adhoc || bookNoteToday(verifyingTask.sourceTaskId)) && <span style={{color:"#4a7c3a",fontWeight:400,fontSize:"10px"}}>· 선택</span>} <span style={{color:"#b89a68",fontWeight:400,fontSize:"10px"}}>· 찍은 시각이 사진에 새겨집니다</span></div>
               <input type="file" accept="image/*" capture="environment" ref={verifyFileRef} onChange={handleVerifyPhoto} style={{position:"absolute",left:"-9999px",width:"1px",height:"1px",opacity:0}}/>
               {verifyPhoto ? (
                 <div style={{position:"relative"}}>
@@ -4035,11 +4062,14 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
             </div>
 
             <div style={{marginBottom:"12px"}}>
-              <div className="heading-serif" style={{fontSize:"12px",color:"#6b4f30",fontWeight:700,marginBottom:"6px"}}>📝 한 줄 메모</div>
-              <textarea className="input" rows={3} value={verifyMemo} onChange={e=>setVerifyMemo(e.target.value)} placeholder="이 에피소드에서 어떤 변화/느낌이 있었나요?"/>
+              <div className="heading-serif" style={{fontSize:"12px",color:"#6b4f30",fontWeight:700,marginBottom:"6px"}}>📝 {verifyingTask.adhoc ? "메모" : "한 줄 메모"} {verifyingTask.adhoc && <span style={{color:"#4a7c3a",fontWeight:400,fontSize:"10px"}}>· 선택</span>}</div>
+              <textarea className="input" rows={3} value={verifyMemo} onChange={e=>setVerifyMemo(e.target.value)} placeholder={verifyingTask.adhoc ? "마주친 것을 적어 두세요" : "이 에피소드에서 어떤 변화/느낌이 있었나요?"}/>
+              {verifyingTask.adhoc && (
+                <div className="td-modehint" style={{marginTop:"6px"}}>사진이나 메모 중 하나만 있어도 됩니다 · 오늘의 완료%에는 들어가지 않습니다</div>
+              )}
             </div>
 
-            <button onClick={submitVerify} disabled={saving} className="btn-gold" style={{width:"100%",padding:"12px",fontSize:"13px",letterSpacing:"2px",marginBottom:"6px"}}>{saving ? "저장 중…" : "✓ 인증 완료"}</button>
+            <button onClick={submitVerify} disabled={saving} className="btn-gold" style={{width:"100%",padding:"12px",fontSize:"13px",letterSpacing:"2px",marginBottom:"6px"}}>{saving ? "저장 중…" : verifyingTask.adhoc ? "⚡ 스토리에 남기기" : "✓ 인증 완료"}</button>
             <button onClick={cancelVerify} style={{width:"100%",padding:"8px",background:"transparent",border:"1px solid #6a5538",color:"#6a5538",borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontFamily:"inherit"}}>취소</button>
           </div>
         </div>,
