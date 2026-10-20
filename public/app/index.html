@@ -1043,6 +1043,37 @@
 <body>
 <div id="root"></div>
 
+<script>
+// 무엇이 터지든 화면에 적는다. 까만 화면만 남으면 원인을 물어볼 길이 없다.
+(function () {
+  var shown = false;
+  function paint(what, err) {
+    if (shown) return; shown = true;
+    var box = document.createElement("div");
+    box.setAttribute("style", "position:fixed;inset:0;z-index:100000;overflow:auto;padding:26px 20px;" +
+      "background:#1a0f08;color:#e8dcc0;font-family:'Noto Serif KR',serif;line-height:1.8");
+    var msg = (err && (err.stack || err.message)) || String(err);
+    box.innerHTML =
+      '<div style="font-size:15px;font-weight:700;color:#f0e2c0">앱이 열리지 못했어요</div>' +
+      '<div style="font-size:12px;color:#b9a888;margin-top:8px">기록은 이 기기에 그대로 있습니다. ' +
+      '아래 내용을 그대로 알려 주시면 고칠 수 있어요.</div>' +
+      '<div style="margin-top:14px;padding:11px 12px;border-radius:7px;background:rgba(255,255,255,.07);' +
+      'font-size:11px;color:#c9b998;white-space:pre-wrap;word-break:break-all;' +
+      'font-family:ui-monospace,monospace">' + what + "\n" + String(msg).slice(0, 1200) + '</div>' +
+      '<button onclick="location.reload()" style="margin-top:16px;padding:11px 18px;border:1px solid #b8862f;' +
+      'border-radius:7px;background:rgba(212,168,81,.18);color:#f0d9a0;font-family:inherit;font-size:12px">새로고침</button>';
+    document.body.appendChild(box);
+  }
+  window.addEventListener("error", function (e) { paint("error", e.error || e.message); });
+  window.addEventListener("unhandledrejection", function (e) { paint("promise", e.reason); });
+  // 10초가 지나도 아무것도 안 그려졌으면 그것도 알려 준다
+  setTimeout(function () {
+    var r = document.getElementById("root");
+    if (r && r.children.length === 0) paint("빈 화면", "10초 동안 아무것도 그려지지 않았습니다");
+  }, 10000);
+})();
+</script>
+
 <!-- Firebase compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
@@ -6104,8 +6135,11 @@ function App() {
     );
   }
 
+  // 감싸는 <div>를 두면 안 된다 — PageBook이 height:100%로 서는데
+  // 높이 없는 칸이 사이에 끼면 그 100%가 0이 된다(화면이 통째로 빈다).
+  // Fragment는 DOM에 아무것도 만들지 않아 사슬을 끊지 않는다.
   return (
-    <div>
+    <React.Fragment>
       {saveErr && (
         <div className="save-err">
           <span>저장되지 않았어요 · {saveErr}</span>
@@ -6116,7 +6150,7 @@ function App() {
       <PageBook data={data} setData={setData} onLogout={handleLogout} user={user}
         profile={profile} onSaveProfile={handleSaveProfile} notes={notes} noteApi={noteApi}
         notesLoaded={notesLoaded}/>
-    </div>
+    </React.Fragment>
   );
 }
 
