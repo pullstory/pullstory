@@ -222,6 +222,18 @@ import '../../styles/paper.css';
       margin-bottom: 4px;
       font-variant-numeric: tabular-nums;
     }
+    /* 옮겨 적은 문장 — 지은이의 글과 결이 다르다 */
+    #book-root .bq {
+      margin: 13px 0 0;
+      padding: 9px 0 9px 13px;
+      border-left: 3px solid var(--gold);
+      background: rgba(240,232,210,.4);
+      font-size: 12.5px;
+      line-height: 1.9;
+      color: #5c4a2e;
+      font-style: italic;
+      white-space: pre-wrap;
+    }
     #book-root .sub {
       font-size: 14px; font-weight: 700; color: var(--deep);
       margin: 18px 0 0; padding-left: 9px; border-left: 3px solid rgba(156,116,32,.55); line-height: 1.5;
@@ -414,6 +426,7 @@ import '../../styles/paper.css';
         var v = String(b.v || '');
         if (!v.trim()) return '';
         if (b.t === 'h') return '<h3 class="sub">' + esc(v) + '</h3>';
+        if (b.t === 'bq') return '<blockquote class="bq">' + esc(v) + '</blockquote>';
         return '<div class="p">' + esc(v) + '</div>';
       }
 

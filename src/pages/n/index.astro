@@ -39,6 +39,18 @@ import '../../styles/paper.css';
       background: linear-gradient(90deg, rgba(156,116,32,.45), transparent);
       margin: 15px 0 4px;
     }
+    /* 옮겨 적은 문장 — 지은이의 글과 결이 다르다 */
+    #note-root .bq {
+      margin: 15px 0 0;
+      padding: 10px 0 10px 14px;
+      border-left: 3px solid var(--gold);
+      background: rgba(240,232,210,.4);
+      font-size: 13px;
+      line-height: 1.95;
+      color: #5c4a2e;
+      font-style: italic;
+      white-space: pre-wrap;
+    }
     #note-root .sub {
       font-size: 15.5px; font-weight: 700; color: var(--deep);
       margin: 22px 0 0; padding-left: 10px; border-left: 3px solid rgba(156,116,32,.55);
@@ -170,6 +182,7 @@ import '../../styles/paper.css';
         var v = String(b.v || '');
         if (!v.trim()) return '';
         if (b.t === 'h') return '<h2 class="sub">' + esc(v) + '</h2>';
+        if (b.t === 'bq') return '<blockquote class="bq">' + esc(v) + '</blockquote>';
         return '<div class="p">' + esc(v) + '</div>';
       }
 

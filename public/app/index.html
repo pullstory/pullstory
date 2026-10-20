@@ -290,7 +290,11 @@
   .rw-title{width:100%;box-sizing:border-box;border:none;border-bottom:1px solid rgba(120,90,40,.25);
     background:none;padding:0 0 9px;font-family:'Noto Serif KR',serif;font-size:19px;font-weight:700;
     color:#2f2109;outline:none;margin-bottom:14px;letter-spacing:-.02em}
-  .rw-text{font-size:14px;line-height:2;min-height:120px}
+  .rw-text{width:100%;box-sizing:border-box;margin-top:12px;background:transparent;border:none;resize:none;
+    outline:none;overflow:hidden;display:block;font-family:'Noto Serif KR',serif;font-size:14px;
+    line-height:28px;color:#3a2818;padding:0 2px;
+    background-image:linear-gradient(rgba(120,90,40,.13) 1px,transparent 1px);
+    background-size:100% 28px;background-position:0 26px}
   .rw-done{width:100%;margin-top:18px;padding:13px;border:none;border-radius:8px;
     background:linear-gradient(135deg,#e7c574,#b8862f);color:#fff8e5;
     font-family:'Noto Serif KR',serif;font-weight:700;font-size:13px;letter-spacing:.14em;cursor:pointer}
@@ -803,6 +807,11 @@
   .blk-h{width:100%;box-sizing:border-box;border:none;border-left:3px solid #c9a85a;background:rgba(255,253,245,.6);
     padding:8px 10px;font-family:'Noto Serif KR',serif;font-size:14px;font-weight:700;color:#2f2109;outline:none}
   .blk-img{display:block;width:100%;border:1px solid #d8c79a;border-radius:3px}
+  /* 옮겨 적은 남의 문장 — 내 글과 결이 달라 보여야 한다 */
+  .blk-bq{width:100%;box-sizing:border-box;border:none;border-left:3px solid #9c7420;
+    background:rgba(240,232,210,.5);padding:9px 12px;resize:none;outline:none;overflow:hidden;display:block;
+    font-family:'Noto Serif KR',serif;font-size:13px;line-height:1.9;color:#5c4a2e;font-style:italic}
+  .blk-bq::placeholder{font-style:italic;color:#b09a6e}
   .blk-add{display:flex;gap:6px;margin:12px 0 4px;flex-wrap:wrap}
   .blk-add button{flex:1;min-width:76px;padding:8px 6px;border-radius:6px;cursor:pointer;
     border:1px solid rgba(156,116,32,.4);background:rgba(255,253,245,.75);
@@ -1456,7 +1465,7 @@ function resolvePostForPublic(book, post, records, span) {
     .filter(b => b.t !== "q" && b.t !== "seed")
     .map(b => b.t === "img"
       ? {t: "img", photoId: b.photoId || null}
-      : {t: b.t === "h" ? "h" : "p", v: String(b.v || "")})
+      : {t: (b.t === "h" || b.t === "bq") ? b.t : "p", v: String(b.v || "")})
     .filter(b => b.t === "img" ? b.photoId : b.v.trim());
   return {block: {id: post.id, title: post.title || "", blocks: resolved, ts: noteTs(post) || null}};
 }
@@ -2692,6 +2701,13 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass}) 
             <Photo src={b.src} id={b.photoId} className="blk-img"/>
           </div>
         );
+        if (b.t === "bq") return (
+          <div className="blk" key={"bq" + i}>
+            <button className="blk-x" onClick={()=>drop(i)} title="인용 빼기">✕</button>
+            <BufferedTA className="blk-bq" value={b.v || ""} placeholder="옮겨 적을 문장"
+              onSave={(v)=>at(i, {v})}/>
+          </div>
+        );
         if (b.t === "h") return (
           <div className="blk" key={"h" + i}>
             <button className="blk-x" onClick={()=>drop(i)} title="소제목 빼기">✕</button>
@@ -2708,6 +2724,7 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass}) 
 
       <div className="blk-add">
         <button onClick={()=>add({t:"p", v:""})}>＋ 문단</button>
+        <button onClick={()=>add({t:"bq", v:""})}>＋ 인용</button>
         <button onClick={()=>add({t:"h", v:""})}>＋ 소제목</button>
         <button onClick={()=>fileRef.current && fileRef.current.click()} disabled={busy}>
           {busy ? "올리는 중…" : "＋ 사진"}
