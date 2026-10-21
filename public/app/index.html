@@ -393,7 +393,22 @@
   /* 원고 내보내기 — 공개와는 다른 일이다. 공개는 진열, 이건 들고 나가는 것 */
   .bx{margin-top:12px;padding:13px;border-radius:7px;border:1px solid rgba(120,90,40,.28);
     background:rgba(255,253,245,.55)}
-  .bx-h{font-family:'Noto Serif KR',serif;font-size:12.5px;font-weight:700;color:#2f2109}
+  .bx-h{display:flex;align-items:center;justify-content:space-between;gap:9px;
+    font-family:'Noto Serif KR',serif;font-size:12.5px;font-weight:700;color:#2f2109}
+  .bx-all{display:flex;align-items:center;gap:5px;flex-shrink:0;cursor:pointer;
+    font-size:10.5px;font-weight:700;color:#8a5f14}
+  .bx-all input{accent-color:#b8862f;cursor:pointer}
+  /* 챕터 고르는 칸 — 길어지면 이 안에서만 흐른다 */
+  .bx-list{margin-top:10px;max-height:168px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    border:1px solid rgba(120,90,40,.2);border-radius:6px;background:rgba(255,253,245,.7)}
+  .bx-ch{display:flex;align-items:center;gap:8px;padding:7px 9px;cursor:pointer;
+    border-bottom:1px solid rgba(120,90,40,.12)}
+  .bx-ch:last-child{border-bottom:none}
+  .bx-ch input{flex-shrink:0;accent-color:#b8862f;cursor:pointer}
+  .bx-ch .n{flex-shrink:0;width:15px;text-align:right;font-family:'Cormorant Garamond',Georgia,serif;
+    font-weight:700;font-size:12px;color:#b89a68}
+  .bx-ch .t{flex:1;min-width:0;font-family:'Noto Serif KR',serif;font-size:11px;color:#3a2818;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .bx-r{display:flex;gap:8px;margin-top:10px}
   .bx-r button{flex:1;padding:9px 6px;border-radius:6px;cursor:pointer;
     border:1px solid rgba(156,116,32,.45);background:rgba(255,253,245,.9);
@@ -2984,8 +2999,12 @@ const CASH4 = ["C","A","S","H"];
 // 노션·옵시디언에 붙여 이어 쓰거나, 통째로 AI에게 건네 정리를 맡기는 자리다.
 // 빼는 것은 공개할 때와 같다 — 인용 카드와 영감은 쓰는 사람이 곁에 두고 보던 것이지
 // 밖으로 낼 원고가 아니다. 챕터는 쓴 순서대로 선다(1화가 맨 앞).
-function bookToMarkdown(book, notes) {
-  const posts = bookPosts(book, notes);
+// pick(고른 글 id들)을 주면 그것만 뽑되 번호는 책에서의 제 번호를 쓴다 —
+// 3화와 5화를 꺼냈는데 1, 2로 고쳐 달면 어디서 뜯어 온 글인지 알 수 없게 된다.
+function bookToMarkdown(book, notes, pick) {
+  const all = bookPosts(book, notes);
+  const posts = pick ? all.filter(p => pick.has(p.id)) : all;
+  const numOf = new Map(all.map((p, i) => [p.id, i + 1]));
   const isColl = book.type === "collection";
   const isHabit = taskTypeOf(book) === "habit";
   const span = bookSpan(book);
@@ -3008,6 +3027,8 @@ function bookToMarkdown(book, notes) {
     L.push(String(a.criteria).trim()
       + (cnt && cnt.target ? ` — ${cnt.count}/${cnt.target}${cnt.unit}` : ""));
   }
+  // 일부만 꺼냈다면 그렇다고 적어 둔다 — 읽는 쪽이 책 전체로 오해하지 않게
+  if (posts.length < all.length) L.push(`전체 ${all.length}편 중 ${posts.length}편`);
   L.push("");
 
   if (isColl && String(book.intro || "").trim()) L.push(String(book.intro).trim(), "");
@@ -3017,9 +3038,9 @@ function bookToMarkdown(book, notes) {
 
   if (!posts.length) L.push("---", "", "*아직 쓴 글이 없습니다.*", "");
 
-  posts.forEach((p, i) => {
+  posts.forEach(p => {
     L.push("---", "");
-    L.push("## " + (i + 1) + ". " + (oneLine(p.title) || "(제목 없음)"), "");
+    L.push("## " + numOf.get(p.id) + ". " + (oneLine(p.title) || "(제목 없음)"), "");
     const ts = noteTs(p);
     if (ts) {
       const d = new Date(ts);
@@ -3046,9 +3067,15 @@ function bookToMarkdown(book, notes) {
 // 제목 칸에 줄바꿈이 들어가면 마크다운에서 제목이 끊긴다 — 한 줄로 편다
 function oneLine(s) { return String(s || "").replace(/\s*\n\s*/g, " ").trim(); }
 
-function bookMdFileName(book) {
-  const base = oneLine(book && book.text).replace(/[\\/:*?"<>|]/g, "").slice(0, 60);
-  return (base || "book") + ".md";
+// 한 편만 꺼냈으면 그 챕터 이름을, 몇 편만 꺼냈으면 몇 편인지를 파일 이름에 남긴다.
+// 내려받기 폴더에서 같은 이름이 여럿이면 어느 게 어느 건지 알 수 없다.
+function bookMdFileName(book, picked, total) {
+  const clean = (s) => oneLine(s).replace(/[\\/:*?"<>|]/g, "").trim();
+  const base = clean(book && book.text).slice(0, 60) || "book";
+  const n = (picked || []).length;
+  if (!n || n === total) return base + ".md";
+  if (n === 1) return (base + " - " + (clean(picked[0].title) || "1편")).slice(0, 90) + ".md";
+  return `${base} (${n}편).md`;
 }
 
 // 복사는 두 길을 다 둔다 — 주소가 https가 아니거나 옛 브라우저면 첫 길이 막힌다
@@ -3147,15 +3174,28 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
   };
   useEffect(() => () => clearTimeout(expTimer.current), []);
 
+  // 빼 둔 챕터만 기억한다 — 고른 것을 기억하면 새로 쓴 글이 가만히 빠져 버린다.
+  // 기본은 전체이고, 체크를 끈 것만 모아 둔다.
+  const [expOff, setExpOff] = useState(() => new Set());
+  const picked = mdPosts.filter(p => !expOff.has(p.id));
+  const allOn = picked.length === mdPosts.length;
+  const toggleOne = (id) => setExpOff(s => {
+    const n = new Set(s);
+    n.has(id) ? n.delete(id) : n.add(id);
+    return n;
+  });
+  const toggleAll = () => setExpOff(allOn ? new Set(mdPosts.map(p => p.id)) : new Set());
+  const pickSet = allOn ? null : new Set(picked.map(p => p.id));
+
   const copyMd = async () => {
-    const md = bookToMarkdown(book, notes);
+    const md = bookToMarkdown(book, notes, pickSet);
     const ok = await copyText(md);
-    flashExp(ok ? `✓ 복사했어요 · ${mdPosts.length}편 ${md.length.toLocaleString()}자`
+    flashExp(ok ? `✓ 복사했어요 · ${picked.length}편 ${md.length.toLocaleString()}자`
                 : "복사하지 못했어요 — .md 파일로 받아 주세요");
   };
   const saveMd = () => {
-    const name = bookMdFileName(book);
-    downloadText(bookToMarkdown(book, notes), name, "text/markdown");
+    const name = bookMdFileName(book, picked, mdPosts.length);
+    downloadText(bookToMarkdown(book, notes, pickSet), name, "text/markdown");
     flashExp("✓ " + name);
   };
 
@@ -3547,19 +3587,41 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
             </div>
           )}
 
-          {/* 원고를 밖으로 — 여기 쓴 건 쓴 사람 것이라 언제든 들고 나갈 수 있어야 한다 */}
-          {!editing && (
+          {/* 원고를 밖으로 — 여기 쓴 건 쓴 사람 것이라 언제든 들고 나갈 수 있어야 한다.
+              글이 모여 있는 Write 자리에 둔다. Story는 표와 책의 정보를 보는 자리다 */}
+          {tab === "write" && !editing && (
             <div className="bx">
-              <div className="bx-h">📄 원고 내보내기</div>
+              <div className="bx-h">
+                <span>📄 원고 내보내기</span>
+                {mdPosts.length > 0 && (
+                  <label className="bx-all">
+                    <input type="checkbox" checked={allOn} onChange={toggleAll}/>전체
+                  </label>
+                )}
+              </div>
+              {mdPosts.length > 0 && (
+                <div className="bx-list">
+                  {mdPosts.map((p, i) => (
+                    <label className="bx-ch" key={p.id}>
+                      <input type="checkbox" checked={!expOff.has(p.id)} onChange={()=>toggleOne(p.id)}/>
+                      <span className="n">{i + 1}</span>
+                      <span className="t">{oneLine(p.title) || "(제목 없음)"}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
               <div className="bx-r">
-                <button onClick={copyMd} disabled={!mdPosts.length}>📋 마크다운 복사</button>
-                <button onClick={saveMd} disabled={!mdPosts.length}>⬇ .md 파일</button>
+                <button onClick={copyMd} disabled={!picked.length}>📋 마크다운 복사</button>
+                <button onClick={saveMd} disabled={!picked.length}>⬇ .md 파일</button>
               </div>
               <div className={"bx-n" + (expMsg ? " ok" : "")}>
-                {expMsg || (mdPosts.length
-                  ? `챕터 ${mdPosts.length}편이 글자 그대로 나갑니다 · 노션·옵시디언에 붙이거나 AI에게 통째로 건넬 수 있어요`
-                    + (mdPhotos ? ` (사진 ${mdPhotos}장은 자리만 표시돼요)` : "")
-                  : "쓴 글이 있어야 내보낼 수 있어요")}
+                {expMsg || (!mdPosts.length ? "쓴 글이 있어야 내보낼 수 있어요"
+                  : !picked.length ? "내보낼 챕터를 골라 주세요"
+                  : (allOn
+                      ? `챕터 ${mdPosts.length}편 전부가 글자 그대로 나갑니다`
+                      : `고른 ${picked.length}편이 나갑니다 (전체 ${mdPosts.length}편) · 번호는 책에서의 제 번호를 그대로 씁니다`)
+                    + ` · 노션·옵시디언에 붙이거나 AI에게 건넬 수 있어요`
+                    + (mdPhotos ? ` (사진은 자리만 표시돼요)` : ""))}
               </div>
             </div>
           )}
