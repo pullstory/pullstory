@@ -376,12 +376,15 @@
     border-top:1px dotted rgba(120,90,40,.25)}
 
   /* 글감 → 글 */
-  .td-seedrow{display:flex;align-items:center;gap:9px;margin-top:9px;padding-top:9px;border-top:1px dotted rgba(120,90,40,.25)}
+  .td-seedrow{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin-top:9px;padding-top:9px;border-top:1px dotted rgba(120,90,40,.25)}
   .td-seed{background:none;border:1px solid #d8c79a;border-radius:6px;padding:4px 10px;
     font-family:'Noto Serif KR',serif;font-size:10px;color:#8a5f14;cursor:pointer}
   .td-seed:active{background:#e9d7ad}
   .td-seed.del{margin-left:auto;border-color:#d8b3af;color:#a8483f}
   .td-seed.del:active{background:#f0dcd9}
+  /* 완료 해제 — 오늘 안에만 열리는 문이라 조용히 둔다 */
+  .td-seed.undo{margin-left:auto;border-color:#cfc0a0;color:#8a7556}
+  .td-seed.undo + .td-seed.del{margin-left:0}
   .td-seedn{font-size:9.5px;color:#9c8460;font-style:italic}
   .td-seedq{border-left:2px solid rgba(156,116,32,.5);padding:2px 0 2px 11px}
   .td-seedq img{border-radius:5px;max-height:150px;width:auto}
@@ -617,6 +620,14 @@
     border-top:1px dashed rgba(120,90,40,.24);font-size:8.5px;color:#8a7556;flex-wrap:wrap}
   .sb-lgd s{text-decoration:none;display:inline-block;width:8px;height:8px;border-radius:2px;
     margin-right:3px;vertical-align:-1px}
+  /* 지난 기록에서 글로 — 읽기만 하던 자리에 손잡이를 단다 */
+  .sb-epact{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:9px;padding-top:9px;
+    border-top:1px dotted rgba(120,90,40,.25)}
+  .sb-epact button{background:none;border:1px solid #d8c79a;border-radius:6px;padding:4px 10px;
+    font-family:'Noto Serif KR',serif;font-size:10px;font-weight:700;color:#8a5f14;cursor:pointer;
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sb-epact button:active{background:#e9d7ad}
+  .sb-epact .n{font-size:9px;color:#a89066;font-style:italic}
   .sb-colo{text-align:center;font-size:9px;color:#a89066;font-style:italic;margin-top:18px;
     padding-top:12px;border-top:1px solid rgba(120,90,40,.18);line-height:1.75}
   .sb-empty{margin-top:14px;padding:12px;font-size:11px;color:#a99068;font-style:italic;text-align:center;
@@ -2791,6 +2802,104 @@ function BufferedTA({value, onSave, className, placeholder, onFocus, onEmptyBack
     onFocus={onFocus} onKeyDown={onKeyDown} onBlur={flush}/>;
 }
 
+// 기록 하나를 글감으로 세우는 창.
+// Page의 오늘 기록에서도, Story의 지난 기록에서도 같은 일이라 한 군데에 둔다 —
+// 기록은 그 자리에 그대로 두고, 그걸 영감으로 붙인 빈 글을 따로 세운다.
+// (seed가 바뀔 때마다 제목을 다시 잡아야 하므로 부르는 쪽에서 key를 준다)
+function SeedModal({seed, date, books, noteApi, user, profile, onNeedHandle, onClose}) {
+  const [to, setTo] = useState("");
+  const [title, setTitle] = useState(() => String((seed && seed.text) || "").slice(0, 40));
+  const [pub, setPub] = useState(false);
+  const [busy, setBusy] = useState(false);
+  if (!seed) return null;
+
+  const grow = async () => {
+    if (busy) return;
+    if (!noteApi || !noteApi.live) { alert("로그인하면 글로 옮길 수 있어요."); return; }
+    setBusy(true);
+    // 메모는 고쳐 쓰는 본문이 아니라 보고 쓰는 영감이다 — 읽기만 하는 카드로 붙인다
+    const blocks = [
+      {t: "seed", date: date || "", cat: seed.cat || "", text: seed.text || "",
+       memo: String(seed.memo || "").trim(),
+       photoId: seed.photoId || null, src: seed.photoId ? null : (seed.photo || null)},
+      {t: "p", v: ""},
+    ];
+    const t = title.trim() || (seed.text || "제목 없음");
+    const id = await noteApi.create({
+      title: t, blocks,
+      bookId: to || null,
+      visibility: pub ? "public" : "private",
+      from: {date: date || "", taskId: String(seed.id)},
+    });
+    // 공개로 세웠으면 진열대 카드까지 만들어야 한다 —
+    // visibility만 바꿔 두면 '공개'라고 적혀 있는데 아무 데도 안 보이는 글이 된다
+    if (id && pub) {
+      if (!(profile && profile.handle)) {
+        onNeedHandle && onNeedHandle();
+      } else {
+        const b = to ? (books || []).find(x => String(x.id) === String(to)) : null;
+        try {
+          await syncNoteCard(user && user.uid, profile,
+            {id, title: t, blocks, bookId: to || null, visibility: "public", ts: Date.now()},
+            b, !!(b && b.published));
+        } catch (e) { console.warn("seed feed:", e); }
+      }
+    }
+    setBusy(false);
+    onClose();
+    if (!id) alert("글을 만들지 못했어요.");
+  };
+
+  return ReactDOM.createPortal(
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.72)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px",animation:"fadeIn .2s"}}>
+      <div onClick={e=>e.stopPropagation()} className="paper paper-edge" style={{maxWidth:"380px",width:"100%",maxHeight:"88vh",borderRadius:"12px",padding:"18px",overflow:"auto"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px",paddingBottom:"10px",borderBottom:"1px dashed #d8c79a"}}>
+          <div className="heading-serif" style={{fontWeight:700,color:"#6b4f30",fontSize:"14px"}}>✎ 이 기록으로 글 쓰기</div>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:"18px",color:"#8a7556",cursor:"pointer"}}>✕</button>
+        </div>
+
+        <div className="td-seedq">
+          {(seed.photoId || seed.photo) && <Photo src={seed.photo} id={seed.photoId} alt=""/>}
+          <div className="td-seedqm">{seed.memo || "(메모 없음)"}</div>
+        </div>
+        <div className="td-seedkeep">기록은 그 날짜에 그대로 남습니다 · 이 기록을 영감으로 붙인 빈 글이 세워지고, Desk에서 그걸 보며 새로 씁니다</div>
+
+        <div className="mb-fld" style={{marginTop:"13px"}}>
+          <div className="mb-fl">제목</div>
+          <input className="input" value={title} onChange={e=>setTitle(e.target.value)}
+            placeholder="제목 없음" style={{fontSize:"12px",padding:"8px 9px"}}/>
+        </div>
+
+        <div className="mb-fld" style={{marginTop:"11px"}}>
+          <div className="mb-fl">어디에 둘까요</div>
+          <select className="input" value={to} onChange={e=>setTo(e.target.value)}
+            style={{fontSize:"12px",padding:"8px 9px",fontFamily:"inherit"}}>
+            <option value="">Desk 낱장 — 아직 책에 넣지 않음</option>
+            {(books || []).map(b => (
+              <option key={b.id} value={String(b.id)}>
+                {(b.type === "collection" ? "✍️ " : taskTypeOf(b) === "habit" ? "🔁 " : "🏆 ") + (b.text || "(제목 없음)")}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="mb-fld" style={{marginTop:"11px",marginBottom:"14px"}}>
+          <div className="mb-fl">공개</div>
+          <div className="td-mode">
+            <span className={pub?"":"on"} onClick={()=>setPub(false)}>나만</span>
+            <span className={pub?"on":""} onClick={()=>setPub(true)}>공개</span>
+          </div>
+          <div className="td-modehint">하루를 나눴는지와 이 글을 나눌지는 서로 상관없습니다</div>
+        </div>
+
+        <button onClick={grow} disabled={busy} className="btn-gold" style={{width:"100%",padding:"12px",fontSize:"13px",letterSpacing:"2px",marginBottom:"6px"}}>{busy ? "세우는 중…" : "✎ 빈 글 세우기"}</button>
+        <button onClick={onClose} style={{width:"100%",padding:"8px",background:"transparent",border:"1px solid #6a5538",color:"#6a5538",borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontFamily:"inherit"}}>취소</button>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // 세부 계획 칸. 책에서 가져온 계획이면 이게 곧 그 책의 챕터 제목이라
 // 한 곳을 고치면 양쪽이 같이 바뀐다 — 그래서 치는 동안엔 보내지 않고 모아 보낸다
 function ChapterPlan({value, onSave, placeholder}) {
@@ -3750,7 +3859,8 @@ function HomePage({data, setData, user, profile, onNeedHandle, notes, noteApi, o
       )}
 
       {detail && <BookDetail key={detail.id} book={detail} bc={BC[detail.cat]||BC.C} records={data.pageRecords||{}}
-        backLabel={bookFrom === "workshop" ? "‹ Desk로" : bookFrom === "writing" ? "‹ Page로" : "‹ 책장으로"}
+        backLabel={bookFrom === "workshop" ? "‹ Desk로" : bookFrom === "writing" ? "‹ Page로"
+          : bookFrom === "now" ? "‹ Story로" : "‹ 책장으로"}
         onClose={()=>{ setDetailId(null); onReturn && onReturn(); }}
         updateBook={updateBook} deleteBook={deleteBook} toggleStatus={toggleStatus}
         uid={user && user.uid} profile={profile} onNeedHandle={onNeedHandle}
@@ -4137,7 +4247,9 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
     if (free) {
       if (!verifyPhoto && !verifyMemo.trim()) { alert("사진이나 메모 중 하나는 남겨 주세요."); return; }
     } else {
-      if (!verifyPhoto && !byBook) { alert("인증 사진을 찍어주세요."); return; }
+      // 해제했다가 다시 체크하는 경우엔 그때 찍은 사진이 아직 붙어 있다 — 또 찍으라고 하지 않는다
+      const kept = !!(tgt && (tgt.photoId || tgt.photo));
+      if (!verifyPhoto && !byBook && !kept) { alert("인증 사진을 찍어주세요."); return; }
       if (!verifyMemo.trim() && !byBook) { alert("간단한 메모를 작성해주세요."); return; }
     }
     if (saving) return;
@@ -4201,10 +4313,6 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
     new Date(noteTs(n) || 0).toISOString().slice(0, 10) === todayKey);
 
   const [seed, setSeed] = useState(null);        // {task} — 글로 키울 기록
-  const [seedTo, setSeedTo] = useState("");      // "" = 낱장 · 그 외 = 책 id
-  const [seedTitle, setSeedTitle] = useState("");
-  const [seedPublic, setSeedPublic] = useState(false);
-  const [seeding, setSeeding] = useState(false);
 
   // 변수는 지울 수 있다. 계획은 스스로 한 약속이라 되돌리지 않지만
   // 변수는 마주친 것일 뿐이어서 잘못 남겼으면 거둬도 된다.
@@ -4218,48 +4326,19 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
     writeTodayTasks(tasks.filter(x => x.id !== t.id));
   };
 
-  const openSeed = (t) => {
-    setSeed(t);
-    setSeedTo("");
-    setSeedTitle(String(t.text || "").slice(0, 40));   // 새로 쓸 글의 임시 이름
-    setSeedPublic(false);
-  };
+  const openSeed = (t) => setSeed(t);
 
-  const growSeed = async () => {
-    if (!seed || seeding) return;
-    if (!noteApi || !noteApi.live) { alert("로그인하면 글로 옮길 수 있어요."); return; }
-    setSeeding(true);
-    // 메모는 고쳐 쓰는 본문이 아니라 보고 쓰는 영감이다 — 읽기만 하는 카드로 붙인다
-    const blocks = [
-      {t: "seed", date: todayKey, cat: seed.cat || "", text: seed.text || "",
-       memo: String(seed.memo || "").trim(),
-       photoId: seed.photoId || null, src: seed.photoId ? null : (seed.photo || null)},
-      {t: "p", v: ""},
-    ];
-    const title = seedTitle.trim() || (seed.text || "제목 없음");
-    const id = await noteApi.create({
-      title, blocks,
-      bookId: seedTo || null,
-      visibility: seedPublic ? "public" : "private",
-      from: {date: todayKey, taskId: String(seed.id)},
-    });
-    // 공개로 세웠으면 진열대 카드까지 만들어야 한다 —
-    // visibility만 바꿔 두면 '공개'라고 적혀 있는데 아무 데도 안 보이는 글이 된다
-    if (id && seedPublic) {
-      if (!(profile && profile.handle)) {
-        onNeedHandle && onNeedHandle();
-      } else {
-        const b = seedTo ? allBooks.find(x => String(x.id) === String(seedTo)) : null;
-        try {
-          await syncNoteCard(user && user.uid, profile,
-            {id, title, blocks, bookId: seedTo || null, visibility: "public", ts: Date.now()},
-            b, !!(b && b.published));
-        } catch (e) { console.warn("seed feed:", e); }
-      }
-    }
-    setSeeding(false);
-    setSeed(null);
-    if (!id) alert("글을 만들지 못했어요.");
+  // 오늘 안에는 되돌릴 수 있다 — 자정을 넘기면 그날의 기록이 되어 더는 손대지 않는다.
+  // 잘못 누른 체크 하나 때문에 하루가 틀어진 채로 굳는 건 기록이 아니라 족쇄다.
+  // (page 수는 자정에 그날 기록을 보고 세므로 여기서 되돌릴 것이 없다)
+  const undoDone = (t) => {
+    if (!confirm(`'${taskLabel(t)}' 완료를 해제할까요?\n\n남긴 사진과 메모는 그대로 두고 '남은 할 일'로 되돌립니다.\n자정이 지나면 해제할 수 없어요.`)) return;
+    const newTasks = tasks.map(x => x.id === t.id
+      ? {...x, done: false, doneAt: null, byBook: null} : x);
+    let next = {...data, pageRecords: {...(data.pageRecords||{}),
+      [todayKey]: {...((data.pageRecords||{})[todayKey]||{}), tasks: newTasks}}};
+    if (t.sourceTaskId) next = syncHabitDoneInData(next, t.sourceTaskId, false);  // 그 책의 표도 같이 지운다
+    setData(next);
   };
 
   // 완료 시각 표기 (레거시 기록엔 doneAt이 없어 시각을 숨김)
@@ -4325,7 +4404,7 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
             {stories.length > 0 && (
               <span className="td-mix">계획 <b>{planCount}</b> · 변수 <b>{adhocCount}</b></span>
             )}
-            한번 남긴 기록은 되돌릴 수 없어요 · 메모만 고쳐 쓸 수 있어요 · 변수는 지울 수 있어요
+            오늘 안에는 완료를 해제할 수 있어요 · 자정이 지나면 그날의 기록으로 굳습니다
           </div>
 
           {stories.length === 0 ? (
@@ -4355,6 +4434,8 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                   {notesFrom(t.id).length > 0 && (
                     <span className="td-seedn">이 기록으로 쓴 글 {notesFrom(t.id).length}편</span>
                   )}
+                  <button className="td-seed undo" onClick={()=>undoDone(t)}
+                    title="오늘 안에는 되돌릴 수 있어요">↩ 완료 해제</button>
                   {t.adhoc && <button className="td-seed del" onClick={()=>removeAdhoc(t)}>지우기</button>}
                 </div>
               </div>
@@ -4696,54 +4777,9 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
       })()}
 
       {/* 글감 → 글 — 어디에 둘지, 공개할지만 고르면 된다 */}
-      {seed && ReactDOM.createPortal(
-        <div onClick={()=>setSeed(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.72)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px",animation:"fadeIn .2s"}}>
-          <div onClick={e=>e.stopPropagation()} className="paper paper-edge" style={{maxWidth:"380px",width:"100%",maxHeight:"88vh",borderRadius:"12px",padding:"18px",overflow:"auto"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px",paddingBottom:"10px",borderBottom:"1px dashed #d8c79a"}}>
-              <div className="heading-serif" style={{fontWeight:700,color:"#6b4f30",fontSize:"14px"}}>✎ 이 기록으로 글 쓰기</div>
-              <button onClick={()=>setSeed(null)} style={{background:"none",border:"none",fontSize:"18px",color:"#8a7556",cursor:"pointer"}}>✕</button>
-            </div>
-
-            <div className="td-seedq">
-              {(seed.photoId || seed.photo) && <Photo src={seed.photo} id={seed.photoId} alt=""/>}
-              <div className="td-seedqm">{seed.memo || "(메모 없음)"}</div>
-            </div>
-            <div className="td-seedkeep">기록은 오늘 페이지에 그대로 남습니다 · 이 기록을 영감으로 붙인 빈 글이 세워지고, Desk에서 그걸 보며 새로 씁니다</div>
-
-            <div className="mb-fld" style={{marginTop:"13px"}}>
-              <div className="mb-fl">제목</div>
-              <input className="input" value={seedTitle} onChange={e=>setSeedTitle(e.target.value)}
-                placeholder="제목 없음" style={{fontSize:"12px",padding:"8px 9px"}}/>
-            </div>
-
-            <div className="mb-fld" style={{marginTop:"11px"}}>
-              <div className="mb-fl">어디에 둘까요</div>
-              <select className="input" value={seedTo} onChange={e=>setSeedTo(e.target.value)}
-                style={{fontSize:"12px",padding:"8px 9px",fontFamily:"inherit"}}>
-                <option value="">Desk 낱장 — 아직 책에 넣지 않음</option>
-                {allBooks.map(b => (
-                  <option key={b.id} value={String(b.id)}>
-                    {(b.type === "collection" ? "✍️ " : taskTypeOf(b) === "habit" ? "🔁 " : "🏆 ") + (b.text || "(제목 없음)")}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="mb-fld" style={{marginTop:"11px",marginBottom:"14px"}}>
-              <div className="mb-fl">공개</div>
-              <div className="td-mode">
-                <span className={seedPublic?"":"on"} onClick={()=>setSeedPublic(false)}>나만</span>
-                <span className={seedPublic?"on":""} onClick={()=>setSeedPublic(true)}>공개</span>
-              </div>
-              <div className="td-modehint">하루를 나눴는지와 이 글을 나눌지는 서로 상관없습니다</div>
-            </div>
-
-            <button onClick={growSeed} disabled={seeding} className="btn-gold" style={{width:"100%",padding:"12px",fontSize:"13px",letterSpacing:"2px",marginBottom:"6px"}}>{seeding ? "세우는 중…" : "✎ 빈 글 세우기"}</button>
-            <button onClick={()=>setSeed(null)} style={{width:"100%",padding:"8px",background:"transparent",border:"1px solid #6a5538",color:"#6a5538",borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontFamily:"inherit"}}>취소</button>
-          </div>
-        </div>,
-        document.body
-      )}
+      {seed && <SeedModal key={seed.id} seed={seed} date={todayKey} books={allBooks}
+        noteApi={noteApi} user={user} profile={profile}
+        onNeedHandle={onNeedHandle} onClose={()=>setSeed(null)}/>}
 
       {verifyId && verifyingTask && ReactDOM.createPortal(
         <div onClick={cancelVerify} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.78)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px",animation:"fadeIn .2s"}}>
@@ -4780,6 +4816,13 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                   <img src={verifyPhoto} alt="" style={{width:"100%",borderRadius:"8px",display:"block",maxHeight:"260px",objectFit:"cover"}}/>
                   <button onClick={()=>verifyFileRef.current && verifyFileRef.current.click()} style={{position:"absolute",bottom:"8px",right:"8px",background:"rgba(0,0,0,.7)",border:"none",borderRadius:"6px",padding:"5px 10px",color:"#fff",cursor:"pointer",fontSize:"10px",fontWeight:700,fontFamily:"inherit"}}>📷 다시 찍기</button>
                 </div>
+              ) : (verifyingTask.photoId || verifyingTask.photo) ? (
+                /* 해제했다가 다시 체크하는 중 — 그때 찍은 사진이 그대로 있다 */
+                <div style={{position:"relative"}}>
+                  <Photo src={verifyingTask.photo} id={verifyingTask.photoId} alt=""
+                    style={{width:"100%",borderRadius:"8px",display:"block",maxHeight:"260px",objectFit:"cover"}}/>
+                  <button onClick={()=>verifyFileRef.current && verifyFileRef.current.click()} style={{position:"absolute",bottom:"8px",right:"8px",background:"rgba(0,0,0,.7)",border:"none",borderRadius:"6px",padding:"5px 10px",color:"#fff",cursor:"pointer",fontSize:"10px",fontWeight:700,fontFamily:"inherit"}}>📷 다시 찍기</button>
+                </div>
               ) : (
                 <button onClick={()=>verifyFileRef.current && verifyFileRef.current.click()} style={{width:"100%",padding:"24px",border:"1.5px dashed #b8924a88",borderRadius:"8px",background:"rgba(255,253,245,.5)",color:"#b8924a",cursor:"pointer",fontSize:"13px",fontWeight:700,fontFamily:"inherit"}}>📷 사진 찍기</button>
               )}
@@ -4808,7 +4851,7 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
 // 컨셉: 지금까지 써내려간 인생 책의 페이지를 펼쳐 다시 읽는 페이지.
 // 두 개의 탭: 지나온 페이지(캘린더+일별 회고) / 챕터 회고(월별 분석)
 // ═════════════════════════════════════════════════════════════════════
-function HistoryPage({data, setData, user, profile, onNeedHandle}) {
+function HistoryPage({data, setData, user, profile, onNeedHandle, notes, noteApi, goBook}) {
   const records = data.pageRecords || {};
   const startDate = data.startDate || todayStr();
   const todayD = new Date();
@@ -4822,6 +4865,22 @@ function HistoryPage({data, setData, user, profile, onNeedHandle}) {
   const [viewYear, setViewYear] = useState(todayD.getFullYear());
   const [selectedChapter, setSelectedChapter] = useState(todayD.getMonth() + 1); // 기본: 현재 월
   const [selectedDate, setSelectedDate] = useState(null);
+
+  // 지난 기록도 글감이다 — 여기 쌓인 것을 들춰 글로 키우는 자리가 Story다.
+  // 오늘 것만 글이 되고 지난 것은 못 되는 건 말이 안 된다.
+  const [seed, setSeed] = useState(null);
+  const allBooks = (((data.chapters || {})[todayD.getFullYear()] || {}).tasks) || [];
+  const notesFrom = (taskId) => (notes || [])
+    .filter(n => n.from && String(n.from.taskId) === String(taskId));
+  const bookOf = (sourceId) => {
+    if (!sourceId) return null;
+    const chapters = data.chapters || {};
+    for (const y of Object.keys(chapters)) {
+      const f = ((chapters[y] || {}).tasks || []).find(x => String(x.id) === String(sourceId));
+      if (f) return f;
+    }
+    return null;
+  };
 
   // 챕터/연도 변경 시 선택된 날짜 자동 해제
   useEffect(() => { setSelectedDate(null); }, [selectedChapter, viewYear]);
@@ -5194,6 +5253,18 @@ function HistoryPage({data, setData, user, profile, onNeedHandle}) {
                               {t.memo && (
                                 <div className="heading-serif" style={{fontSize:"12px",color:"#3a2818",lineHeight:1.7,fontStyle:"italic",padding:"8px 10px",background:"rgba(245,236,217,.5)",borderLeft:"2px solid "+CC[t.cat],borderRadius:"0 3px 3px 0"}}>&ldquo;{t.memo}&rdquo;</div>
                               )}
+                              {/* 지난 기록을 글로 — 스크랩해 둔 것을 꺼내 키우는 자리 */}
+                              <div className="sb-epact">
+                                <button onClick={()=>setSeed({...t, date: selectedDate})}>✎ 글로 쓰기</button>
+                                {t.sourceTaskId && bookOf(t.sourceTaskId) && (
+                                  <button onClick={()=>goBook && goBook(t.sourceTaskId)}>
+                                    📚 {oneLine(bookOf(t.sourceTaskId).text) || "이 책"} 열기
+                                  </button>
+                                )}
+                                {notesFrom(t.id).length > 0 && (
+                                  <span className="n">이 기록으로 쓴 글 {notesFrom(t.id).length}편</span>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -5221,6 +5292,10 @@ function HistoryPage({data, setData, user, profile, onNeedHandle}) {
         </div>
 
       </div></div>
+
+      {seed && <SeedModal key={seed.id} seed={seed} date={seed.date || selectedDate} books={allBooks}
+        noteApi={noteApi} user={user} profile={profile}
+        onNeedHandle={onNeedHandle} onClose={()=>setSeed(null)}/>}
     </div>
   );
 }
@@ -5998,7 +6073,10 @@ function PageBook({data, setData, onLogout, user, profile, onSaveProfile, notes,
                                 goBook={(id)=>{ setOpenBookId(id); setBookFrom("writing");
                                   setPageIdx(PAGES.findIndex(x=>x.key==="chapters")); }}/>;
       case "now":      return <HistoryPage  data={data} setData={setData} user={user}
-                                profile={profile} onNeedHandle={()=>setNeedHandle(true)}/>;
+                                profile={profile} onNeedHandle={()=>setNeedHandle(true)}
+                                notes={notes} noteApi={noteApi}
+                                goBook={(id)=>{ setOpenBookId(id); setBookFrom("now");
+                                  setPageIdx(PAGES.findIndex(x=>x.key==="chapters")); }}/>;
       case "workshop": return <DeskPage data={data} setData={setData} user={user} profile={profile}
                                 notes={notes} noteApi={noteApi} onSaveProfile={onSaveProfile}
                                 onEditPen={()=>setEditPen(true)} onNeedHandle={()=>setNeedHandle(true)}
