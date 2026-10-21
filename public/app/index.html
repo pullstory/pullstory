@@ -390,6 +390,18 @@
   .td-seedkeep{font-size:9.5px;color:#9c8460;font-style:italic;line-height:1.7;margin-top:9px}
   .mb-bar{height:5px;background:#e8dcb5;border-radius:3px;overflow:hidden;margin-top:9px}
   .mb-bar span{display:block;height:100%;background:linear-gradient(90deg,#5a8c4a,#4a7c3a);border-radius:3px}
+  /* 원고 내보내기 — 공개와는 다른 일이다. 공개는 진열, 이건 들고 나가는 것 */
+  .bx{margin-top:12px;padding:13px;border-radius:7px;border:1px solid rgba(120,90,40,.28);
+    background:rgba(255,253,245,.55)}
+  .bx-h{font-family:'Noto Serif KR',serif;font-size:12.5px;font-weight:700;color:#2f2109}
+  .bx-r{display:flex;gap:8px;margin-top:10px}
+  .bx-r button{flex:1;padding:9px 6px;border-radius:6px;cursor:pointer;
+    border:1px solid rgba(156,116,32,.45);background:rgba(255,253,245,.9);
+    font-family:'Noto Serif KR',serif;font-size:11.5px;font-weight:700;color:#8a5f14}
+  .bx-r button:disabled{opacity:.45;cursor:default}
+  .bx-n{font-family:'Noto Serif KR',serif;font-size:9px;color:#a89066;font-style:italic;
+    margin-top:9px;line-height:1.7}
+  .bx-n.ok{color:#4a7c3a;font-style:normal;font-weight:700}
   .mb-foot{display:flex;gap:9px;margin-top:16px}
   .mb-fbtn{flex:1;padding:10px;border-radius:7px;font-family:'Noto Serif KR',serif;font-size:12px;font-weight:700;text-align:center;cursor:pointer;border:none}
   .mb-fbtn.done{background:linear-gradient(135deg,#6fa35c,#4a7c3a);color:#fff}
@@ -2967,6 +2979,112 @@ const BC = {
 };
 const CASH4 = ["C","A","S","H"];
 
+// ── 책 한 권 → 마크다운 한 장 ────────────────────────────────
+// 글자밖에 없는 원고라 어느 프로그램의 것도 아니고, 10년 뒤에 열어도 깨질 게 없다.
+// 노션·옵시디언에 붙여 이어 쓰거나, 통째로 AI에게 건네 정리를 맡기는 자리다.
+// 빼는 것은 공개할 때와 같다 — 인용 카드와 영감은 쓰는 사람이 곁에 두고 보던 것이지
+// 밖으로 낼 원고가 아니다. 챕터는 쓴 순서대로 선다(1화가 맨 앞).
+function bookToMarkdown(book, notes) {
+  const posts = bookPosts(book, notes);
+  const isColl = book.type === "collection";
+  const isHabit = taskTypeOf(book) === "habit";
+  const span = bookSpan(book);
+  const a = book.ach || {}, h = book.habit || {};
+  const cnt = achCount(book);
+  const bc = BC[book.cat] || {};
+  const L = [];
+
+  L.push("# " + (book.text || "(제목 없음)"), "");
+
+  // 머리말 — 이 책이 무엇을 재는 책인지
+  L.push((isColl ? "✍️ 묶음" : isHabit ? "🔁 습관" : "🏆 성취")
+    + " · " + (book.cat || "C") + " " + (bc.cat || ""));
+  if (!isColl && span.start) {
+    const until = isHabit ? (span.duration ? span.duration + "일" : "") : (a.deadline || "");
+    L.push(span.start + (until ? " → " + until : ""));
+  }
+  if (isHabit && (h.freq || h.time)) L.push([h.freq, h.time].filter(Boolean).join(" · "));
+  if (!isColl && !isHabit && String(a.criteria || "").trim()) {
+    L.push(String(a.criteria).trim()
+      + (cnt && cnt.target ? ` — ${cnt.count}/${cnt.target}${cnt.unit}` : ""));
+  }
+  L.push("");
+
+  if (isColl && String(book.intro || "").trim()) L.push(String(book.intro).trim(), "");
+  if (!isColl && !isHabit && String(a.steps || "").trim()) {
+    L.push("**목표 상세**", "", String(a.steps).trim(), "");
+  }
+
+  if (!posts.length) L.push("---", "", "*아직 쓴 글이 없습니다.*", "");
+
+  posts.forEach((p, i) => {
+    L.push("---", "");
+    L.push("## " + (i + 1) + ". " + (oneLine(p.title) || "(제목 없음)"), "");
+    const ts = noteTs(p);
+    if (ts) {
+      const d = new Date(ts);
+      L.push(`*${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일*`, "");
+    }
+    noteBlocks(p).forEach(b => {
+      if (b.t === "q" || b.t === "seed") return;
+      // 사진은 파일로 따라가지 않으니 자리만 남긴다 — 깨진 그림을 가리키느니 비워 두는 게 낫다
+      if (b.t === "img") { L.push("*(사진)*", ""); return; }
+      const v = String(b.v || "").replace(/\s+$/, "");
+      if (!v.trim()) return;
+      if (b.t === "h") L.push("### " + oneLine(v), "");
+      else if (b.t === "bq") L.push(v.split("\n").map(x => "> " + x).join("\n"), "");
+      else L.push(v, "");
+    });
+  });
+
+  const n = new Date();
+  const stamp = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`;
+  L.push("---", "", `*PULLSTORY에서 내보냄 · ${stamp}*`);
+  return L.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
+}
+
+// 제목 칸에 줄바꿈이 들어가면 마크다운에서 제목이 끊긴다 — 한 줄로 편다
+function oneLine(s) { return String(s || "").replace(/\s*\n\s*/g, " ").trim(); }
+
+function bookMdFileName(book) {
+  const base = oneLine(book && book.text).replace(/[\\/:*?"<>|]/g, "").slice(0, 60);
+  return (base || "book") + ".md";
+}
+
+// 복사는 두 길을 다 둔다 — 주소가 https가 아니거나 옛 브라우저면 첫 길이 막힌다
+async function copyText(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (e) { console.warn("clipboard:", e); }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0";
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, text.length);     // iOS는 이게 있어야 잡힌다
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) { console.warn("copy fallback:", e); return false; }
+}
+
+function downloadText(text, filename, mime) {
+  const blob = new Blob([text], {type: (mime || "text/plain") + ";charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
 // 저장과 연동이 지금 어떤 상태인지 — 안 되면 짐작하지 말고 이 줄을 읽으면 된다
 function SaveLine({data}) {
   const [, tick] = useState(0);
@@ -3016,6 +3134,30 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
   const pct = dur ? Math.round(doneSet.size / dur * 100) : 0;
   // 이 책에 묶인 글 — notes 한 곳에서 bookId로 찾는다
   const posts = (notes || []).filter(n => String(n.bookId) === String(book.id));
+
+  // 내보낼 원고 — 공개할 때와 같은 차림(빈 글은 빠지고, 쓴 순서대로)
+  const mdPosts = bookPosts(book, notes);
+  const mdPhotos = mdPosts.reduce((n, p) => n + noteBlocks(p).filter(b => b.t === "img").length, 0);
+  const [expMsg, setExpMsg] = useState("");
+  const expTimer = useRef(null);
+  const flashExp = (m) => {
+    setExpMsg(m);
+    clearTimeout(expTimer.current);
+    expTimer.current = setTimeout(() => setExpMsg(""), 3000);
+  };
+  useEffect(() => () => clearTimeout(expTimer.current), []);
+
+  const copyMd = async () => {
+    const md = bookToMarkdown(book, notes);
+    const ok = await copyText(md);
+    flashExp(ok ? `✓ 복사했어요 · ${mdPosts.length}편 ${md.length.toLocaleString()}자`
+                : "복사하지 못했어요 — .md 파일로 받아 주세요");
+  };
+  const saveMd = () => {
+    const name = bookMdFileName(book);
+    downloadText(bookToMarkdown(book, notes), name, "text/markdown");
+    flashExp("✓ " + name);
+  };
 
   // 예전에 책 안에 담겨 있던 글은 한 번만 notes로 옮긴다
   useEffect(() => {
@@ -3402,6 +3544,23 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* 원고를 밖으로 — 여기 쓴 건 쓴 사람 것이라 언제든 들고 나갈 수 있어야 한다 */}
+          {!editing && (
+            <div className="bx">
+              <div className="bx-h">📄 원고 내보내기</div>
+              <div className="bx-r">
+                <button onClick={copyMd} disabled={!mdPosts.length}>📋 마크다운 복사</button>
+                <button onClick={saveMd} disabled={!mdPosts.length}>⬇ .md 파일</button>
+              </div>
+              <div className={"bx-n" + (expMsg ? " ok" : "")}>
+                {expMsg || (mdPosts.length
+                  ? `챕터 ${mdPosts.length}편이 글자 그대로 나갑니다 · 노션·옵시디언에 붙이거나 AI에게 통째로 건넬 수 있어요`
+                    + (mdPhotos ? ` (사진 ${mdPhotos}장은 자리만 표시돼요)` : "")
+                  : "쓴 글이 있어야 내보낼 수 있어요")}
+              </div>
             </div>
           )}
 
