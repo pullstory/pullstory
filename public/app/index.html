@@ -2524,11 +2524,14 @@ function MemoTA({value, onChange, placeholder, className, hint, lines, lineH}) {
   const resize = () => {
     const el = ref.current;
     if (!el) return;
+    const sc = scrollParentOf(el);
+    const keep = sc ? sc.scrollTop : 0;      // 재는 동안 창이 당겨지지 않게
     el.style.height = "auto";
     const full = el.scrollHeight;
     const long = full > cap + 2;
     setOver(long);
     el.style.height = (long && !open ? cap : full) + "px";
+    if (sc && sc.scrollTop !== keep) sc.scrollTop = keep;
   };
   useEffect(() => { resize(); }, [value, open]);
 
@@ -2551,7 +2554,7 @@ function MemoTA({value, onChange, placeholder, className, hint, lines, lineH}) {
 
 function AutoTA({value, onChange, onBlur, placeholder, className}) {
   const ref = useRef(null);
-  const resize = () => { const el = ref.current; if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; } };
+  const resize = () => { fitHeight(ref.current); };
   useEffect(() => { resize(); }, [value]);
   return <textarea ref={ref} className={className} rows={1} value={value} placeholder={placeholder}
     onChange={e=>{ onChange(e); resize(); }} onInput={resize} onBlur={onBlur}/>;
@@ -2925,20 +2928,40 @@ function useBuffered(remote, save, delay) {
 
 // 쓰고 있는 칸이 창 밖으로 밀려나지 않게 — 글이 흐르는 창을 그만큼만 내린다.
 // scrollIntoView는 창을 통째로 잡아끌어 종이가 튀므로 쓰지 않는다.
-function keepInView(el, pad) {
-  if (!el) return;
-  let sc = el.parentElement;
+function scrollParentOf(el) {
+  let sc = el && el.parentElement;
   while (sc) {
     const s = getComputedStyle(sc);
-    if (/(auto|scroll)/.test(s.overflowY) && sc.scrollHeight > sc.clientHeight + 1) break;
+    if (/(auto|scroll)/.test(s.overflowY) && sc.scrollHeight > sc.clientHeight + 1) return sc;
     sc = sc.parentElement;
   }
+  return null;
+}
+
+function keepInView(el, pad) {
+  const sc = scrollParentOf(el);
   if (!sc) return;
   const p = pad == null ? 26 : pad;
   const r = el.getBoundingClientRect(), c = sc.getBoundingClientRect();
-  // 칸이 창보다 길면 아래쪽(쓰고 있는 자리)을 맞춘다
-  if (r.bottom > c.bottom - p) sc.scrollTop += r.bottom - (c.bottom - p);
-  else if (r.top < c.top + p) sc.scrollTop -= (c.top + p) - r.top;
+  if (r.bottom > c.bottom - p) { sc.scrollTop += r.bottom - (c.bottom - p); return; }
+  // 위로 당기는 건 칸이 창에 다 들어올 때만.
+  // 창보다 긴 문단은 첫 줄이 늘 위로 넘쳐 있어서, 이 조건이 없으면
+  // 글이 한 줄 늘 때마다 문단 첫머리로 끌려 올라간다 (쓰던 자리를 잃는다)
+  if (r.height <= c.height - p * 2 && r.top < c.top + p) sc.scrollTop -= (c.top + p) - r.top;
+}
+
+// 칸 높이를 다시 잴 땐 한 줄로 접었다 펴야 하는데, 접힌 그 순간 내용이 짧아져
+// 브라우저가 스크롤을 끝까지 당겨 버린다. 재고 나서 제자리로 돌려놓는다.
+// (띄어쓰기처럼 높이가 줄었다 느는 입력에서 화면이 위로 튀던 원인)
+function fitHeight(el) {
+  if (!el) return 0;
+  const sc = scrollParentOf(el);
+  const keep = sc ? sc.scrollTop : 0;
+  el.style.height = "auto";
+  const h = el.scrollHeight;
+  el.style.height = h + "px";
+  if (sc && sc.scrollTop !== keep) sc.scrollTop = keep;
+  return h;
 }
 
 function BufferedInput({value, onSave, ...rest}) {
@@ -2956,9 +2979,7 @@ function BufferedTA({value, onSave, className, placeholder, onFocus, onEmptyBack
   const resize = () => {
     const el = ref.current;
     if (!el) return;
-    el.style.height = "auto";
-    const h = el.scrollHeight;
-    el.style.height = h + "px";
+    const h = fitHeight(el);
     const grew = h > hRef.current;
     hRef.current = h;
     if (grew && document.activeElement === el) keepInView(el);
