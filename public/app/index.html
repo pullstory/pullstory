@@ -387,6 +387,16 @@
   .td-seed.del{margin-left:auto;border-color:#d8b3af;color:#a8483f}
   .td-seed.del:active{background:#f0dcd9}
   /* 완료 해제 — 오늘 안에만 열리는 문이라 조용히 둔다 */
+  /* 아직 세우는 중인 계획 — 닫기 전까지만 열려 있는 문 */
+  .td-fresh{display:flex;align-items:center;gap:9px;margin-top:12px;padding-top:10px;
+    border-top:1px dashed rgba(156,116,32,.35)}
+  .td-fresh > span{flex:1;min-width:0;font-family:'Noto Serif KR',serif;font-size:10px;
+    font-weight:700;color:#8a6d3c;line-height:1.6}
+  .td-fresh i{display:block;font-size:9px;font-weight:400;font-style:italic;color:#a89066}
+  .td-fresh button{flex-shrink:0;border:1px solid #d8b3af;background:transparent;color:#a8483f;
+    border-radius:6px;padding:5px 11px;cursor:pointer;
+    font-family:'Noto Serif KR',serif;font-size:10.5px;font-weight:700}
+  .td-fresh button:active{background:#f0dcd9}
   .td-seed.undo{border-color:#cfc0a0;color:#8a7556}
   .td-seed.undo + .td-seed.del{margin-left:0}
   .td-seedn{font-size:9.5px;color:#9c8460;font-style:italic}
@@ -4339,6 +4349,9 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
       alarmTime: "",
       ...taskData
     };
+    // 아직 세우는 중인 계획 — 서랍을 닫으면 '오늘의 계획'으로 확정된다.
+    // 그 전까지는 잘못 만든 것을 거둘 수 있다 (변수는 원래 언제든 지울 수 있다)
+    if (!newTask.adhoc && !newTask.done) newTask.fresh = true;
     writeTodayTasks([...tasks, newTask]);
     // 새로 추가된 에피소드는 자동 펼침 (메모/알람 즉시 입력 가능)
     setExpandedEp(prev => ({...prev, [newTask.id]: true}));
@@ -4425,7 +4438,8 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
       visibility: "private",
       from: {date: todayKey, taskId: String(t.id)},
     });
-    if (id) { updateTodayTask(t.id, {recId: id}); setRecFor(t.id); }
+    // 글을 세우기 시작했으면 그건 이미 오늘의 계획이다
+    if (id) { updateTodayTask(t.id, {recId: id, fresh: false}); setRecFor(t.id); }
   };
 
   // 글은 글대로 두고, 하루의 기록에는 그 첫머리와 첫 사진만 옮겨 적는다
@@ -4433,7 +4447,7 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
   // 글 한 편이라 하루 종이에 통째로 옮겨 적을 것이 아니다 —
   // 더 쓸 말이 있으면 스토리에서 탭해 고쳐 쓰면 된다.
   const completeWithRecord = (t) => {
-    const fields = {done: true, doneAt: Date.now(),
+    const fields = {done: true, doneAt: Date.now(), fresh: false,
       memo: String(t.note || "").trim(), photoId: null, photo: null};
     const newTasks = tasks.map(x => x.id === t.id ? {...x, ...fields} : x);
     let next = {...data, pageRecords: {...(data.pageRecords||{}), [todayKey]: {...(data.pageRecords||{})[todayKey]||{}, tasks: newTasks}}, startDate: data.startDate||todayKey};
@@ -4501,7 +4515,8 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
     const targetTask = tgt;
     const memo = verifyMemo.trim() || (byBook ? "이 책에 글로 남겼습니다" : "");
     // doneAt = 완료한 시각 → 스토리 정렬 기준
-    const fresh = {done: true, doneAt: Date.now(), ...photoFields, memo};
+    // fresh:false — 해낸 계획은 '세우는 중'이 아니다 (완료를 해제해도 되돌아오지 않게)
+    const fresh = {done: true, doneAt: Date.now(), fresh: false, ...photoFields, memo};
     if (byBook) fresh.byBook = true;            // 없는 값은 칸을 비우지 말고 아예 만들지 않는다
     const newTasks = pending && pending.id === verifyId
       ? [...tasks, {note: "", alarmTime: "", photo: null, ...pending, ...fresh}]
@@ -4560,6 +4575,15 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
 
   // 내보낼 스토리는 스토리 줄에서 바로 고른다
   const share = shareToggle(todayRec, updateTodayRec);
+
+  // 잘못 만든 계획은 세우는 중일 때만 거둘 수 있다.
+  // 서랍을 닫으면 오늘의 계획이 되고, 그 뒤로는 그대로 간다 —
+  // 못 한 것을 지워서 100%를 만드는 길까지 열어 줄 수는 없다.
+  const settlePlan = (t) => { if (t && t.fresh) updateTodayTask(t.id, {fresh: false}); };
+  const removePlan = (t) => {
+    if (!confirm(`'${taskLabel(t)}'을(를) 지울까요?\n\n아직 세우는 중인 계획이라 흔적 없이 사라집니다.`)) return;
+    writeTodayTasks(tasks.filter(x => x.id !== t.id));
+  };
 
   // 오늘 안에는 되돌릴 수 있다 — 자정을 넘기면 그날의 기록이 되어 더는 손대지 않는다.
   // 잘못 누른 체크 하나 때문에 하루가 틀어진 채로 굳는 건 기록이 아니라 족쇄다.
@@ -4703,7 +4727,9 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                   <span className="td-tx">{taskLabel(t)}</span>
                   {t.alarmTime && <span className="td-tag" title="알람 시간">⏰ {t.alarmTime}</span>}
                   {t.sourceTaskId && <span className="td-tag" title={"My Books에서 가져온 "+(t.sourceType==="habit"?"습관":"성취")}>📚</span>}
-                  <button className={"td-exp"+(isExp?" on":"")} onClick={()=>setExpandedEp(p=>({...p,[t.id]:!isExp}))} title={isExp?"접기":"펼치기"}>{isExp?"▲":"▼"}</button>
+                  <button className={"td-exp"+(isExp?" on":"")}
+                    onClick={()=>{ if (isExp) settlePlan(t); setExpandedEp(p=>({...p,[t.id]:!isExp})); }}
+                    title={isExp?"접기":"펼치기"}>{isExp?"▲":"▼"}</button>
                 </div>
 
                 {isExp && (
@@ -4816,6 +4842,14 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                     <div style={{fontSize:"9px",color:"#a08a5e",marginTop:"4px",lineHeight:1.5,fontStyle:"italic"}}>
                       ※ 사파리(iOS)는 시스템 알림 미지원 → 앱 화면이 열려 있을 때만 작동합니다
                     </div>
+
+                    {/* 아직 세우는 중인 계획만 거둘 수 있다 — 닫으면 오늘의 계획이 된다 */}
+                    {t.fresh && (
+                      <div className="td-fresh">
+                        <span>아직 세우는 중이에요<i>▲로 닫으면 오늘의 계획이 되고, 그 뒤로는 지울 수 없어요</i></span>
+                        <button onClick={()=>removePlan(t)}>지우기</button>
+                      </div>
+                    )}
                   </div>
                 )}
               </React.Fragment>
@@ -4856,7 +4890,7 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                 : "계획해서 해낼 일 · 남은 할 일에 쌓였다가 끝내면 스토리가 됩니다"}
             </div>
             <button className="td-pull" onClick={()=>setShowPicker(true)}>📚 My Books에서 가져오기 ({sourceTasks.length})</button>
-            <div className="td-hint">한번 추가한 에피소드는 삭제할 수 없어요</div>
+            <div className="td-hint">방금 더한 계획은 ▼ 안에서 지울 수 있어요 · 닫으면 오늘의 계획이 됩니다</div>
           </div>
 
           <DayShare date={todayKey} rec={todayRec} updateRec={updateTodayRec}
