@@ -464,9 +464,13 @@
   .td-cat{font-family:'Cormorant Garamond',Georgia,serif;font-size:11px;font-weight:700;letter-spacing:.08em}
   .td-tm{margin-left:auto;font-family:'Cormorant Garamond',Georgia,serif;font-size:12px;font-weight:700;color:#a08a5e;font-variant-numeric:tabular-nums;letter-spacing:.05em}
   .td-stt{font-family:'Noto Serif KR',serif;font-size:14.5px;font-weight:700;color:#2f2109;line-height:1.4;margin-bottom:10px}
+  /* 붙여 둔 사진 한 장 — 종이에 테이프로 붙인 크기다.
+     폭을 꽉 채우면 세로로 긴 사진 하나가 화면을 다 먹어 하루가 안 보인다 */
   .td-photo{position:relative;border-radius:2px;overflow:hidden;margin:0 3px 13px;border:5px solid #fffdf6;
-    box-shadow:0 6px 14px rgba(60,40,15,.3);transform:rotate(-.7deg)}
-  .td-photo img{width:100%;display:block}
+    box-shadow:0 6px 14px rgba(60,40,15,.3);transform:rotate(-.7deg);
+    width:max-content;max-width:min(280px,100%)}
+  /* 잘라내지 않고 줄인다 — 사진 자체가 그날의 기록이라 잘리면 기록이 깎인다 */
+  .td-photo img{display:block;width:auto;height:auto;max-width:100%;max-height:300px}
   .td-tape{position:absolute;top:-9px;left:50%;transform:translateX(-50%) rotate(-1.5deg);width:62px;height:18px;
     background:rgba(226,205,150,.62);box-shadow:0 1px 3px rgba(0,0,0,.16);z-index:2}
   .td-memo{width:100%;box-sizing:border-box;background:transparent;border:none;resize:none;outline:none;overflow:hidden;display:block;
@@ -810,6 +814,8 @@
   .sh-ep input{flex-shrink:0;accent-color:#b8862f;cursor:pointer}
   .sh-ep .c{flex-shrink:0;width:15px;height:15px;border-radius:3px;color:#fff;font-size:8.5px;
     font-weight:700;display:flex;align-items:center;justify-content:center}
+  .sh-ep .n{flex-shrink:0;width:15px;text-align:right;font-family:'Cormorant Garamond',Georgia,serif;
+    font-weight:700;font-size:12px;color:#b89a68}
   .sh-ep .t{flex:1;min-width:0;font-family:'Noto Serif KR',serif;font-size:11px;color:#3a2818;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .sh-ep .i{flex-shrink:0;font-size:9px;opacity:.75}
@@ -1540,9 +1546,23 @@ function dayEpisodes(rec) {
 // 그땐 전부 나가 있었으니 말없이 줄이지 않고 그대로 둔다.
 function sharedEpisodes(rec) {
   const eps = dayEpisodes(rec);
-  if (!rec || !Array.isArray(rec.shareIds)) return eps;
-  const on = new Set(rec.shareIds.map(String));
-  return eps.filter(t => on.has(String(t.id)));
+  if (rec && Array.isArray(rec.shareIds)) {
+    const on = new Set(rec.shareIds.map(String));
+    return eps.filter(t => on.has(String(t.id)));
+  }
+  // 고른 적이 없는 하루 — 이미 내보낸 하루면 그때 전부 나가 있었으니 말없이 줄이지 않는다.
+  // 내보낸 적이 없다면 공개된 적도 없으니, 책이 그걸 대신 흘려서는 안 된다.
+  return (rec && rec.published) ? eps : [];
+}
+
+// 책에 실을 챕터 — 하루와 같은 규칙이다. 고른 것만 나간다
+function sharedPosts(book, notes) {
+  const all = bookPosts(book, notes);
+  if (book && Array.isArray(book.shareIds)) {
+    const on = new Set(book.shareIds.map(String));
+    return all.filter(p => on.has(String(p.id)));
+  }
+  return (book && book.published) ? all : [];
 }
 
 // Key Scene — 고른 게 없으면 사진 있는 첫 에피소드로 (내보내는 것 중에서)
@@ -1696,9 +1716,14 @@ function bookDays(book, records, span) {
     const rec = (records || {})[k];
     const t = rec && (rec.tasks || []).find(x => x.done && String(x.sourceTaskId) === String(book.id));
     if (!t) continue;
+    // 그날 해냈다는 것은 책의 진도라서 칸은 채워진다.
+    // 다만 그날 적어 둔 스크랩(사진·메모)은 '공개로 고른 것'만 따라 나간다 —
+    // 하루에서 안 열기로 한 것을 책이 대신 열어 주면 고른 의미가 없다.
+    const show = sharedEpisodes(rec).some(x => String(x.id) === String(t.id));
     // open = 그 하루 자체도 나눴는가. 아니면 읽는 쪽에서 그날로 건너가는 길을 열지 않는다
-    days[n] = {date: k, photoId: t.photoId || null, memo: t.memo || "", open: !!rec.published};
-    if (t.photoId) photoIds.push(t.photoId);
+    days[n] = {date: k, photoId: show ? (t.photoId || null) : null,
+               memo: show ? (t.memo || "") : "", open: !!rec.published};
+    if (show && t.photoId) photoIds.push(t.photoId);
   }
   return {days, photoIds};
 }
@@ -1713,7 +1738,7 @@ async function publishBook(uid, profile, book, records, notes) {
   const isHabit = taskTypeOf(book) === "habit";
   const span = bookSpan(book);
   const sub = book[span.key] || {};
-  const posts = bookPosts(book, notes);
+  const posts = sharedPosts(book, notes);      // 고른 챕터만 — 나머지는 책 안에만 남는다
 
   const pubPosts = posts.map(p => resolvePostForPublic(book, p, records, span).block);
   const marks = isColl ? {days: {}, photoIds: []} : bookDays(book, records, span);
@@ -3521,6 +3546,25 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
   const [pubBusy, setPubBusy] = useState(false);
   const pub = bookPublishChecks(book, notes);
   const published = !!book.published;
+
+  // 공개할 챕터 — 책을 켜면 쓴 글이 전부 나가던 것을 한 편씩 고르게 바꾼다.
+  // 하루 내보내기와 같은 규칙이라 읽는 법을 두 번 배우지 않아도 된다.
+  const pubOn = new Set(Array.isArray(book.shareIds)
+    ? book.shareIds.map(String)
+    : (published ? mdPosts.map(p => String(p.id)) : []));
+  const pubAllOn = mdPosts.length > 0 && pubOn.size === mdPosts.length;
+  const setPubIds = (ids) => {
+    if (published && ids.length === 0) {
+      alert("공개 중에는 최소 한 챕터는 남겨야 해요.\n전부 내리려면 위의 스위치를 꺼 주세요.");
+      return;
+    }
+    updateBook(book.id, t => ({...t, shareIds: ids}));
+  };
+  const togglePub = (id) => {
+    const k = String(id);
+    setPubIds(pubOn.has(k) ? [...pubOn].filter(x => x !== k) : [...pubOn, k]);
+  };
+  const togglePubAll = () => setPubIds(pubAllOn ? [] : mdPosts.map(p => String(p.id)));
   const handle = (profile && profile.handle) || "";
 
   const togglePublish = async () => {
@@ -3560,6 +3604,7 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
         book.habit || null, book.ach || null,
         posts.map(p => [p.id, p.title || "", noteTs(p), noteBlocks(p)]),
         isColl ? null : bookDays(book, records, span).days,   // 표 칸의 사진·메모까지
+        [...pubOn].sort(),                                    // 어떤 챕터를 고르고 있나
       ])
     : "";
   useEffect(() => {
@@ -3786,12 +3831,36 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
               <div className="bp-h">
                 <span className="t">이 책을 공개하기</span>
                 <button className="bp-sw" onClick={togglePublish}
-                  disabled={pubBusy || (!published && !pub.ok)}
+                  disabled={pubBusy || (!published && (!pub.ok || pubOn.size === 0))}
                   title={published ? "책장에서 내리기" : "책장에 올리기"}/>
               </div>
+
+              {/* 어떤 챕터를 실을지 한 편씩 — 책을 켜면 쓴 글이 전부 나가던 것을 고르게 바꾼다 */}
+              {mdPosts.length > 0 && (
+                <div className="sh-pick">
+                  <div className="sh-pl">
+                    <span>공개할 챕터 고르기</span>
+                    <label className="sh-all">
+                      <input type="checkbox" checked={pubAllOn} onChange={togglePubAll}/>전체
+                    </label>
+                  </div>
+                  {mdPosts.map((p, i) => (
+                    <label className="sh-ep" key={p.id}>
+                      <input type="checkbox" checked={pubOn.has(String(p.id))}
+                        onChange={()=>togglePub(p.id)}/>
+                      <span className="n">{i + 1}</span>
+                      <span className="t">{oneLine(p.title) || "(제목 없음)"}</span>
+                    </label>
+                  ))}
+                  <div className="sh-pn">
+                    고르지 않은 챕터는 책에 실리지 않아요 · 나만 봅니다
+                    {!isColl && <span><br/>표의 사진·메모는 그 하루에서 공개로 고른 것만 따라 나갑니다</span>}
+                  </div>
+                </div>
+              )}
               {published ? (
                 <div className="bp-n">
-                  공개 중 · <span className="u">pullstory.net/book/{handle}/{book.id}</span><br/>
+                  공개 중 · <b>{pubOn.size}챕터</b> · <span className="u">pullstory.net/book/{handle}/{book.id}</span><br/>
                   내리면 진열만 그만두고 책은 그대로 남습니다
                 </div>
               ) : (
@@ -3805,8 +3874,9 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
                   </div>
                   <div className="bp-n">
                     {pubBusy ? "잠시만요…"
-                      : !BOOK_GATE ? "기준은 잠시 열어 두었어요 — 지금은 언제든 공개할 수 있습니다"
-                      : pub.ok ? "이제 공개할 수 있어요"
+                      : pubOn.size === 0 ? (mdPosts.length ? "위에서 공개할 챕터를 하나 이상 골라 주세요" : "쓴 글이 있어야 공개할 수 있어요")
+                      : !BOOK_GATE ? `기준은 잠시 열어 두었어요 — 고른 ${pubOn.size}챕터로 언제든 공개할 수 있습니다`
+                      : pub.ok ? `이제 공개할 수 있어요 · 고른 ${pubOn.size}챕터가 실립니다`
                       : "기준을 채우면 스위치가 열립니다"}
                   </div>
                 </div>
@@ -5366,7 +5436,7 @@ function HistoryPage({data, setData, user, profile, onNeedHandle, notes, noteApi
                                 <span className="heading-serif" style={{flex:1,fontSize:"13px",color:"#3a2818",fontWeight:600,wordBreak:"break-word"}}>{t.text}</span>
                               </div>
                               {(t.photo || t.photoId) && (
-                                <Photo src={t.photo} id={t.photoId} style={{width:"100%",borderRadius:"4px",marginBottom:t.memo?"8px":0,display:"block",border:"1px solid #d8c79a"}}/>
+                                <Photo src={t.photo} id={t.photoId} style={{width:"auto",height:"auto",maxWidth:"min(280px,100%)",maxHeight:"300px",borderRadius:"4px",marginBottom:t.memo?"8px":0,display:"block",border:"1px solid #d8c79a"}}/>
                               )}
                               {t.memo && (
                                 <div className="heading-serif" style={{fontSize:"12px",color:"#3a2818",lineHeight:1.7,fontStyle:"italic",padding:"8px 10px",background:"rgba(245,236,217,.5)",borderLeft:"2px solid "+CC[t.cat],borderRadius:"0 3px 3px 0"}}>&ldquo;{t.memo}&rdquo;</div>
