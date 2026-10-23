@@ -2913,6 +2913,24 @@ function useBuffered(remote, save, delay) {
   return [v, onChange, flush];
 }
 
+// 쓰고 있는 칸이 창 밖으로 밀려나지 않게 — 글이 흐르는 창을 그만큼만 내린다.
+// scrollIntoView는 창을 통째로 잡아끌어 종이가 튀므로 쓰지 않는다.
+function keepInView(el, pad) {
+  if (!el) return;
+  let sc = el.parentElement;
+  while (sc) {
+    const s = getComputedStyle(sc);
+    if (/(auto|scroll)/.test(s.overflowY) && sc.scrollHeight > sc.clientHeight + 1) break;
+    sc = sc.parentElement;
+  }
+  if (!sc) return;
+  const p = pad == null ? 26 : pad;
+  const r = el.getBoundingClientRect(), c = sc.getBoundingClientRect();
+  // 칸이 창보다 길면 아래쪽(쓰고 있는 자리)을 맞춘다
+  if (r.bottom > c.bottom - p) sc.scrollTop += r.bottom - (c.bottom - p);
+  else if (r.top < c.top + p) sc.scrollTop -= (c.top + p) - r.top;
+}
+
 function BufferedInput({value, onSave, ...rest}) {
   const [v, onChange, flush] = useBuffered(value, onSave);
   return <input {...rest} value={v} onChange={e=>onChange(e.target.value)} onBlur={flush}/>;
@@ -2921,7 +2939,20 @@ function BufferedInput({value, onSave, ...rest}) {
 function BufferedTA({value, onSave, className, placeholder, onFocus, onEmptyBack}) {
   const [v, onChange, flush] = useBuffered(value, onSave);
   const ref = useRef(null);
-  const resize = () => { const el = ref.current; if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; } };
+  const hRef = useRef(0);
+  // 종이는 제자리에 서 있고 글만 흐르는 창이라, 칸이 길어져도 창이 저절로 따라오지 않는다.
+  // 그래서 줄이 늘어난 만큼 — 늘어났을 때만 — 창을 같이 내린다.
+  // (문단 가운데를 고칠 때 화면이 튀지 않게, 커질 때 말고는 건드리지 않는다)
+  const resize = () => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const h = el.scrollHeight;
+    el.style.height = h + "px";
+    const grew = h > hRef.current;
+    hRef.current = h;
+    if (grew && document.activeElement === el) keepInView(el);
+  };
   useEffect(() => { resize(); }, [v]);
   // 빈 칸에서 백스페이스를 누르면 그 칸이 사라진다 — ✕를 찾아 누르지 않아도 되게
   const onKeyDown = (e) => {
@@ -2933,7 +2964,8 @@ function BufferedTA({value, onSave, className, placeholder, onFocus, onEmptyBack
   };
   return <textarea ref={ref} className={className} rows={1} value={v} placeholder={placeholder}
     onChange={e=>{ onChange(e.target.value); resize(); }} onInput={resize}
-    onFocus={onFocus} onKeyDown={onKeyDown} onBlur={flush}/>;
+    onFocus={e=>{ keepInView(e.target); onFocus && onFocus(); }}
+    onKeyDown={onKeyDown} onBlur={flush}/>;
 }
 
 // 기록 하나를 글감으로 세우는 창.
@@ -3078,11 +3110,31 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, c
   const at = (i, patch) => write(bs.map((x, j) => (j === i ? {...x, ...patch} : x)));
   const drop = (i) => { setAt_(-1); write(bs.filter((_, j) => j !== i)); };
   // 맨 끝에만 붙으면 인용과 인용 사이에 문단을 못 넣는다 — 커서가 있던 칸 다음에 끼운다
+  const listRef = useRef(null);
+  const wantRef = useRef(-1);
+  // 새로 만든 칸이 화면에 선 다음에 커서를 옮긴다 —
+  // 눌러서 칸만 생기고 손은 아직 위에 있으면 이어 쓰는 흐름이 끊긴다
+  useEffect(() => {
+    const nth = wantRef.current;
+    if (nth < 0) return;
+    wantRef.current = -1;
+    const host = listRef.current;
+    const el = host && host.querySelectorAll("textarea, input")[nth];
+    if (el) { el.focus(); keepInView(el); }
+  }, [bs.length]);
+
   const insertAfter = (blk) => {
     const k = (at_ >= 0 && at_ < bs.length) ? at_ + 1 : bs.length;
     const next = bs.slice(0, k).concat([blk], bs.slice(k));
     setAt_(k);
     write(next);
+    // 새로 만든 칸에 커서를 놓고 창을 거기까지 내린다 —
+    // 눌러서 칸만 생기고 손은 아직 위에 있으면 이어 쓰는 흐름이 끊긴다
+    if (blk.t === "p" || blk.t === "h" || blk.t === "bq") {
+      // 글칸을 가진 블록은 문단·소제목·인용뿐이라, 그중 몇 번째인지로 찾는다.
+      // 칸이 화면에 실제로 선 뒤에 커서를 놓아야 해서 자리만 적어 두고 아래 effect에서 옮긴다
+      wantRef.current = next.slice(0, k).filter(x => x.t === "p" || x.t === "h" || x.t === "bq").length;
+    }
   };
 
 
@@ -3104,7 +3156,7 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, c
 
   return (
     <div className={className || ""}>
-      <div className="blk-list">
+      <div className="blk-list" ref={listRef}>
       {bs.map((b, i) => {
         if (b.t === "q") return renderQuote ? renderQuote(b.d, i, () => drop(i)) : null;
         if (b.t === "seed") return <SeedCard key={"s"+i} b={b} onRemove={() => drop(i)}/>;
