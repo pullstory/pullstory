@@ -387,7 +387,7 @@
   .td-seed.del{margin-left:auto;border-color:#d8b3af;color:#a8483f}
   .td-seed.del:active{background:#f0dcd9}
   /* 완료 해제 — 오늘 안에만 열리는 문이라 조용히 둔다 */
-  .td-seed.undo{margin-left:auto;border-color:#cfc0a0;color:#8a7556}
+  .td-seed.undo{border-color:#cfc0a0;color:#8a7556}
   .td-seed.undo + .td-seed.del{margin-left:0}
   .td-seedn{font-size:9.5px;color:#9c8460;font-style:italic}
   .td-seedq{border-left:2px solid rgba(156,116,32,.5);padding:2px 0 2px 11px}
@@ -804,21 +804,6 @@
   .sh.on .sh-sw{background:#5a8c4a}
   .sh.on .sh-sw::after{left:19.5px}
   .sh.off .sh-sw{background:#ddd0b4;cursor:not-allowed}
-  /* 무엇을 내놓을지 한 편씩 고르는 칸 */
-  .sh-pick{margin-top:10px;border-top:1px dashed rgba(120,90,40,.28);padding-top:9px}
-  .sh-pl{display:flex;align-items:center;justify-content:space-between;gap:9px;
-    font-family:'Noto Serif KR',serif;font-size:10px;font-weight:700;color:#8a6d3c;margin-bottom:6px}
-  .sh-all{display:flex;align-items:center;gap:5px;cursor:pointer;color:#8a5f14}
-  .sh-all input{accent-color:#b8862f;cursor:pointer}
-  .sh-ep{display:flex;align-items:center;gap:7px;padding:5px 2px;cursor:pointer}
-  .sh-ep input{flex-shrink:0;accent-color:#b8862f;cursor:pointer}
-  .sh-ep .c{flex-shrink:0;width:15px;height:15px;border-radius:3px;color:#fff;font-size:8.5px;
-    font-weight:700;display:flex;align-items:center;justify-content:center}
-  .sh-ep .t{flex:1;min-width:0;font-family:'Noto Serif KR',serif;font-size:11px;color:#3a2818;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .sh-ep .i{flex-shrink:0;font-size:9px;opacity:.75}
-  .sh-pn{font-family:'Noto Serif KR',serif;font-size:9px;color:#a89066;font-style:italic;
-    margin-top:5px;line-height:1.7}
   .sh-d{font-family:'Noto Serif KR',serif;font-size:9.5px;color:#8a6d3c;margin-top:8px;line-height:1.75}
   .sh-d b{color:#8a5f14}
   .sh-d .u{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:#8a5f14;word-break:break-all}
@@ -1560,6 +1545,32 @@ function sharedEpisodes(rec) {
   // 고른 적이 없는 하루 — 이미 내보낸 하루면 그때 전부 나가 있었으니 말없이 줄이지 않는다.
   // 내보낸 적이 없다면 공개된 적도 없으니, 책이 그걸 대신 흘려서는 안 된다.
   return (rec && rec.published) ? eps : [];
+}
+
+// 어떤 스토리를 내보낼지 — 스토리 카드 줄에서 바로 고른다.
+// 고를 목록을 아래에 따로 또 그리면 같은 목록을 두 번 읽게 된다.
+function shareToggle(rec, updateRec) {
+  const eps = dayEpisodes(rec);
+  const on = new Set(Array.isArray(rec && rec.shareIds)
+    ? rec.shareIds.map(String)
+    : ((rec && rec.published) ? eps.map(t => String(t.id)) : []));
+  const write = (ids) => {
+    if (rec && rec.published && ids.length === 0) {
+      alert("내보내는 중에는 최소 한 편은 남겨야 해요.\n전부 내리려면 '이 페이지 내보내기'를 꺼 주세요.");
+      return;
+    }
+    updateRec({shareIds: ids});
+  };
+  return {
+    eps, size: on.size,
+    isOn: (id) => on.has(String(id)),
+    toggle: (id) => {
+      const k = String(id);
+      write(on.has(k) ? [...on].filter(x => x !== k) : [...on, k]);
+    },
+    allOn: eps.length > 0 && on.size === eps.length,
+    toggleAll: () => write(on.size === eps.length ? [] : eps.map(t => String(t.id))),
+  };
 }
 
 // 책에 실을 챕터 — 하루와 같은 규칙이다. 고른 것만 나간다
@@ -2779,31 +2790,14 @@ function DayShare({date, rec, updateRec, uid, profile, onNeedHandle, todayLabel}
   const keyId = (rec && rec.keyScene) || null;
   const handle = (profile && profile.handle) || "";
 
-  // 내보낼 스토리 — 고른 적이 없으면 아무것도 안 고른 상태에서 시작한다.
-  // (이미 내보낸 하루는 그때 전부 나가 있었으니 전부 고른 것으로 본다)
-  const on = new Set(Array.isArray(rec && rec.shareIds)
-    ? rec.shareIds.map(String)
-    : (published ? eps.map(t => String(t.id)) : []));
-  const canPublish = on.size > 0;
-  const allOn = eps.length > 0 && on.size === eps.length;
-
-  const setPicked = (ids) => {
-    if (published && ids.length === 0) {
-      alert("내보내는 중에는 최소 한 편은 남겨야 해요.\n전부 내리려면 위의 스위치를 꺼 주세요.");
-      return;
-    }
-    updateRec({shareIds: ids});
-  };
-  const toggleEp = (id) => {
-    const k = String(id);
-    setPicked(on.has(k) ? [...on].filter(x => x !== k) : [...on, k]);
-  };
-  const toggleAll = () => setPicked(allOn ? [] : eps.map(t => String(t.id)));
+  // 고르는 일은 위 스토리 목록에서 한다 — 여기선 몇 편이 나가는지만 본다
+  const share = shareToggle(rec, updateRec);
+  const canPublish = share.size > 0;
 
   // 내보낸 뒤에 내용이 바뀌면 진열된 사본도 따라 바뀐다 (무엇을 골랐는지가 바뀌어도)
   const sig = published
     ? JSON.stringify([eps.map(t => [t.id, t.doneAt, t.photoId, t.memo]),
-        (rec||{}).caption, keyId, full, [...on].sort()])
+        (rec||{}).caption, keyId, full, sharedEpisodes(rec).map(t => String(t.id)).sort()])
     : "";
   useEffect(() => {
     if (!published || !sig || !handle) return;
@@ -2852,24 +2846,14 @@ function DayShare({date, rec, updateRec, uid, profile, onNeedHandle, todayLabel}
             title={published ? "진열대에서 내리기" : "진열대에 올리기"}/>
         </div>
 
-        {/* 무엇을 내놓을지는 한 편씩 고른다 — 하루를 통째로 열면 메모까지 전부 딸려 나간다 */}
+        {/* 고르는 자리는 위 스토리 목록 한 곳 — 여기선 몇 편이 나가는지만 본다 */}
         {eps.length > 0 && (
-          <div className="sh-pick">
-            <div className="sh-pl">
-              <span>내보낼 스토리 고르기</span>
-              <label className="sh-all">
-                <input type="checkbox" checked={allOn} onChange={toggleAll}/>전체
-              </label>
-            </div>
-            {eps.map(t => (
-              <label className="sh-ep" key={t.id}>
-                <input type="checkbox" checked={on.has(String(t.id))} onChange={()=>toggleEp(t.id)}/>
-                <span className="c" style={{background:CC[t.cat]||"#8a7556"}}>{t.cat}</span>
-                <span className="t">{t.text || "(제목 없음)"}</span>
-                {(t.photo || t.photoId) && <span className="i" title="사진이 있어요">📷</span>}
-              </label>
-            ))}
-            <div className="sh-pn">고르지 않은 스토리는 메모도 사진도 나가지 않아요 · 나만 봅니다</div>
+          <div className="bp-sum">
+            <span>
+              <b>{eps.length}편 중 {share.size}편</b>이 나갑니다
+              <i>고르지 않은 스토리는 메모도 사진도 나가지 않아요 · 위 목록에서 고릅니다</i>
+            </span>
+            <button onClick={share.toggleAll}>{share.allOn ? "전부 내리기" : "전부 공개"}</button>
           </div>
         )}
 
@@ -2877,7 +2861,7 @@ function DayShare({date, rec, updateRec, uid, profile, onNeedHandle, todayLabel}
           {busy ? "잠시만요…"
             : published ? (
               <span>
-                {full ? "진열 중" : "스토리북에만 실림"} · <b>{on.size}편</b> 내보내는 중 · <span className="u">pullstory.net/p/{handle}/{date}</span><br/>
+                {full ? "진열 중" : "스토리북에만 실림"} · <b>{share.size}편</b> 내보내는 중 · <span className="u">pullstory.net/p/{handle}/{date}</span><br/>
                 {full ? "내리면 진열만 그만두고 기록은 그대로 남습니다"
                       : "다 채우지 못한 날이라 진열대에는 오르지 않아요"}
               </span>
@@ -2886,7 +2870,7 @@ function DayShare({date, rec, updateRec, uid, profile, onNeedHandle, todayLabel}
             ) : !canPublish ? (
               <span>위에서 내보낼 스토리를 하나 이상 골라 주세요</span>
             ) : full ? (
-              <span><b>{on.size}편</b>을 진열대에 올립니다 · 언제든 내릴 수 있어요</span>
+              <span><b>{share.size}편</b>을 진열대에 올립니다 · 언제든 내릴 수 있어요</span>
             ) : (
               <span>
                 <b>{remaining}개</b>를 남긴 하루입니다<br/>
@@ -4522,6 +4506,9 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
 
   const openSeed = (t) => setSeed(t);
 
+  // 내보낼 스토리는 스토리 줄에서 바로 고른다
+  const share = shareToggle(todayRec, updateTodayRec);
+
   // 오늘 안에는 되돌릴 수 있다 — 자정을 넘기면 그날의 기록이 되어 더는 손대지 않는다.
   // 잘못 누른 체크 하나 때문에 하루가 틀어진 채로 굳는 건 기록이 아니라 족쇄다.
   // (page 수는 자정에 그날 기록을 보고 세므로 여기서 되돌릴 것이 없다)
@@ -4628,6 +4615,12 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                   {notesFrom(t.id).length > 0 && (
                     <span className="td-seedn">이 기록으로 쓴 글 {notesFrom(t.id).length}편</span>
                   )}
+                  {/* 내보낼지는 이 스토리 줄에서 고른다 — 아래에 고를 목록을 또 두지 않는다 */}
+                  <button className={"bd-pvis " + (share.isOn(t.id) ? "on" : "off")}
+                    style={{marginLeft:"auto"}} onClick={()=>share.toggle(t.id)}
+                    title={share.isOn(t.id) ? "이 스토리 내리기" : "이 스토리 내보내기"}>
+                    {share.isOn(t.id) ? "공개" : "나만"}
+                  </button>
                   <button className="td-seed undo" onClick={()=>undoDone(t)}
                     title="오늘 안에는 되돌릴 수 있어요">↩ 완료 해제</button>
                   {t.adhoc && <button className="td-seed del" onClick={()=>removeAdhoc(t)}>지우기</button>}
@@ -5357,6 +5350,13 @@ function HistoryPage({data, setData, user, profile, onNeedHandle, notes, noteApi
               const wkE = ["SUN","MON","TUE","WED","THU","FRI","SAT"][dn.getDay()];
               const monE = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][dn.getMonth()];
               const doneTasks = rec ? (rec.tasks||[]).filter(t => t.done) : [];
+              const updateRec = (patch) => {
+                const recs = {...(data.pageRecords||{})};
+                recs[selectedDate] = {...(recs[selectedDate]||{tasks:[]}), ...patch};
+                setData({...data, pageRecords: recs});
+              };
+              // 내보낼 스토리는 아래 카드 줄에서 바로 고른다
+              const share = shareToggle(rec, updateRec);
               const dayN = dn.getDate();
               const yearN = dn.getFullYear();
               const sealed = isPageDone(rec);
@@ -5449,6 +5449,12 @@ function HistoryPage({data, setData, user, profile, onNeedHandle, notes, noteApi
                               )}
                               {/* 지난 기록을 글로 — 스크랩해 둔 것을 꺼내 키우는 자리 */}
                               <div className="sb-epact">
+                                {/* 내보낼지는 여기서 고른다 — 아래에 고를 목록을 또 두지 않는다 */}
+                                <button className={"bd-pvis " + (share.isOn(t.id) ? "on" : "off")}
+                                  onClick={()=>share.toggle(t.id)}
+                                  title={share.isOn(t.id) ? "이 스토리 내리기" : "이 스토리 내보내기"}>
+                                  {share.isOn(t.id) ? "공개" : "나만"}
+                                </button>
                                 <button onClick={()=>setSeed({...t, date: selectedDate})}>✎ 글로 쓰기</button>
                                 {t.sourceTaskId && bookOf(t.sourceTaskId) && (
                                   <button onClick={()=>goBook && goBook(t.sourceTaskId)}>
@@ -5465,12 +5471,7 @@ function HistoryPage({data, setData, user, profile, onNeedHandle, notes, noteApi
                       )}
 
                       {rec && (
-                        <DayShare date={selectedDate} rec={rec}
-                          updateRec={(patch)=>{
-                            const records = {...(data.pageRecords||{})};
-                            records[selectedDate] = {...(records[selectedDate]||{tasks:[]}), ...patch};
-                            setData({...data, pageRecords: records});
-                          }}
+                        <DayShare date={selectedDate} rec={rec} updateRec={updateRec}
                           uid={user && user.uid} profile={profile} onNeedHandle={onNeedHandle}/>
                       )}
                     </div>
