@@ -187,7 +187,11 @@
   .mb-addb{width:100%;padding:11px;border:none;border-radius:7px;background:linear-gradient(135deg,#e7c574,#b8862f);color:#fff8e5;font-family:'Noto Serif KR',serif;font-weight:700;font-size:13px;letter-spacing:.2em;cursor:pointer}
   .mb-shelflbl{font-family:'Noto Serif KR',serif;font-size:12px;color:#5c3f1c;font-weight:700;margin:2px 2px 11px}
   /* 한 줄에 세 권 — 좁은 화면에선 표지가 작아지므로 여백과 글자도 같이 줄인다 */
+  /* 칸 수를 폭에 맞춰 늘린다 — 3칸으로 박아 두면 넓은 화면에서 책이 부푼다
+     (760px에서 한 권이 219×306까지 커져 모바일의 여섯 배 넓이가 됐었다) */
   .mb-covers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  @media (min-width:520px){ .mb-covers{grid-template-columns:repeat(4,minmax(0,1fr))} }
+  @media (min-width:660px){ .mb-covers{grid-template-columns:repeat(5,minmax(0,1fr))} }
   .mb-cover{position:relative;aspect-ratio:3/4.2;border-radius:3px 6px 6px 3px;overflow:hidden;box-shadow:0 8px 16px rgba(0,0,0,.32);display:flex;cursor:pointer;min-width:0}
   .mb-cspine{width:7px;flex-shrink:0}
   .mb-cin{flex:1;position:relative;padding:10px 9px;display:flex;flex-direction:column;min-width:0}
@@ -1042,6 +1046,8 @@
   .dk-sect .l{flex:1;height:1px;background:rgba(120,90,40,.22)}
 
   .dk-shelf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-bottom:20px}
+  @media (min-width:520px){ .dk-shelf{grid-template-columns:repeat(4,minmax(0,1fr))} }
+  @media (min-width:660px){ .dk-shelf{grid-template-columns:repeat(5,minmax(0,1fr))} }
   .dk-bk{position:relative;aspect-ratio:3/4.2;border-radius:3px 6px 6px 3px;overflow:hidden;display:flex;
     box-shadow:0 6px 13px rgba(0,0,0,.3);cursor:pointer;padding:0;border:none;min-width:0}
   .dk-sp{width:6px;flex-shrink:0}

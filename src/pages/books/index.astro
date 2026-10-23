@@ -28,7 +28,12 @@ import '../../styles/paper.css';
       background: linear-gradient(160deg, #5a3d22, #33220f 78%);
       box-shadow: inset 0 0 0 1px rgba(200,160,90,.2);
     }
+    /* 한 단에 몇 권 꽂히나 — 폭에 맞춰 늘린다.
+       3칸으로 박아 두면 넓은 화면에서 책 한 권이 부푼다.
+       아래 스크립트의 shelfCols()와 같은 기준이어야 단이 어긋나지 않는다 */
     #books-root .row { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 11px; }
+    @media (min-width: 520px) { #books-root .row { grid-template-columns: repeat(4, minmax(0,1fr)); } }
+    @media (min-width: 660px) { #books-root .row { grid-template-columns: repeat(5, minmax(0,1fr)); } }
     #books-root .plank {
       height: 9px; margin: 13px -12px 0;
       background: linear-gradient(180deg, #9a6528, #6a441f); box-shadow: 0 4px 7px rgba(0,0,0,.45);
@@ -111,7 +116,18 @@ import '../../styles/paper.css';
           '</span></a>';
       }
 
+      // 한 단에 몇 권 — 위 CSS의 media query와 같은 기준이어야 한다.
+      // 칸 수와 끊는 수가 어긋나면 단마다 빈자리가 생긴다
+      function shelfCols() {
+        var w = window.innerWidth;
+        return w >= 660 ? 5 : w >= 520 ? 4 : 3;
+      }
+
+      var lastRender = null;
+
       function render(profile, books, pageCount) {
+        lastRender = [profile, books, pageCount];
+        var cols = shelfCols();
         var pen = profile.penName || '이름 없는 지은이';
         var cards = (pageCount ? [storyCard(pageCount)] : []).concat(books.map(bookCard));
 
@@ -131,8 +147,8 @@ import '../../styles/paper.css';
           html += '<p class="empty">아직 펴낸 책이 없습니다.</p>';
         } else {
           html += '<div class="case">';
-          for (var i = 0; i < cards.length; i += 3) {
-            html += '<div class="row">' + cards.slice(i, i + 3).join('') + '</div><div class="plank"></div>';
+          for (var i = 0; i < cards.length; i += cols) {
+            html += '<div class="row">' + cards.slice(i, i + cols).join('') + '</div><div class="plank"></div>';
           }
           html += '</div>';
         }
@@ -144,6 +160,18 @@ import '../../styles/paper.css';
 
         root.innerHTML = html;
       }
+
+      // 창 폭이 바뀌면 단을 다시 짠다 — 칸 수만 바뀌고 끊는 수가 그대로면 단이 어긋난다
+      var rzTimer = null, rzCols = shelfCols();
+      window.addEventListener('resize', function () {
+        clearTimeout(rzTimer);
+        rzTimer = setTimeout(function () {
+          var c = shelfCols();
+          if (c === rzCols || !lastRender) return;
+          rzCols = c;
+          render(lastRender[0], lastRender[1], lastRender[2]);
+        }, 160);
+      });
 
       if (all) {
         db.collection('feed').orderBy('publishedAt', 'desc').limit(300).get()
