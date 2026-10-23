@@ -814,8 +814,6 @@
   .sh-ep input{flex-shrink:0;accent-color:#b8862f;cursor:pointer}
   .sh-ep .c{flex-shrink:0;width:15px;height:15px;border-radius:3px;color:#fff;font-size:8.5px;
     font-weight:700;display:flex;align-items:center;justify-content:center}
-  .sh-ep .n{flex-shrink:0;width:15px;text-align:right;font-family:'Cormorant Garamond',Georgia,serif;
-    font-weight:700;font-size:12px;color:#b89a68}
   .sh-ep .t{flex:1;min-width:0;font-family:'Noto Serif KR',serif;font-size:11px;color:#3a2818;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .sh-ep .i{flex-shrink:0;font-size:9px;opacity:.75}
@@ -967,6 +965,15 @@
   .bp.on .bp-sw{background:#5a8c4a}
   .bp.on .bp-sw::after{left:19.5px}
   .bp-sw:disabled{cursor:not-allowed;background:#ddd0b4}
+  /* 몇 편이 실리는지 한 줄 — 고르는 일은 Write의 챕터 줄에서 한다 */
+  .bp-sum{display:flex;align-items:center;gap:9px;margin-top:10px;padding-top:9px;
+    border-top:1px dashed rgba(120,90,40,.28)}
+  .bp-sum > span{flex:1;min-width:0;font-family:'Noto Serif KR',serif;font-size:9.5px;color:#8a6d3c;line-height:1.7}
+  .bp-sum b{color:#8a5f14;font-size:10.5px}
+  .bp-sum i{display:block;font-size:9px;color:#a89066;font-style:italic}
+  .bp-sum button{flex-shrink:0;border:1px solid rgba(156,116,32,.45);background:rgba(255,253,245,.9);
+    border-radius:6px;padding:6px 9px;cursor:pointer;
+    font-family:'Noto Serif KR',serif;font-size:10px;font-weight:700;color:#8a5f14}
   .bp-cr{margin-top:11px;display:flex;flex-direction:column;gap:8px}
   .bp-cr > div{display:flex;align-items:flex-start;gap:7px;font-family:'Noto Serif KR',serif;
     font-size:10px;line-height:1.6;color:#8a6d3c}
@@ -1721,8 +1728,10 @@ function bookDays(book, records, span) {
     // 하루에서 안 열기로 한 것을 책이 대신 열어 주면 고른 의미가 없다.
     const show = sharedEpisodes(rec).some(x => String(x.id) === String(t.id));
     // open = 그 하루 자체도 나눴는가. 아니면 읽는 쪽에서 그날로 건너가는 길을 열지 않는다
+    // priv = 적어 두긴 했는데 열지 않은 것. '안 적었다'와 구별해야 읽는 쪽이 오해하지 않는다
     days[n] = {date: k, photoId: show ? (t.photoId || null) : null,
-               memo: show ? (t.memo || "") : "", open: !!rec.published};
+               memo: show ? (t.memo || "") : "", open: !!rec.published,
+               priv: !show && !!((t.memo || "").trim() || t.photoId || t.photo)};
     if (show && t.photoId) photoIds.push(t.photoId);
   }
   return {days, photoIds};
@@ -3560,9 +3569,17 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
     }
     updateBook(book.id, t => ({...t, shareIds: ids}));
   };
-  const togglePub = (id) => {
+  const togglePub = (id, collPost) => {
     const k = String(id);
-    setPubIds(pubOn.has(k) ? [...pubOn].filter(x => x !== k) : [...pubOn, k]);
+    const was = pubOn.has(k);
+    const next = was ? [...pubOn].filter(x => x !== k) : [...pubOn, k];
+    if (published && next.length === 0) {
+      alert("공개 중에는 최소 한 챕터는 남겨야 해요.\n전부 내리려면 위의 스위치를 꺼 주세요.");
+      return;
+    }
+    updateBook(book.id, t => ({...t, shareIds: next}));
+    // 묶음 책의 글은 그 자체로 낱장 공개 페이지도 갖는다 — 한 번 눌러 둘 다 따라가게 한다
+    if (collPost && (collPost.visibility === "public") === was) togglePostVis(collPost);
   };
   const togglePubAll = () => setPubIds(pubAllOn ? [] : mdPosts.map(p => String(p.id)));
   const handle = (profile && profile.handle) || "";
@@ -3806,13 +3823,13 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
                       <span className="bd-pno">{no}</span>
                       <span className="bd-ptt" onClick={()=>setEditId(p.id)}>{p.title || "(제목 없음)"}</span>
                       <span className="bd-pdt">{dt}</span>
-                      {isColl && (
-                        <button className={"bd-pvis " + (p.visibility === "public" ? "on" : "off")}
-                          onClick={()=>togglePostVis(p)}
-                          title={p.visibility === "public" ? "이 글 내리기" : "이 글만 내보내기"}>
-                          {p.visibility === "public" ? "공개" : "나만"}
-                        </button>
-                      )}
+                      {/* 공개 여부는 챕터가 늘어선 이 줄에서 고른다 —
+                          공개할 것을 고르는 칸을 따로 또 두면 같은 목록을 두 번 읽게 된다 */}
+                      <button className={"bd-pvis " + (pubOn.has(String(p.id)) ? "on" : "off")}
+                        onClick={()=>togglePub(p.id, isColl ? p : null)}
+                        title={pubOn.has(String(p.id)) ? "이 챕터 내리기" : "이 챕터 공개하기"}>
+                        {pubOn.has(String(p.id)) ? "공개" : "나만"}
+                      </button>
                       <button className="bd-pdel" onClick={()=>unbindPost(p.id)}
                         style={{color:"#8a6a3a",borderColor:"rgba(156,116,32,.4)"}}>풀기</button>
                       <button className="bd-pdel" onClick={()=>deletePost(p.id)}>삭제</button>
@@ -3835,27 +3852,16 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
                   title={published ? "책장에서 내리기" : "책장에 올리기"}/>
               </div>
 
-              {/* 어떤 챕터를 실을지 한 편씩 — 책을 켜면 쓴 글이 전부 나가던 것을 고르게 바꾼다 */}
+              {/* 고르는 자리는 챕터가 늘어선 Write 한 곳 — 여기선 몇 편이 실리는지만 본다 */}
               {mdPosts.length > 0 && (
-                <div className="sh-pick">
-                  <div className="sh-pl">
-                    <span>공개할 챕터 고르기</span>
-                    <label className="sh-all">
-                      <input type="checkbox" checked={pubAllOn} onChange={togglePubAll}/>전체
-                    </label>
-                  </div>
-                  {mdPosts.map((p, i) => (
-                    <label className="sh-ep" key={p.id}>
-                      <input type="checkbox" checked={pubOn.has(String(p.id))}
-                        onChange={()=>togglePub(p.id)}/>
-                      <span className="n">{i + 1}</span>
-                      <span className="t">{oneLine(p.title) || "(제목 없음)"}</span>
-                    </label>
-                  ))}
-                  <div className="sh-pn">
-                    고르지 않은 챕터는 책에 실리지 않아요 · 나만 봅니다
-                    {!isColl && <span><br/>표의 사진·메모는 그 하루에서 공개로 고른 것만 따라 나갑니다</span>}
-                  </div>
+                <div className="bp-sum">
+                  <span>
+                    <b>{mdPosts.length}챕터 중 {pubOn.size}편</b>이 실립니다
+                    {!isColl && <i>표의 사진·메모는 그 하루에서 공개로 고른 것만 따라 나갑니다</i>}
+                  </span>
+                  {tab === "write"
+                    ? <button onClick={togglePubAll}>{pubAllOn ? "전부 내리기" : "전부 공개"}</button>
+                    : <button onClick={()=>{setTab("write"); setEditId(null);}}>Write에서 고르기 ›</button>}
                 </div>
               )}
               {published ? (

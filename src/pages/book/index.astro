@@ -411,7 +411,11 @@ import '../../styles/paper.css';
               '<div class="b">' +
                 (m.photoId ? '<div class="shot" data-photo="' + esc(m.photoId) + '"></div>' : '') +
                 (m.memo ? '<div class="memo">' + esc(m.memo) + '</div>'
-                        : (m.photoId ? '' : '<div class="none">남긴 메모가 없습니다.</div>')) +
+                        : m.photoId ? ''
+                        // 해낸 날이라는 건 보이고, 그날 적은 것은 지은이가 열어야 보인다.
+                        // '안 적었다'와 '안 열었다'는 다른 말이라 섞어 쓰면 안 된다
+                        : m.priv ? '<div class="none">지은이가 열지 않은 기록입니다.</div>'
+                        : '<div class="none">남긴 메모가 없습니다.</div>') +
               '</div></div>';
             loadPhotos();
           });
