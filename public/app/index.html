@@ -921,6 +921,13 @@
     box-shadow:0 1px 4px rgba(0,0,0,.14)}
   .blk-ctl button:disabled{opacity:.3;cursor:default}
   .blk-ctl button:last-child{color:#a8483f;border-color:#d8b3af}
+  /* 뺀 칸을 손에 쥐고 있는 동안 — 되돌릴 기회 */
+  .blk-undo{flex-shrink:0;display:flex;align-items:center;gap:9px;margin-top:8px;padding:7px 10px;
+    border-radius:7px;border:1px solid rgba(156,116,32,.45);background:rgba(212,168,81,.16)}
+  .blk-undo span{flex:1;min-width:0;font-family:'Noto Serif KR',serif;font-size:10.5px;color:#8a6d3c}
+  .blk-undo button{flex-shrink:0;border:1px solid rgba(156,116,32,.55);background:rgba(255,253,245,.95);
+    border-radius:6px;padding:5px 10px;cursor:pointer;
+    font-family:'Noto Serif KR',serif;font-size:10.5px;font-weight:700;color:#8a5f14}
   /* 옮겨 적은 남의 문장 — 내 글과 결이 달라 보여야 한다 */
   .blk-bq{width:100%;box-sizing:border-box;border:none;border-left:3px solid #9c7420;
     background:rgba(240,232,210,.5);padding:9px 12px;resize:none;outline:none;overflow:hidden;display:block;
@@ -3169,7 +3176,29 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, c
     onWrite({blocks: out, body: ""});
   };
   const at = (i, patch) => write(bs.map((x, j) => (j === i ? {...x, ...patch} : x)));
-  const drop = (i) => { setAct(null); write(bs.filter((_, j) => j !== i)); };
+  // ✕는 묻지 않고 지운다 — 대신 지운 것을 손에 쥐고 있다가 되돌릴 수 있게 한다.
+  // 묻는 창을 띄우면 한 칸 지울 때마다 걸리적거리고, 안 쥐고 있으면 글이 그냥 날아간다.
+  const [undo, setUndo] = useState(null);
+  const undoTimer = useRef(null);
+  useEffect(() => () => clearTimeout(undoTimer.current), []);
+  const drop = (i) => {
+    const gone = bs[i];
+    setAct(null);
+    write(bs.filter((_, j) => j !== i));
+    if (gone) {
+      setUndo({at: i, blk: gone});
+      clearTimeout(undoTimer.current);
+      undoTimer.current = setTimeout(() => setUndo(null), 20000);
+    }
+  };
+  const putBack = () => {
+    if (!undo) return;
+    const k = Math.min(undo.at, bs.length);
+    write(bs.slice(0, k).concat([undo.blk], bs.slice(k)));
+    setAct(k);
+    setUndo(null);
+    clearTimeout(undoTimer.current);
+  };
   // 칸을 위아래로 옮긴다 — 다 쓴 글 맨 위에 소제목을 넣으려면 넣고 ↑ 한 번
   const move = (i, d) => {
     const j = i + d;
@@ -3345,6 +3374,13 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, c
         );
       })}
       </div>
+
+      {undo && (
+        <div className="blk-undo">
+          <span>{({p:"문단", h:"소제목", bq:"인용", img:"사진", q:"인용 카드", seed:"영감"})[undo.blk.t] || "칸"} 하나를 뺐어요</span>
+          <button onClick={putBack}>↩ 되돌리기</button>
+        </div>
+      )}
 
       <div className="blk-add">
         <button onClick={()=>insertAfter({t:"p", v:""})}>＋ 문단</button>
@@ -3688,7 +3724,7 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
   };
   const updatePost = (id, patch) => noteApi && noteApi.update(id, patch);
   const deletePost = async (id) => {
-    if (!confirm("이 글을 삭제할까요?")) return;
+    if (!confirm("이 글을 지울까요?\n\nDesk의 Trash에 남아 있어서 되돌릴 수 있어요.")) return;
     await (noteApi && noteApi.remove(id));
     setEditId(null);
   };
@@ -5833,7 +5869,7 @@ function NavIcon({k, size=23}) {
 // Desk — 뒷면. 위는 쌓아 온 책, 아래는 아직 어디에도 묶이지 않은 낱장의 글.
 // 책은 각자의 자리에서 내보내고, 여기서는 글만 쓴다.
 // ═════════════════════════════════════════════════════════════════════
-function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNeedHandle, goPage, goBook, onSaveProfile}) {
+function DeskPage({data, setData, user, profile, notes, noteApi, trash, onEditPen, onNeedHandle, goPage, goBook, onSaveProfile}) {
   const [view, setView] = useState("list");     // list | edit | bind
   const [editId, setEditId] = useState(null);
   const [picked, setPicked] = useState([]);
@@ -6388,6 +6424,25 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
         <button className="dk-bind" disabled={loose.length === 0} onClick={startBind}>📎 묶기</button>
       </div>
 
+      {/* 지운 글은 바로 없애지 않는다 — 잘못 눌렀을 때 돌아올 자리가 있어야 한다 */}
+      {(trash || []).length > 0 && (
+        <div style={{marginTop:"22px"}}>
+          <div className="dk-sect"><span className="k">Trash</span><span className="s">지운 글 · 되돌릴 수 있어요</span><span className="l"/></div>
+          {trash.map(n => (
+            <div key={n.id} className="dk-sh" style={{cursor:"default", opacity:.85}}>
+              <span className="dk-shn">
+                <span className="dk-sht">{n.title || "(제목 없음)"}</span>
+                <span className="dk-shd">{dateOf(n)} 작성 · {noteBlocks(n).filter(b=>String(b.v||"").trim()).length}문단</span>
+              </span>
+              <button className="dk-tag on" style={{border:"none",cursor:"pointer"}}
+                onClick={async ()=>{ await (noteApi && noteApi.restore && noteApi.restore(n.id)); }}>↩ 되돌리기</button>
+              <button className="dk-tag off" style={{border:"none",cursor:"pointer",color:"#a8483f"}}
+                onClick={async ()=>{ if (confirm("이 글을 완전히 없앨까요?\n\n이건 되돌릴 수 없어요.")) await (noteApi && noteApi.purge && noteApi.purge(n.id)); }}>완전히</button>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="dk-foot">Books의 책은 각자의 자리에서 내보냅니다<br/>여기서는 글을 쓰고 묶습니다</div>
       </div>
       )}
@@ -6406,7 +6461,7 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
   );
 }
 
-function PageBook({data, setData, onLogout, user, profile, onSaveProfile, notes, noteApi, notesLoaded}) {
+function PageBook({data, setData, onLogout, user, profile, onSaveProfile, notes, noteApi, notesLoaded, trash}) {
   const [pageIdx, setPageIdx] = useState(() => PAGES.findIndex(p=>p.key==="future"));  // 시작: 미래
   const [menu, setMenu] = useState(false);
   const [editPen, setEditPen] = useState(false);
@@ -6505,7 +6560,7 @@ function PageBook({data, setData, onLogout, user, profile, onSaveProfile, notes,
                                 goBook={(id)=>{ setOpenBookId(id); setBookFrom("now");
                                   setPageIdx(PAGES.findIndex(x=>x.key==="chapters")); }}/>;
       case "workshop": return <DeskPage data={data} setData={setData} user={user} profile={profile}
-                                notes={notes} noteApi={noteApi} onSaveProfile={onSaveProfile}
+                                notes={notes} noteApi={noteApi} trash={trash} onSaveProfile={onSaveProfile}
                                 onEditPen={()=>setEditPen(true)} onNeedHandle={()=>setNeedHandle(true)}
                                 goPage={(k)=>setPageIdx(PAGES.findIndex(x=>x.key===k))}
                                 goBook={(id)=>{ setOpenBookId(id); setBookFrom("workshop");
@@ -6687,6 +6742,7 @@ function App() {
   const profileRef = useRef(null);                // noteApi가 다시 만들어지지 않게 참조로만 본다
   useEffect(() => { profileRef.current = profile; }, [profile]);
   const [notes, setNotes] = useState([]);        // 모든 글 — 낱장이든 책에 묶였든 여기 산다
+  const [trash, setTrash] = useState([]);        // 지운 글 — 바로 없애지 않고 여기 둔다
   const [notesLoaded, setNotesLoaded] = useState(false);
   const [opened, setOpened] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -6820,7 +6876,9 @@ function App() {
         const arr = [];
         snap.forEach(d => arr.push({id: d.id, ...d.data()}));
         arr.sort((a, b) => (noteTs(b) - noteTs(a)));
-        setNotes(arr);
+        // 지운 글은 목록에서만 빠지고 글 자체는 남는다 — 잘못 눌렀을 때 되돌릴 수 있게
+        setNotes(arr.filter(n => !n.deletedAt));
+        setTrash(arr.filter(n => n.deletedAt).sort((a, b) => (b.deletedAt || 0) - (a.deletedAt || 0)));
         setNotesLoaded(true);
       }, err => console.warn("notes load:", err));
     return () => unsub();
@@ -6863,12 +6921,28 @@ function App() {
       },
       // 글을 지우면 진열대에 내건 카드도 같이 거둔다 —
       // 안 그러면 목록엔 남고 눌러 들어가면 없는 글이 된다
+      // 지운다 = 치운다. 글은 남겨 두고 목록에서만 뺀다 — 잘못 눌러도 되돌릴 수 있게.
+      // 진열대에서는 바로 내린다(지운 글이 밖에 남아 있으면 안 된다).
       remove: async (id) => {
         if (!live || !id) return;
-        try { await fbDb.collection("notes").doc(id).delete(); }
-        catch (e) { console.warn("note delete:", e); }
+        try {
+          await fbDb.collection("notes").doc(id)
+            .update({deletedAt: Date.now(), visibility: "private", updatedAt: Date.now()});
+        } catch (e) { console.warn("note delete:", e); }
         const h = (profileRef.current && profileRef.current.handle) || "";
         if (h) await unpublishNote(uid, h, id);
+      },
+      restore: async (id) => {
+        if (!live || !id) return;
+        try {
+          await fbDb.collection("notes").doc(id)
+            .update({deletedAt: null, updatedAt: Date.now()});
+        } catch (e) { console.warn("note restore:", e); }
+      },
+      purge: async (id) => {
+        if (!live || !id) return;
+        try { await fbDb.collection("notes").doc(id).delete(); }
+        catch (e) { console.warn("note purge:", e); }
       },
     };
   }, [user]);
@@ -7012,7 +7086,7 @@ function App() {
         </div>
       )}
       <PageBook data={data} setData={setData} onLogout={handleLogout} user={user}
-        profile={profile} onSaveProfile={handleSaveProfile} notes={notes} noteApi={noteApi}
+        profile={profile} onSaveProfile={handleSaveProfile} notes={notes} noteApi={noteApi} trash={trash}
         notesLoaded={notesLoaded}/>
     </React.Fragment>
   );
