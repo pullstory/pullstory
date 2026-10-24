@@ -2980,12 +2980,15 @@ function fitHeight(el) {
   return h;
 }
 
-function BufferedInput({value, onSave, ...rest}) {
+function BufferedInput({value, onSave, onCaret, ...rest}) {
   const [v, onChange, flush] = useBuffered(value, onSave);
-  return <input {...rest} value={v} onChange={e=>onChange(e.target.value)} onBlur={flush}/>;
+  const tell = (e) => { if (onCaret) onCaret(e.target); };
+  return <input {...rest} value={v} onBlur={flush}
+    onChange={e=>{ onChange(e.target.value); tell(e); }}
+    onFocus={tell} onSelect={tell} onKeyUp={tell}/>;
 }
 
-function BufferedTA({value, onSave, className, placeholder, onFocus, onEmptyBack}) {
+function BufferedTA({value, onSave, className, placeholder, onFocus, onEmptyBack, onCaret}) {
   const [v, onChange, flush] = useBuffered(value, onSave);
   const ref = useRef(null);
   const hRef = useRef(0);
@@ -3010,8 +3013,10 @@ function BufferedTA({value, onSave, className, placeholder, onFocus, onEmptyBack
     onEmptyBack();
   };
   return <textarea ref={ref} className={className} rows={1} value={v} placeholder={placeholder}
-    onChange={e=>{ onChange(e.target.value); resize(); }} onInput={resize}
-    onFocus={e=>{ keepInView(e.target); onFocus && onFocus(); }}
+    onChange={e=>{ onChange(e.target.value); resize(); onCaret && onCaret(e.target); }} onInput={resize}
+    onFocus={e=>{ keepInView(e.target); onFocus && onFocus(); onCaret && onCaret(e.target); }}
+    onSelect={e=>onCaret && onCaret(e.target)}
+    onKeyUp={e=>onCaret && onCaret(e.target)}
     onKeyDown={onKeyDown} onBlur={flush}/>;
 }
 
@@ -3189,22 +3194,30 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, c
     if (el) { el.focus(); keepInView(el); }
   }, [bs.length]);
 
+  // 커서가 어디 있었는지 적어 둔다.
+  // ＋ 단추를 누르는 순간 포커스는 이미 단추로 옮겨 가 있어서,
+  // 그때 가서 물어보면 커서 자리를 알 수 없다. 움직일 때마다 미리 적어 둔다.
+  const caretRef = useRef({i: -1, pos: 0});
+  const noteCaret = (i, el) => {
+    if (!el) return;
+    const len = String(el.value == null ? "" : el.value).length;
+    caretRef.current = {i, pos: typeof el.selectionStart === "number" ? el.selectionStart : len};
+  };
+
   // 커서가 있는 바로 그 자리에 넣는다.
   // 맨 앞이면 그 칸 앞에, 맨 뒤면 뒤에, 가운데면 문단을 둘로 가르고 사이에.
   // (늘 '그 칸 다음'에만 넣으면 맨 앞에 끼울 길이 없어서 손이 한 번 더 간다)
   const insertAfter = (blk) => {
-    const el = document.activeElement;
     const i = actAt;
     const txt = (i >= 0 && bs[i] && typeof bs[i].v === "string") ? bs[i].v : null;
-    const inBlock = el && (el.tagName === "TEXTAREA" || el.tagName === "INPUT")
-      && listRef.current && listRef.current.contains(el);
+    const c = caretRef.current;
     let next, k;
     if (i < 0) {                                   // 아무 칸도 짚지 않았으면 맨 끝
       k = bs.length; next = bs.concat([blk]);
-    } else if (txt == null || !inBlock) {           // 사진처럼 커서를 둘 수 없는 칸이면 그 다음
+    } else if (txt == null || c.i !== i) {          // 사진처럼 커서를 둘 수 없는 칸이면 그 다음
       k = i + 1; next = bs.slice(0, k).concat([blk], bs.slice(k));
     } else {
-      const caret = typeof el.selectionStart === "number" ? el.selectionStart : txt.length;
+      const caret = Math.max(0, Math.min(c.pos, txt.length));
       if (caret <= 0) {                             // 칸 맨 앞 → 그 칸 앞에
         k = i; next = bs.slice(0, i).concat([blk], bs.slice(i));
       } else if (caret >= txt.length) {             // 칸 맨 뒤 → 그 칸 다음에
@@ -3216,6 +3229,7 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, c
                   bs.slice(i + 1));
       }
     }
+    caretRef.current = {i: -1, pos: 0};
     setAct(k);
     write(next);
     // 새로 만든 칸에 커서를 놓고 창을 거기까지 내린다 —
@@ -3306,7 +3320,8 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, c
           <div className={cls} key={"bq" + i} onClick={()=>setAct(i)}>
             {ctl}
             <BufferedTA className="blk-bq" value={b.v || ""} placeholder="옮겨 적을 문장"
-              onFocus={()=>setAct(i)} onEmptyBack={()=>bs.length > 1 && drop(i)}
+              onFocus={()=>setAct(i)} onCaret={(el)=>noteCaret(i, el)}
+              onEmptyBack={()=>bs.length > 1 && drop(i)}
               onSave={(v)=>at(i, {v})}/>
           </div>
         );
@@ -3314,7 +3329,8 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, c
           <div className={cls} key={"h" + i} onClick={()=>setAct(i)}>
             {ctl}
             <BufferedInput className="blk-h" value={b.v || ""} placeholder="소제목"
-              onFocus={()=>setAct(i)} onSave={(v)=>at(i, {v})}/>
+              onFocus={()=>setAct(i)} onCaret={(el)=>noteCaret(i, el)}
+              onSave={(v)=>at(i, {v})}/>
           </div>
         );
         return (
@@ -3322,7 +3338,8 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, c
             {ctl}
             <BufferedTA className={textClass} value={b.v || ""}
               placeholder={i === 0 ? placeholder : ""}
-              onFocus={()=>setAct(i)} onEmptyBack={()=>bs.length > 1 && drop(i)}
+              onFocus={()=>setAct(i)} onCaret={(el)=>noteCaret(i, el)}
+              onEmptyBack={()=>bs.length > 1 && drop(i)}
               onSave={(v)=>at(i, {v})}/>
           </div>
         );
