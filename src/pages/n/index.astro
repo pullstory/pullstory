@@ -60,6 +60,10 @@ import '../../styles/paper.css';
     #note-root .shot.pic { margin: 16px 0 0; padding: 0; background: none; box-shadow: none; transform: none; width: 100%; }
     #note-root .shot.pic::before { display: none; }
     #note-root .shot.pic img { max-height: none; width: 100%; border: 1px solid var(--line); }
+    /* 글에 넣은 사진 — 폭을 꽉 채우면 한 장이 화면을 다 먹는다. 잘라내지 않고 줄인다 */
+    #note-root .shot.pic img { width: auto; height: auto; max-width: min(340px, 100%); max-height: 400px; }
+    #note-root .shot.pic figcaption { margin-top: 6px; font-size: 10px; color: var(--muted);
+      font-style: italic; letter-spacing: .01em; }
     #note-root .p {
       font-size: 13.5px;
       line-height: 2;
@@ -175,10 +179,19 @@ import '../../styles/paper.css';
       }
 
       // 쓴 것만 — 인용해 둔 그날의 기록은 책의 표에서 본다
+      function scrapDate(d) {
+        var p = String(d || '').split('-');
+        if (p.length !== 3) return String(d || '');
+        return p[0] + '\uub144 ' + parseInt(p[1], 10) + '\uc6d4 ' + parseInt(p[2], 10) + '\uc77c';
+      }
+
       function block(b) {
         if (b.t === 'q') return '';
+        // from = 겪은 날에서 가져온 사진 — 날짜를 붙여 '진짜 있었던 일'임을 보인다
         if (b.t === 'img') return b.photoId
-          ? '<div class="shot pic" data-photo="' + esc(b.photoId) + '"></div>' : '';
+          ? '<figure class="shot pic" data-photo="' + esc(b.photoId) + '">' +
+              (b.from ? '<figcaption>' + esc(scrapDate(b.from)) + '의 기록</figcaption>' : '') +
+            '</figure>' : '';
         var v = String(b.v || '');
         if (!v.trim()) return '';
         if (b.t === 'h') return '<h2 class="sub">' + esc(v) + '</h2>';

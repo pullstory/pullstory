@@ -908,7 +908,46 @@
     cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center}
   .blk-h{width:100%;box-sizing:border-box;border:none;border-left:3px solid #c9a85a;background:rgba(255,253,245,.6);
     padding:8px 10px;font-family:'Noto Serif KR',serif;font-size:14px;font-weight:700;color:#2f2109;outline:none}
-  .blk-img{display:block;width:100%;border:1px solid #d8c79a;border-radius:3px}
+  /* 글에 넣는 사진 — 폭을 꽉 채우면 한 장이 화면을 다 먹는다. 잘라내지 않고 줄인다 */
+  .blk-img{display:block;width:auto;height:auto;max-width:min(300px,100%);max-height:340px;
+    border:1px solid #d8c79a;border-radius:3px}
+  .blk-cap{margin-top:5px;font-family:'Noto Serif KR',serif;font-size:9.5px;color:#9c8460;
+    font-style:italic;letter-spacing:.01em}
+  /* 칸과 칸 사이 — 새 칸이 들어갈 자리를 눈에 보이게 */
+  /* 글칸 위로 겹쳐 두면 안 된다 — 겹친 쪽(textarea)이 눌림을 가져가 틈을 못 고른다 */
+  .blk-gap{display:block;width:100%;border:none;background:none;padding:0;cursor:pointer;
+    position:relative;z-index:2;height:14px;margin:0}
+  .blk-gap i{display:block;height:1px;margin:6.5px 0;border-radius:1px;background:rgba(120,90,40,.14)}
+  .blk-gap:hover i{background:rgba(156,116,32,.42)}
+  .blk-gap.on i{height:2px;margin:6px 0;background:linear-gradient(90deg,#d4a851,#b8862f)}
+  .blk-gap span{position:absolute;right:1px;top:0;padding:0 5px;border-radius:3px;
+    background:rgba(255,253,245,.96);font-family:'Noto Serif KR',serif;font-size:8.5px;
+    font-weight:700;color:#8a5f14;letter-spacing:-.01em}
+  .blk-gap.last{height:18px}
+  /* 틈이 제 자리를 차지하므로 칸 사이 여백은 줄인다 — 전체 간격은 그대로 */
+  .blk-list > .blk{margin-bottom:0}
+  .blk-list > textarea{margin-top:0}
+  /* 지난 기록에서 사진 고르기 */
+  .sp-ov{position:fixed;inset:0;z-index:10003;background:rgba(0,0,0,.72);display:flex;
+    align-items:center;justify-content:center;padding:20px;animation:fadeIn .18s}
+  .sp-box{width:100%;max-width:420px;max-height:84vh;display:flex;flex-direction:column;
+    border-radius:12px;padding:16px;background:linear-gradient(#fffdf6,#f7eed9);
+    box-shadow:0 14px 40px rgba(0,0,0,.45)}
+  .sp-h{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-shrink:0;
+    font-family:'Noto Serif KR',serif;font-size:13.5px;font-weight:700;color:#6b4f30}
+  .sp-h button{background:none;border:none;font-size:17px;color:#8a7556;cursor:pointer;padding:0}
+  .sp-n{flex-shrink:0;margin:7px 0 11px;padding-bottom:9px;border-bottom:1px dashed #d8c79a;
+    font-family:'Noto Serif KR',serif;font-size:9.5px;color:#a89066;font-style:italic;line-height:1.7}
+  .sp-grid{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+  .sp-item{padding:0;border:1px solid rgba(120,90,40,.3);border-radius:7px;overflow:hidden;
+    background:rgba(255,253,245,.8);cursor:pointer;text-align:left;display:flex;flex-direction:column}
+  .sp-item:active{border-color:#b8862f}
+  .sp-item img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover}
+  .sp-item .d{padding:5px 6px 0;font-family:'Cormorant Garamond',Georgia,serif;font-size:9.5px;
+    font-weight:700;color:#8a5f14}
+  .sp-item .t{padding:1px 6px 6px;font-family:'Noto Serif KR',serif;font-size:9px;color:#8a7556;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* 옮겨 적은 남의 문장 — 내 글과 결이 달라 보여야 한다 */
   .blk-bq{width:100%;box-sizing:border-box;border:none;border-left:3px solid #9c7420;
     background:rgba(240,232,210,.5);padding:9px 12px;resize:none;outline:none;overflow:hidden;display:block;
@@ -1725,8 +1764,9 @@ function resolvePostForPublic(book, post, records, span) {
   const resolved = noteBlocks(post)
     // 인용과 영감은 쓰는 사람이 곁에 두고 보는 것이지 읽는 사람에게 낼 것이 아니다
     .filter(b => b.t !== "q" && b.t !== "seed")
+    // from = 그날 겪은 일에서 가져온 사진이라는 표시. 읽는 쪽에 날짜로 적힌다
     .map(b => b.t === "img"
-      ? {t: "img", photoId: b.photoId || null}
+      ? {t: "img", photoId: b.photoId || null, from: b.from || null}
       : {t: (b.t === "h" || b.t === "bq") ? b.t : "p", v: String(b.v || "")})
     .filter(b => b.t === "img" ? b.photoId : b.v.trim());
   return {block: {id: post.id, title: post.title || "", blocks: resolved, ts: noteTs(post) || null}};
@@ -3128,10 +3168,61 @@ function SeedCard({b, onRemove}) {
   );
 }
 
-function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, className}) {
+// 지난 기록 중 사진이 남은 것 — 글에 끌어다 쓸 글감.
+// 진짜 겪은 날의 사진이라, 가져갈 때 날짜를 함께 들고 간다.
+function photoScraps(records, limit) {
+  const out = [];
+  Object.keys(records || {}).sort().reverse().forEach(d => {
+    ((records[d] || {}).tasks || []).forEach(t => {
+      if (t.done && (t.photoId || t.photo)) {
+        out.push({date: d, photoId: t.photoId || null, src: t.photo || null,
+                  memo: t.memo || "", cat: t.cat || "C", text: t.text || ""});
+      }
+    });
+  });
+  return limit ? out.slice(0, limit) : out;
+}
+
+function scrapDateLabel(d) {
+  const p = String(d || "").split("-");
+  if (p.length !== 3) return String(d || "");
+  return `${p[0]}년 ${parseInt(p[1], 10)}월 ${parseInt(p[2], 10)}일`;
+}
+
+// 지난 기록에서 사진 한 장을 골라 오는 창
+function ScrapPicker({scraps, onClose, onPick}) {
+  return ReactDOM.createPortal(
+    <div className="sp-ov" onClick={onClose}>
+      <div className="sp-box" onClick={e=>e.stopPropagation()}>
+        <div className="sp-h">
+          <span>📷 내 기록에서 가져오기</span>
+          <button onClick={onClose}>✕</button>
+        </div>
+        <div className="sp-n">그날 찍은 사진이 날짜와 함께 들어갑니다 — 겪은 일이라는 표시입니다</div>
+        <div className="sp-grid">
+          {scraps.map((s, i) => (
+            <button className="sp-item" key={s.date + "-" + i} onClick={()=>onPick(s)}>
+              <Photo src={s.src} id={s.photoId} alt=""/>
+              <span className="d">{scrapDateLabel(s.date)}</span>
+              <span className="t">{oneLine(s.text) || "(제목 없음)"}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, className, scraps}) {
   const bs = noteBlocks(note);
   const [busy, setBusy] = useState(false);
-  const [at_, setAt_] = useState(-1);      // 마지막으로 손을 둔 칸 — 새 칸은 그 다음에 선다
+  // 새 칸이 들어갈 자리. null이면 맨 끝.
+  // 예전엔 '마지막으로 손을 둔 글칸' 하나로만 잡아서, 글 가운데를 보고 있어도
+  // 글칸을 건드린 적이 없으면 전부 맨 아래로 떨어졌다. 이제 자리를 눈에 보이게 두고 고른다.
+  const [gap, setGap] = useState(null);
+  const gapAt = gap == null ? bs.length : Math.min(gap, bs.length);
+  const [picking, setPicking] = useState(false);   // 지난 기록에서 가져오기
   const fileRef = useRef(null);
 
   const write = (nbs) => {
@@ -3139,7 +3230,7 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, c
     onWrite({blocks: out, body: ""});
   };
   const at = (i, patch) => write(bs.map((x, j) => (j === i ? {...x, ...patch} : x)));
-  const drop = (i) => { setAt_(-1); write(bs.filter((_, j) => j !== i)); };
+  const drop = (i) => { setGap(i); write(bs.filter((_, j) => j !== i)); };
   // 맨 끝에만 붙으면 인용과 인용 사이에 문단을 못 넣는다 — 커서가 있던 칸 다음에 끼운다
   const listRef = useRef(null);
   const wantRef = useRef(-1);
@@ -3155,9 +3246,9 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, c
   }, [bs.length]);
 
   const insertAfter = (blk) => {
-    const k = (at_ >= 0 && at_ < bs.length) ? at_ + 1 : bs.length;
+    const k = gapAt;
     const next = bs.slice(0, k).concat([blk], bs.slice(k));
-    setAt_(k);
+    setGap(k + 1);
     write(next);
     // 새로 만든 칸에 커서를 놓고 창을 거기까지 내린다 —
     // 눌러서 칸만 생기고 손은 아직 위에 있으면 이어 쓰는 흐름이 끊긴다
@@ -3189,36 +3280,42 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, c
     <div className={className || ""}>
       <div className="blk-list" ref={listRef}>
       {bs.map((b, i) => {
-        if (b.t === "q") return renderQuote ? renderQuote(b.d, i, () => drop(i)) : null;
-        if (b.t === "seed") return <SeedCard key={"s"+i} b={b} onRemove={() => drop(i)}/>;
-        if (b.t === "img") return (
-          <div className="blk" key={"i" + i}>
-            <button className="blk-x" onClick={()=>drop(i)} title="사진 빼기">✕</button>
-            <Photo src={b.src} id={b.photoId} className="blk-img"/>
-          </div>
-        );
-        if (b.t === "bq") return (
-          <div className="blk" key={"bq" + i}>
-            <button className="blk-x" onClick={()=>drop(i)} title="인용 빼기">✕</button>
-            <BufferedTA className="blk-bq" value={b.v || ""} placeholder="옮겨 적을 문장"
-              onFocus={()=>setAt_(i)} onEmptyBack={()=>bs.length > 1 && drop(i)}
+        const g = <Gap key={"g" + i} j={i} on={gapAt === i} set={setGap}/>;
+        const body = (() => {
+          if (b.t === "q") return renderQuote ? renderQuote(b.d, i, () => drop(i)) : null;
+          if (b.t === "seed") return <SeedCard key={"s"+i} b={b} onRemove={() => drop(i)}/>;
+          if (b.t === "img") return (
+            <div className="blk" key={"i" + i} onClick={()=>setGap(i + 1)}>
+              <button className="blk-x" onClick={(e)=>{e.stopPropagation(); drop(i);}} title="사진 빼기">✕</button>
+              <Photo src={b.src} id={b.photoId} className="blk-img"/>
+              {b.from && <div className="blk-cap">{scrapDateLabel(b.from)}의 기록</div>}
+            </div>
+          );
+          if (b.t === "bq") return (
+            <div className="blk" key={"bq" + i} onClick={()=>setGap(i + 1)}>
+              <button className="blk-x" onClick={(e)=>{e.stopPropagation(); drop(i);}} title="인용 빼기">✕</button>
+              <BufferedTA className="blk-bq" value={b.v || ""} placeholder="옮겨 적을 문장"
+                onFocus={()=>setGap(i + 1)} onEmptyBack={()=>bs.length > 1 && drop(i)}
+                onSave={(v)=>at(i, {v})}/>
+            </div>
+          );
+          if (b.t === "h") return (
+            <div className="blk" key={"h" + i} onClick={()=>setGap(i + 1)}>
+              <button className="blk-x" onClick={(e)=>{e.stopPropagation(); drop(i);}} title="소제목 빼기">✕</button>
+              <BufferedInput className="blk-h" value={b.v || ""} placeholder="소제목"
+                onFocus={()=>setGap(i + 1)} onSave={(v)=>at(i, {v})}/>
+            </div>
+          );
+          return (
+            <BufferedTA key={"p" + i} className={textClass} value={b.v || ""}
+              placeholder={i === 0 ? placeholder : ""}
+              onFocus={()=>setGap(i + 1)} onEmptyBack={()=>bs.length > 1 && drop(i)}
               onSave={(v)=>at(i, {v})}/>
-          </div>
-        );
-        if (b.t === "h") return (
-          <div className="blk" key={"h" + i}>
-            <button className="blk-x" onClick={()=>drop(i)} title="소제목 빼기">✕</button>
-            <BufferedInput className="blk-h" value={b.v || ""} placeholder="소제목"
-              onFocus={()=>setAt_(i)} onSave={(v)=>at(i, {v})}/>
-          </div>
-        );
-        return (
-          <BufferedTA key={"p" + i} className={textClass} value={b.v || ""}
-            placeholder={i === 0 ? placeholder : ""}
-            onFocus={()=>setAt_(i)} onEmptyBack={()=>bs.length > 1 && drop(i)}
-            onSave={(v)=>at(i, {v})}/>
-        );
+          );
+        })();
+        return <React.Fragment key={"w" + i}>{g}{body}</React.Fragment>;
       })}
+      <Gap key="gEnd" j={bs.length} on={gapAt === bs.length} set={setGap} last/>
       </div>
 
       <div className="blk-add">
@@ -3228,9 +3325,28 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, c
         <button onClick={()=>fileRef.current && fileRef.current.click()} disabled={busy}>
           {busy ? "올리는 중…" : "＋ 사진"}
         </button>
+        {scraps && scraps.length > 0 && (
+          <button onClick={()=>setPicking(true)} title="그날 남긴 사진을 이 글에 가져옵니다">＋ 내 기록</button>
+        )}
       </div>
       <input ref={fileRef} type="file" accept="image/*" style={{display:"none"}} onChange={pickPhoto}/>
+
+      {picking && (
+        <ScrapPicker scraps={scraps} onClose={()=>setPicking(false)}
+          onPick={(s)=>{ setPicking(false); insertAfter({t:"img", photoId: s.photoId || null,
+            src: s.photoId ? null : (s.src || null), from: s.date || null}); }}/>
+      )}
     </div>
+  );
+}
+
+// 칸과 칸 사이 — 새 칸이 들어갈 자리. 눌러서 자리를 옮긴다
+function Gap({j, on, set, last}) {
+  return (
+    <button className={"blk-gap" + (on ? " on" : "") + (last ? " last" : "")}
+      onClick={()=>set(j)} title="여기에 넣기" type="button">
+      <i/>{on && <span>여기에 들어갑니다</span>}
+    </button>
   );
 }
 
@@ -3375,7 +3491,7 @@ function bookToMarkdown(book, notes, pick) {
     noteBlocks(p).forEach(b => {
       if (b.t === "q" || b.t === "seed") return;
       // 사진은 파일로 따라가지 않으니 자리만 남긴다 — 깨진 그림을 가리키느니 비워 두는 게 낫다
-      if (b.t === "img") { L.push("*(사진)*", ""); return; }
+      if (b.t === "img") { L.push(b.from ? `*(사진 — ${scrapDateLabel(b.from)}의 기록)*` : "*(사진)*", ""); return; }
       const v = String(b.v || "").replace(/\s+$/, "");
       if (!v.trim()) return;
       if (b.t === "h") L.push("### " + oneLine(v), "");
@@ -3490,6 +3606,8 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
 
   // 내보낼 원고 — 공개할 때와 같은 차림(빈 글은 빠지고, 쓴 순서대로)
   const mdPosts = bookPosts(book, notes);
+  // 지난 날 남긴 사진 — 글에 끌어다 쓴다 (그날 겪은 일이라는 표시로 날짜가 함께 간다)
+  const scraps = photoScraps(records, 120);
   const mdPhotos = mdPosts.reduce((n, p) => n + noteBlocks(p).filter(b => b.t === "img").length, 0);
   const [expMsg, setExpMsg] = useState("");
   const expTimer = useRef(null);
@@ -3860,7 +3978,7 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
             <div className="bd-wr">
               <BufferedInput className="bd-edt" value={editing.title || ""} placeholder="챕터 제목"
                 onSave={(v)=>updatePost(editing.id,{title:v})}/>
-              <BlockEditor className="bd-ed" note={editing} uid={uid} textClass="bd-edb"
+              <BlockEditor className="bd-ed" note={editing} uid={uid} textClass="bd-edb" scraps={scraps}
                 placeholder="여기에 경험과 정보를 엮어 써 내려가 보세요…"
                 renderQuote={quoteCard}
                 onWrite={(patch)=>updatePost(editing.id, patch)}/>
@@ -4596,6 +4714,8 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
 
   // 내보낼 스토리는 스토리 줄에서 바로 고른다
   const share = shareToggle(todayRec, updateTodayRec);
+  // 지난 날 남긴 사진 — 과정 기록을 쓰면서 끌어다 쓸 수 있게
+  const scraps = photoScraps(data.pageRecords, 120);
 
   // 잘못 만든 계획은 세우는 중일 때만 거둘 수 있다.
   // 서랍을 닫으면 오늘의 계획이 되고, 그 뒤로는 그대로 간다 —
@@ -5044,7 +5164,7 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                     if (t.sourceTaskId) updateTodayTask(t.id, {note: v});
                   }}/>
               </div>
-              <BlockEditor className="rw-ed" note={rec} uid={user && user.uid} textClass="rw-text"
+              <BlockEditor className="rw-ed" note={rec} uid={user && user.uid} textClass="rw-text" scraps={scraps}
                 placeholder="읽은 문장, 떠오른 생각, 오늘의 기획…"
                 onWrite={(patch)=>noteApi.update(rec.id, patch)}/>
               <div className="rw-foot">
@@ -5712,6 +5832,8 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
   const [view, setView] = useState("list");     // list | edit | bind
   const [editId, setEditId] = useState(null);
   const [picked, setPicked] = useState([]);
+  // 지난 날 남긴 사진 — 낱장 글을 쓸 때도 끌어다 쓸 수 있게
+  const scraps = photoScraps(data.pageRecords, 120);
   const [bindTitle, setBindTitle] = useState("");
   const [bindCat, setBindCat] = useState("C");
   const [busy, setBusy] = useState(false);
@@ -5971,7 +6093,7 @@ function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNe
         </div>
         <BufferedInput className="dk-tin" value={editing.title || ""} placeholder="제목"
           onSave={(v)=>noteApi.update(editing.id, {title: v})}/>
-        <BlockEditor note={editing} uid={user && user.uid} textClass="dk-bin"
+        <BlockEditor note={editing} uid={user && user.uid} textClass="dk-bin" scraps={scraps}
           placeholder="자유롭게 써 내려가세요…"
           onWrite={(patch)=>noteApi.update(editing.id, patch)}/>
         <div className={"dk-pub" + (editing.visibility === "public" ? " on" : "")}>
