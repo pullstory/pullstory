@@ -648,8 +648,6 @@
     max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .sb-epact button:active{background:#e9d7ad}
   .sb-epact .n{font-size:9px;color:#a89066;font-style:italic}
-  .sb-epact .n.ok{color:#4a7c3a;font-style:normal;font-weight:700}
-  .sb-epact button.send{border-color:rgba(156,116,32,.6);background:rgba(212,168,81,.16)}
   .sb-colo{text-align:center;font-size:9px;color:#a89066;font-style:italic;margin-top:18px;
     padding-top:12px;border-top:1px solid rgba(120,90,40,.18);line-height:1.75}
   .sb-empty{margin-top:14px;padding:12px;font-size:11px;color:#a99068;font-style:italic;text-align:center;
@@ -2592,7 +2590,9 @@ function Avatar({id, name, className}) {
   return <span>{String(name || "?").slice(0, 1)}</span>;
 }
 
-function Photo({src, id, alt, className, style, onClick}) {
+// 사진은 어느 날의 것인지를 달고 다닌다 — 복사해서 다른 글에 붙이면
+// 그 표시가 같이 건너가 '언제 겪은 일인지'가 따라붙는다
+function Photo({src, id, alt, className, style, onClick, from}) {
   const [url, setUrl] = useState(src || (id ? photoCache.get(id) : null) || null);
   useEffect(() => {
     if (src) { setUrl(src); return; }
@@ -2608,7 +2608,8 @@ function Photo({src, id, alt, className, style, onClick}) {
     return <div className={className} style={{...(style||{}), minHeight:"54px",
       background:"rgba(120,90,40,.09)", border:"1px dashed rgba(120,90,40,.2)"}}/>;
   }
-  return <img src={url} alt={alt||""} className={className} style={style} onClick={onClick}/>;
+  return <img src={url} alt={alt||""} className={className} style={style} onClick={onClick}
+    data-pid={id || undefined} data-from={from || undefined}/>;
 }
 
 // 장서표 — 필명을 적는 자리.
@@ -3143,25 +3144,6 @@ function SeedCard({b, onRemove}) {
   );
 }
 
-// 지금(마지막으로) 쓰던 글 — Story에서 사진을 보고 '이거다' 싶을 때 그 글로 보내려면
-// 어느 글을 쓰고 있었는지 한 군데에 적혀 있어야 한다. 창을 닫아도 지워지지 않는다.
-const draftRef = {id: null};
-let draftListeners = [];
-function setDraftNote(id) {
-  const v = id || null;
-  if (draftRef.id === v) return;
-  draftRef.id = v;
-  draftListeners.forEach(f => { try { f(v); } catch (e) {} });
-}
-function useDraftNote() {
-  const [id, setId] = useState(draftRef.id);
-  useEffect(() => {
-    draftListeners.push(setId);
-    return () => { draftListeners = draftListeners.filter(f => f !== setId); };
-  }, []);
-  return id;
-}
-
 function scrapDateLabel(d) {
   const p = String(d || "").split("-");
   if (p.length !== 3) return String(d || "");
@@ -3207,9 +3189,33 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, c
     if (el) { el.focus(); keepInView(el); }
   }, [bs.length]);
 
+  // 커서가 있는 바로 그 자리에 넣는다.
+  // 맨 앞이면 그 칸 앞에, 맨 뒤면 뒤에, 가운데면 문단을 둘로 가르고 사이에.
+  // (늘 '그 칸 다음'에만 넣으면 맨 앞에 끼울 길이 없어서 손이 한 번 더 간다)
   const insertAfter = (blk) => {
-    const k = actAt >= 0 ? actAt + 1 : bs.length;
-    const next = bs.slice(0, k).concat([blk], bs.slice(k));
+    const el = document.activeElement;
+    const i = actAt;
+    const txt = (i >= 0 && bs[i] && typeof bs[i].v === "string") ? bs[i].v : null;
+    const inBlock = el && (el.tagName === "TEXTAREA" || el.tagName === "INPUT")
+      && listRef.current && listRef.current.contains(el);
+    let next, k;
+    if (i < 0) {                                   // 아무 칸도 짚지 않았으면 맨 끝
+      k = bs.length; next = bs.concat([blk]);
+    } else if (txt == null || !inBlock) {           // 사진처럼 커서를 둘 수 없는 칸이면 그 다음
+      k = i + 1; next = bs.slice(0, k).concat([blk], bs.slice(k));
+    } else {
+      const caret = typeof el.selectionStart === "number" ? el.selectionStart : txt.length;
+      if (caret <= 0) {                             // 칸 맨 앞 → 그 칸 앞에
+        k = i; next = bs.slice(0, i).concat([blk], bs.slice(i));
+      } else if (caret >= txt.length) {             // 칸 맨 뒤 → 그 칸 다음에
+        k = i + 1; next = bs.slice(0, k).concat([blk], bs.slice(k));
+      } else {                                      // 가운데 → 문단을 가르고 사이에
+        k = i + 1;
+        next = bs.slice(0, i)
+          .concat([{...bs[i], v: txt.slice(0, caret)}, blk, {...bs[i], v: txt.slice(caret)}],
+                  bs.slice(i + 1));
+      }
+    }
     setAct(k);
     write(next);
     // 새로 만든 칸에 커서를 놓고 창을 거기까지 내린다 —
@@ -3221,6 +3227,42 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, c
     }
   };
 
+
+  // 붙여넣기 — 앱 안에서 복사한 사진이면 '언제 겪은 일인지'가 같이 건너온다.
+  // 밖에서 가져온 그림은 그대로 올라가고(날짜는 붙지 않는다), 글자는 평소대로 붙는다.
+  const onPaste = async (e) => {
+    const cd = e.clipboardData;
+    if (!cd) return;
+    const html = cd.getData && cd.getData("text/html");
+    if (html && /<img/i.test(html)) {
+      try {
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const im = doc.querySelector("img[data-pid], img[data-from]");
+        if (im) {
+          const pid = im.getAttribute("data-pid");
+          const from = im.getAttribute("data-from");
+          if (pid) {
+            e.preventDefault();
+            insertAfter({t: "img", photoId: pid, from: from || null});
+            return;
+          }
+        }
+      } catch (err) { console.warn("paste html:", err); }
+    }
+    const items = cd.files && cd.files.length ? cd.files : null;
+    const file = items ? [...items].find(f => /^image\//.test(f.type)) : null;
+    if (!file) return;                 // 글자 붙여넣기는 건드리지 않는다
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const b64 = await compressPhoto(file, 900, 0.72);
+      const saved = await savePhoto(uid, b64);
+      if (saved && saved.id) insertAfter({t: "img", photoId: saved.id});
+      else if (saved && saved.inline) insertAfter({t: "img", src: saved.inline});
+      else alert("사진을 붙이지 못했어요.");
+    } catch (err) { console.warn("paste photo:", err); alert("사진을 붙이지 못했어요."); }
+    setBusy(false);
+  };
 
   const pickPhoto = async (e) => {
     const f = e.target.files && e.target.files[0];
@@ -3240,7 +3282,7 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, c
 
   return (
     <div className={className || ""}>
-      <div className="blk-list" ref={listRef}>
+      <div className="blk-list" ref={listRef} onPaste={onPaste}>
       {bs.map((b, i) => {
         if (b.t === "q") return renderQuote ? renderQuote(b.d, i, () => drop(i)) : null;
         if (b.t === "seed") return <SeedCard key={"s"+i} b={b} onRemove={() => drop(i)}/>;
@@ -3256,7 +3298,7 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, c
         if (b.t === "img") return (
           <div className={cls} key={"i" + i} onClick={()=>setAct(i)}>
             {ctl}
-            <Photo src={b.src} id={b.photoId} className="blk-img"/>
+            <Photo src={b.src} id={b.photoId} from={b.from} className="blk-img"/>
             {b.from && <div className="blk-cap">{scrapDateLabel(b.from)}의 기록</div>}
           </div>
         );
@@ -3545,9 +3587,6 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
   const [tab, setTab] = useState("story");
   const [openDay, setOpenDay] = useState(null);   // 표에서 펼쳐 본 날
   const [editId, setEditId] = useState(null);     // 편집 중인 글
-
-  // 어느 글을 쓰고 있었는지 적어 둔다 — Story에서 '쓰던 글로 보내기'가 여길 본다
-  useEffect(() => { if (editId) setDraftNote(editId); }, [editId]);
 
   const span = bookSpan(book);
   const dur = span.duration;
@@ -3913,7 +3952,7 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
                   <div className="bd-pkb">
                     {peek ? (
                       <div>
-                        {(peek.task.photo || peek.task.photoId) && <Photo src={peek.task.photo} id={peek.task.photoId} alt="인증 사진"/>}
+                        {(peek.task.photo || peek.task.photoId) && <Photo src={peek.task.photo} id={peek.task.photoId} from={dayKeyOf(span.start, openDay)} alt="인증 사진"/>}
                         <div className="bd-pkm">{peek.task.memo || "메모 없음"}</div>
                         <button className="bd-quote" onClick={()=>quoteToWrite(openDay)}>✎ 이 기록을 Write에 인용하기</button>
                       </div>
@@ -4519,7 +4558,7 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
     if (!noteApi || !noteApi.live) { alert("로그인하면 과정을 글로 남길 수 있어요."); return; }
     // recId가 있어도 그 글이 지워졌으면 새로 세운다 —
     // 안 그러면 없는 글을 가리킨 채 다시 시작할 수도 없는 막다른 길이 된다
-    if (t.recId && recOf(t)) { setRecFor(t.id); setDraftNote(t.recId); return; }
+    if (t.recId && recOf(t)) { setRecFor(t.id); return; }
     const id = await noteApi.create({
       // 책에서 가져온 계획이면 세부 계획이 챕터 제목이다 — 책 이름을 또 쓰면 제목과 챕터가 같아진다
       title: (t.sourceTaskId ? (t.note || t.text) : t.text) || "",
@@ -4529,7 +4568,7 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
       from: {date: todayKey, taskId: String(t.id)},
     });
     // 글을 세우기 시작했으면 그건 이미 오늘의 계획이다
-    if (id) { updateTodayTask(t.id, {recId: id, fresh: false}); setRecFor(t.id); setDraftNote(id); }
+    if (id) { updateTodayTask(t.id, {recId: id, fresh: false}); setRecFor(t.id); }
   };
 
   // 글은 글대로 두고, 하루의 기록에는 그 첫머리와 첫 사진만 옮겨 적는다
@@ -4769,7 +4808,7 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                 {(t.photo || t.photoId) && (
                   <div className="td-photo">
                     <div className="td-tape"/>
-                    <Photo src={t.photo} id={t.photoId} alt="인증 사진"/>
+                    <Photo src={t.photo} id={t.photoId} from={todayKey} alt="인증 사진"/>
                   </div>
                 )}
                 <MemoTA className="td-memo" value={t.memo||""} placeholder="이 순간을 한 줄로 남겨보세요…"
@@ -4864,7 +4903,7 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                         .map(b => String(b.v || "").trim()).filter(Boolean);
                       const pics = bs.filter(b => b.t === "img").length;
                       return (
-                        <button className="td-recsum" onClick={()=>{setRecFor(t.id); setDraftNote(rec.id);}}>
+                        <button className="td-recsum" onClick={()=>setRecFor(t.id)}>
                           <span className="tt">{rec.title || "(제목 없음)"}</span>
                           <span className="ex">{lines[0] || "아직 쓴 내용이 없어요"}</span>
                           <span className="mt">
@@ -5232,20 +5271,6 @@ function HistoryPage({data, setData, user, profile, onNeedHandle, notes, noteApi
   // 지난 기록도 글감이다 — 여기 쌓인 것을 들춰 글로 키우는 자리가 Story다.
   // 오늘 것만 글이 되고 지난 것은 못 되는 건 말이 안 된다.
   const [seed, setSeed] = useState(null);
-  // 스크랩을 보다가 '이거다' 싶으면 쓰던 글로 보낸다 — 겪은 날짜가 함께 간다
-  const draftId = useDraftNote();
-  const draft = draftId ? (notes || []).find(n => String(n.id) === String(draftId)) : null;
-  const [sent, setSent] = useState("");
-  const sendToDraft = async (t, date) => {
-    if (!draft || !noteApi || !noteApi.live) return;
-    const next = noteBlocks(draft).slice();
-    next.push({t: "img", photoId: t.photoId || null,
-               src: t.photoId ? null : (t.photo || null), from: date || null});
-    if (!next.some(b => b.t === "p" && !String(b.v || "").trim())) next.push({t: "p", v: ""});
-    await noteApi.update(draft.id, {blocks: next, body: ""});
-    setSent(String(t.id));
-    setTimeout(() => setSent(""), 2600);
-  };
   const allBooks = (((data.chapters || {})[todayD.getFullYear()] || {}).tasks) || [];
   const notesFrom = (taskId) => (notes || [])
     .filter(n => n.from && String(n.from.taskId) === String(taskId));
@@ -5632,7 +5657,7 @@ function HistoryPage({data, setData, user, profile, onNeedHandle, notes, noteApi
                                 <span className="heading-serif" style={{flex:1,fontSize:"13px",color:"#3a2818",fontWeight:600,wordBreak:"break-word"}}>{t.text}</span>
                               </div>
                               {(t.photo || t.photoId) && (
-                                <Photo src={t.photo} id={t.photoId} style={{width:"auto",height:"auto",maxWidth:"min(280px,100%)",maxHeight:"300px",borderRadius:"4px",marginBottom:t.memo?"8px":0,display:"block",border:"1px solid #d8c79a"}}/>
+                                <Photo src={t.photo} id={t.photoId} from={selectedDate} style={{width:"auto",height:"auto",maxWidth:"min(280px,100%)",maxHeight:"300px",borderRadius:"4px",marginBottom:t.memo?"8px":0,display:"block",border:"1px solid #d8c79a"}}/>
                               )}
                               {t.memo && (
                                 <div className="heading-serif" style={{fontSize:"12px",color:"#3a2818",lineHeight:1.7,fontStyle:"italic",padding:"8px 10px",background:"rgba(245,236,217,.5)",borderLeft:"2px solid "+CC[t.cat],borderRadius:"0 3px 3px 0"}}>&ldquo;{t.memo}&rdquo;</div>
@@ -5645,15 +5670,6 @@ function HistoryPage({data, setData, user, profile, onNeedHandle, notes, noteApi
                                   title={share.isOn(t.id) ? "이 스토리 내리기" : "이 스토리 내보내기"}>
                                   {share.isOn(t.id) ? "공개" : "나만"}
                                 </button>
-                                {/* 보던 스크랩을 쓰던 글로 — 날짜가 함께 간다 */}
-                                {draft && (t.photoId || t.photo) && (
-                                  sent === String(t.id)
-                                    ? <span className="n ok">✓ 〈{oneLine(draft.title) || "제목 없음"}〉 맨 끝에 넣었어요</span>
-                                    : <button className="send" onClick={()=>sendToDraft(t, selectedDate)}
-                                        title="이 사진을 쓰던 글로 보냅니다">
-                                        📷 〈{oneLine(draft.title) || "제목 없음"}〉로 보내기
-                                      </button>
-                                )}
                                 <button onClick={()=>setSeed({...t, date: selectedDate})}>✎ 글로 쓰기</button>
                                 {t.sourceTaskId && bookOf(t.sourceTaskId) && (
                                   <button onClick={()=>goBook && goBook(t.sourceTaskId)}>
@@ -5803,9 +5819,6 @@ function NavIcon({k, size=23}) {
 function DeskPage({data, setData, user, profile, notes, noteApi, onEditPen, onNeedHandle, goPage, goBook, onSaveProfile}) {
   const [view, setView] = useState("list");     // list | edit | bind
   const [editId, setEditId] = useState(null);
-
-  // 어느 글을 쓰고 있었는지 적어 둔다 — Story에서 '쓰던 글로 보내기'가 여길 본다
-  useEffect(() => { if (editId) setDraftNote(editId); }, [editId]);
   const [picked, setPicked] = useState([]);
   const [bindTitle, setBindTitle] = useState("");
   const [bindCat, setBindCat] = useState("C");
