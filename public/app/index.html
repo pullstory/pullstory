@@ -362,6 +362,8 @@
     background:rgba(0,0,0,.6);color:#fff;font-size:11px;cursor:pointer;line-height:1}
   .td-ready{margin-top:8px;padding:6px 9px;border-radius:6px;background:rgba(90,140,74,.12);
     color:#4a7c3a;font-family:'Noto Serif KR',serif;font-size:10px;font-weight:700}
+  /* 아직 모자랄 때 — 재촉하지 않게 조용히 */
+  .td-ready.off{background:rgba(120,90,40,.08);color:#9c8460;font-weight:400;font-style:italic}
 
   /* 영감 카드 — 글 위에 붙은 그날의 기록 */
   .sd-card{border:1px solid #d8c79a;border-left:3px solid #b8862f;border-radius:4px;
@@ -1549,6 +1551,19 @@ function noteTouched(n) {
   if (typeof n.updatedAt === "number") return n.updatedAt;
   return noteTs(n);
 }
+
+// 오늘 이 글에 '얼마나 더 썼나'를 재기 위한 자 — 공백은 빼고 센다.
+// 사진 한 장은 한 문장 몫으로 친다(찍어 올린 것도 남긴 것이다).
+function blockTextLen(bs) {
+  return (bs || []).reduce((n, b) => {
+    if (b.t === "img") return n + ((b.photoId || b.src) ? 40 : 0);
+    if (b.t === "p" || b.t === "h" || b.t === "bq") return n + String(b.v || "").replace(/\s/g, "").length;
+    return n;                                  // 영감·인용 카드는 내가 쓴 것이 아니다
+  }, 0);
+}
+
+// 사진 인증 없이 완료하려면 오늘 이만큼은 써야 한다
+const MIN_WRITE = 10;
 
 // 본문을 마지막으로 쓴 때. 제목이나 공개 여부만 건드린 것은 '썼다'가 아니다.
 // (bodyAt이 없는 옛 글은 손댄 때로 본다)
@@ -4623,7 +4638,11 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
       sourceType: st.type,
       alarmTime: srcAlarm,
       note: carry ? carry.note : "",
-      ...(carry && carry.recId ? {recId: carry.recId} : {}),   // 같은 글을 이어 쓴다
+      // 같은 글을 이어 쓴다 — 그때까지 쓴 만큼이 오늘의 출발점이다
+      ...(carry && carry.recId
+        ? {recId: carry.recId,
+           baseLen: blockTextLen(noteBlocks((notes || []).find(n => String(n.id) === String(carry.recId))))}
+        : {}),
     });
     setShowPicker(false);
   };
@@ -4640,13 +4659,26 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
   // 책에서 가져온 계획은 그 책의 Write에 바로 들어가고, 다 쓰면 그대로 작품이 된다.
   // (t.note는 짤 때 적어 두는 세부 계획이다 — 기록과 섞지 않는다)
   const recOf = (t) => (t && t.recId) ? (notes || []).find(n => n.id === t.recId) : null;
-  // '기록이 있다' = 오늘 쓴 것이 있다.
-  // 지난 챕터를 이어받아 가져오면 며칠 전에 쓴 글이 그대로 딸려 온다.
-  // 그걸 기록으로 치면 오늘 아무것도 안 하고 완료가 된다 — 날짜를 함께 본다.
-  const hasRecord = (t) => {
+  // '기록이 있다' = 오늘 이 글에 이만큼 더 썼다.
+  // 날짜만 보면 빈 문단 하나만 더해도 '오늘 손댔다'가 되어 완료가 열린다.
+  // 지난 챕터를 이어받으면 며칠 전 글이 통째로 딸려 오기도 한다.
+  // 그래서 '세운 자리(baseLen)에서 얼마나 더 늘었나'로 잰다.
+  const wroteToday = (t) => {
     const n = recOf(t);
-    return !!(n && noteHasBody(n) && dayOf(noteWrittenAt(n)) === todayKey);
+    if (!n) return 0;
+    return Math.max(0, blockTextLen(noteBlocks(n)) - (t.baseLen || 0));
   };
+  const hasRecord = (t) => wroteToday(t) >= MIN_WRITE;
+
+  // 출발점이 없는 계획 — 고치기 전에 가져온 것들. 지금 길이를 출발점으로 한 번 찍는다
+  useEffect(() => {
+    if (!notesLoaded) return;
+    const need = tasks.filter(t => !t.done && t.recId && t.baseLen == null && recOf(t));
+    if (!need.length) return;
+    const mark = new Map(need.map(t => [t.id, blockTextLen(noteBlocks(recOf(t)))]));
+    writeTodayTasks(tasks.map(t => mark.has(t.id) ? {...t, baseLen: mark.get(t.id)} : t));
+  // eslint-disable-next-line
+  }, [notesLoaded, tasks.length]);
 
   const startRecord = async (t) => {
     if (!noteApi || !noteApi.live) { alert("로그인하면 과정을 글로 남길 수 있어요."); return; }
@@ -4662,7 +4694,7 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
       from: {date: todayKey, taskId: String(t.id)},
     });
     // 글을 세우기 시작했으면 그건 이미 오늘의 계획이다
-    if (id) { updateTodayTask(t.id, {recId: id, fresh: false}); setRecFor(t.id); }
+    if (id) { updateTodayTask(t.id, {recId: id, fresh: false, baseLen: 0}); setRecFor(t.id); }
   };
 
   // 글은 글대로 두고, 하루의 기록에는 그 첫머리와 첫 사진만 옮겨 적는다
@@ -5026,8 +5058,9 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                         </button>
                       );
                     })()}
-                    {hasRecord(t) && (
-                      <div className="td-ready">✓ 오늘 쓴 기록이 있어요 — 체크하면 인증 없이 바로 완료됩니다</div>
+                    {recOf(t) && (hasRecord(t)
+                      ? <div className="td-ready">✓ 오늘 {wroteToday(t)}자 썼어요 — 체크하면 인증 없이 바로 완료됩니다</div>
+                      : <div className="td-ready off">오늘 {wroteToday(t)}자 · {MIN_WRITE}자부터 사진 인증 없이 완료할 수 있어요</div>
                     )}
                     <div style={{height:"11px"}}/>
                     <div className="td-dl">
