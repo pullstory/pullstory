@@ -259,6 +259,9 @@
   .td-modehint{font-size:9.5px;color:#9c8460;font-style:italic;margin-top:7px;line-height:1.6}
   .td-var{flex-shrink:0;padding:1px 6px;border-radius:9px;background:rgba(178,63,57,.12);
     color:#a8483f;font-family:'Noto Serif KR',serif;font-size:8.5px;font-weight:700;letter-spacing:.04em}
+  /* 계획해서 해낸 일 — 변수의 짝 */
+  .td-con{flex-shrink:0;padding:1px 6px;border-radius:9px;background:rgba(74,124,58,.13);
+    color:#4a7c3a;font-family:'Noto Serif KR',serif;font-size:8.5px;font-weight:700;letter-spacing:.04em}
   .td-mix{display:block;color:#8a6d3c;font-style:normal;margin-bottom:2px}
   .td-mix b{font-family:'Cormorant Garamond',Georgia,serif;font-size:12px;color:#5a8c4a;font-variant-numeric:tabular-nums}
   /* 책이 사진 인증을 대신한다는 안내 */
@@ -1529,6 +1532,24 @@ function noteBlocks(n) {
   return out;
 }
 
+// 글을 세워 둔 것과 쓴 것은 다르다.
+// '기록 시작하기'를 누르면 챕터 이름이 제목으로 박힌 빈 글이 서는데,
+// 제목만 있는 것을 '썼다'로 치면 아무것도 안 쓰고 완료가 된다.
+// 본문 한 줄이나 사진 한 장 — 그게 있어야 남긴 것이다.
+// (영감 카드와 인용 카드는 보려고 붙여 둔 것이지 내가 쓴 것이 아니다)
+function noteHasBody(n) {
+  return noteBlocks(n).some(b => b.t === "img"
+    ? !!(b.photoId || b.src)
+    : (b.t === "p" || b.t === "h" || b.t === "bq") && !!String(b.v || "").trim());
+}
+
+// 마지막으로 손댄 때 — 며칠 전에 세운 글을 오늘 이어 썼다면 그것도 '오늘 쓴 것'이다
+function noteTouched(n) {
+  if (!n) return 0;
+  if (typeof n.updatedAt === "number") return n.updatedAt;
+  return noteTs(n);
+}
+
 function noteIsEmpty(n) {
   if (((n && n.title) || "").trim()) return false;
   // 영감만 붙여 두고 아직 한 줄도 안 쓴 글도 빈 글이 아니다 — 일부러 세워 둔 자리다
@@ -1630,7 +1651,7 @@ async function publishDay(uid, profile, date, rec) {
     penName: (profile && profile.penName) || "",
     date, caption,
     keyPhotoId: (key && key.photoId) || null,
-    // 다 채운 하루인가 — 아니면 스토리북 안에서만 읽힌다(진열대는 이 값을 보고 거른다)
+    // 다 채운 하루인가 — 아니면 스크랩북 안에서만 읽힌다(진열대는 이 값을 보고 거른다)
     pageDone: isPageDone(rec),
     visibility: "public",
     publishedAt: now,
@@ -2477,8 +2498,8 @@ function FuturePage({data, setData}) {
   return (
     <div style={{animation:"fadeIn .4s"}}>
       <div className="vb-head">
-        <div className="vb-title">Life Concept</div>
-        <div className="vb-desc">인생의 모든 선택과 판단의 기준점</div>
+        <div className="vb-title">Life Shelf</div>
+        <div className="vb-desc">인생이라는 책장을 어떻게 만들어야 할까</div>
       </div>
 
       <div className="vb-board">
@@ -2820,7 +2841,7 @@ function DayShare({date, rec, updateRec, uid, profile, onNeedHandle, todayLabel}
   const withPhoto = eps.filter(t => t.photo || t.photoId);
   const remaining = ((rec && rec.tasks) || []).filter(t => !t.done).length;
   // 다 못 채운 날도 내보낼 수 있다 — 그것도 내 이야기니까.
-  // 다만 진열대(메인·책장)에는 오르지 않고 스토리북 안에서만 읽힌다.
+  // 다만 진열대(메인·책장)에는 오르지 않고 스크랩북 안에서만 읽힌다.
   const full = isPageDone(rec);
   const published = !!(rec && rec.published);
   const keyId = (rec && rec.keyScene) || null;
@@ -2897,7 +2918,7 @@ function DayShare({date, rec, updateRec, uid, profile, onNeedHandle, todayLabel}
           {busy ? "잠시만요…"
             : published ? (
               <span>
-                {full ? "진열 중" : "스토리북에만 실림"} · <b>{share.size}편</b> 내보내는 중 · <span className="u">pullstory.net/p/{handle}/{date}</span><br/>
+                {full ? "진열 중" : "스크랩북에만 실림"} · <b>{share.size}편</b> 내보내는 중 · <span className="u">pullstory.net/p/{handle}/{date}</span><br/>
                 {full ? "내리면 진열만 그만두고 기록은 그대로 남습니다"
                       : "다 채우지 못한 날이라 진열대에는 오르지 않아요"}
               </span>
@@ -2910,7 +2931,7 @@ function DayShare({date, rec, updateRec, uid, profile, onNeedHandle, todayLabel}
             ) : (
               <span>
                 <b>{remaining}개</b>를 남긴 하루입니다<br/>
-                진열대에는 오르지 않고 <b>스토리북 안에서만</b> 읽힙니다
+                진열대에는 오르지 않고 <b>스크랩북 안에서만</b> 읽힙니다
               </span>
             )}
         </div>
@@ -3630,7 +3651,7 @@ function SaveLine({data}) {
 
 // 책 상세 (표지 탭 → 전체화면 오버레이. Portal로 body에 렌더 → 캐러셀 transform 영향 X)
 // Story = 책의 정보 + 표(습관 일정표 / D-DAY 표) · Write = 그 경험을 엮은 연재
-function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBook, toggleStatus, uid, profile, onNeedHandle, notes, noteApi}) {
+function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBook, toggleStatus, uid, profile, onNeedHandle, notes, noteApi, openNote}) {
   const isHabit = taskTypeOf(book) === "habit";
   const isColl = book.type === "collection";
   const h = book.habit || {};
@@ -3640,6 +3661,12 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
   const [tab, setTab] = useState("story");
   const [openDay, setOpenDay] = useState(null);   // 표에서 펼쳐 본 날
   const [editId, setEditId] = useState(null);     // 편집 중인 글
+  // 오늘의 스토리에서 '이 챕터 열기'로 건너온 경우 — 그 글을 바로 펼친다
+  useEffect(() => {
+    if (!openNote) return;
+    setTab("write");
+    setEditId(openNote);
+  }, [openNote]);
 
   const span = bookSpan(book);
   const dur = span.duration;
@@ -4170,7 +4197,7 @@ function BookDetail({book, bc, records, onClose, backLabel, updateBook, deleteBo
   return ReactDOM.createPortal(overlay, document.body);
 }
 
-function HomePage({data, setData, user, profile, onNeedHandle, notes, noteApi, openBookId, onOpenedBook, bookFrom, onReturn}) {
+function HomePage({data, setData, user, profile, onNeedHandle, notes, noteApi, openBookId, openNoteId, onOpenedBook, bookFrom, onReturn}) {
   const nowYear = new Date().getFullYear();
   const [viewYear, setViewYear] = useState(nowYear);
   const [detailId, setDetailId] = useState(null);
@@ -4286,7 +4313,7 @@ function HomePage({data, setData, user, profile, onNeedHandle, notes, noteApi, o
         onClose={()=>{ setDetailId(null); onReturn && onReturn(); }}
         updateBook={updateBook} deleteBook={deleteBook} toggleStatus={toggleStatus}
         uid={user && user.uid} profile={profile} onNeedHandle={onNeedHandle}
-        notes={notes} noteApi={noteApi}/>}
+        notes={notes} noteApi={noteApi} openNote={openNoteId}/>}
     </div>
   );
 }
@@ -4605,7 +4632,8 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
   // 책에서 가져온 계획은 그 책의 Write에 바로 들어가고, 다 쓰면 그대로 작품이 된다.
   // (t.note는 짤 때 적어 두는 세부 계획이다 — 기록과 섞지 않는다)
   const recOf = (t) => (t && t.recId) ? (notes || []).find(n => n.id === t.recId) : null;
-  const hasRecord = (t) => { const n = recOf(t); return !!(n && !noteIsEmpty(n)); };
+  // 제목만 있는 글은 '남겼다'가 아니다 — 본문 한 줄이나 사진 한 장은 있어야 한다
+  const hasRecord = (t) => { const n = recOf(t); return !!(n && noteHasBody(n)); };
 
   const startRecord = async (t) => {
     if (!noteApi || !noteApi.live) { alert("로그인하면 과정을 글로 남길 수 있어요."); return; }
@@ -4629,8 +4657,10 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
   // 글 한 편이라 하루 종이에 통째로 옮겨 적을 것이 아니다 —
   // 더 쓸 말이 있으면 스토리에서 탭해 고쳐 쓰면 된다.
   const completeWithRecord = (t) => {
+    // 메모에 챕터 이름을 베껴 넣지 않는다 — 바로 아래 세부 계획으로 또 적혀서 두 번 보인다.
+    // 이 칸은 '오늘 무엇을 남겼는지' 적는 자리로 비워 둔다
     const fields = {done: true, doneAt: Date.now(), fresh: false,
-      memo: String(t.note || "").trim(), photoId: null, photo: null};
+      memo: "", photoId: null, photo: null};
     const newTasks = tasks.map(x => x.id === t.id ? {...x, ...fields} : x);
     let next = {...data, pageRecords: {...(data.pageRecords||{}), [todayKey]: {...(data.pageRecords||{})[todayKey]||{}, tasks: newTasks}}, startDate: data.startDate||todayKey};
     if (t.sourceTaskId) next = syncHabitDoneInData(next, t.sourceTaskId, true);
@@ -4735,9 +4765,16 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
 
   // 책에서 가져온 할 일은 그 책에 글을 쓰는 것으로도 인증이 된다.
   // 사진 한 장을 또 찍으라고 하는 건 이미 남긴 기록을 두 번 요구하는 일이다
+  // 그 책에 '오늘 쓴 글'이 있나 — 세워 두기만 한 빈 글은 치지 않고,
+  // 며칠 전 세운 챕터를 오늘 이어 쓴 것은 센다(손댄 때로 본다)
+  const dayOf = (ms) => {
+    const d = new Date(ms || 0);
+    return isNaN(d.getTime()) ? "" :
+      `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  };
   const bookNoteToday = (bookId) => !!bookId && (notes || []).some(n =>
-    String(n.bookId) === String(bookId) && !noteIsEmpty(n) &&
-    new Date(noteTs(n) || 0).toISOString().slice(0, 10) === todayKey);
+    String(n.bookId) === String(bookId) && noteHasBody(n) &&
+    dayOf(noteTouched(n)) === todayKey);
 
   const [seed, setSeed] = useState(null);        // {task} — 글로 키울 기록
 
@@ -4854,7 +4891,9 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
               <div className="td-story" key={t.id}>
                 <div className="td-sth">
                   <span className="td-cat" style={{color:catInk(t.cat)}}>{t.cat} — {(CL[t.cat]||"").toUpperCase()}</span>
-                  {t.adhoc && <span className="td-var" title="계획 밖에서 마주친 일">변수</span>}
+                  {t.adhoc
+                    ? <span className="td-var" title="계획 밖에서 마주친 일">변수</span>
+                    : <span className="td-con" title="계획해서 해낸 일">상수</span>}
                   {tm && <span className="td-tm">{tm}</span>}
                 </div>
                 <div className="td-stt">{t.text}</div>
@@ -4864,11 +4903,17 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                     <Photo src={t.photo} id={t.photoId} from={todayKey} alt="인증 사진"/>
                   </div>
                 )}
-                <MemoTA className="td-memo" value={t.memo||""} placeholder="이 순간을 한 줄로 남겨보세요…"
+                <MemoTA className="td-memo" value={t.memo||""}
+                  placeholder={t.adhoc ? "이 순간을 한 줄로 남겨보세요…" : "오늘 무엇을 남겼나요…"}
                   hint="✎ 탭해서 고쳐 쓰기"
                   onChange={e=>updateTodayTask(t.id,{memo:e.target.value})}/>
                 {t.note && <div className="td-note">{t.note}</div>}
                 <div className="td-seedrow">
+                  {/* 오늘 할 일은 끝냈어도 더 쓰고 싶을 때 — 그 챕터로 바로 건너간다 */}
+                  {t.sourceTaskId && t.recId && recOf(t) && (
+                    <button className="td-seed" onClick={()=>goBook && goBook(t.sourceTaskId, t.recId)}
+                      title="이 기록을 남긴 챕터로 갑니다">📚 이 챕터 이어 쓰기</button>
+                  )}
                   <button className="td-seed" onClick={()=>openSeed(t)}>✎ 글로 쓰기</button>
                   {notesFrom(t.id).length > 0 && (
                     <span className="td-seedn">이 기록으로 쓴 글 {notesFrom(t.id).length}편</span>
@@ -5446,7 +5491,7 @@ function HistoryPage({data, setData, user, profile, onNeedHandle, notes, noteApi
         {/* ─── 표제지 ─── */}
         <div className="sb-tp">
           <div className="sb-om">Present · 지금</div>
-          <div className="sb-h2">Story Book</div>
+          <div className="sb-h2">Scrap Book</div>
           <div className="sb-rule"/>
           <p>지금까지의 모든 에피소드가 모여 만든 오늘의 나<br/>— 여기서 다음 한 페이지가 시작됩니다</p>
         </div>
@@ -5840,7 +5885,7 @@ function CoverPage({data, setData}) {
 // ═════════════════════════════════════════════════════════════════════
 const PAGES = [
   {key:"workshop", label:"Desk",      title:"Desk",      sub:"작업대"},
-  {key:"now",      label:"Story",     title:"Story",     sub:"스토리북"},
+  {key:"now",      label:"Story",     title:"Story",     sub:"스크랩북"},
   {key:"writing",  label:"Page",      title:"Page",      sub:"오늘의 페이지"},
   {key:"chapters", label:"Books",     title:"Books",     sub:"이달의 책"},
   {key:"climax",   label:"Shelf",     title:"Shelf",     sub:"올해의 책장"},
@@ -6380,15 +6425,15 @@ function DeskPage({data, setData, user, profile, notes, noteApi, trash, onEditPe
       <div style={{animation:"fadeIn .3s"}}>
       <div className="dk-sect"><span className="k">Books</span><span className="s">쌓아 온 책</span><span className="l"/></div>
       <div className="dk-shelf">
-        <button className="dk-bk dk-story" onClick={()=>goPage("now")} title="Story Book">
+        <button className="dk-bk dk-story" onClick={()=>goPage("now")} title="Scrap Book">
           <div className="dk-sp" style={{background:"#8a6a2a"}}/>
           <div className="dk-in">
             <div className="dk-fr"/>
             <div className={"dk-bd " + (publishedDays > 0 ? "on" : "off")}>
               {publishedDays > 0 ? publishedDays + "장" : "나만"}
             </div>
-            <div className="dk-ty">📖 스토리북</div>
-            <div className="dk-tt">Story<br/>Book</div>
+            <div className="dk-ty">📖 스크랩북</div>
+            <div className="dk-tt">Scrap<br/>Book</div>
             <div className="dk-st">{data.pageCount || 0}장</div>
           </div>
         </button>
@@ -6467,6 +6512,7 @@ function PageBook({data, setData, onLogout, user, profile, onSaveProfile, notes,
   const [editPen, setEditPen] = useState(false);
   const [needHandle, setNeedHandle] = useState(false);
   const [openBookId, setOpenBookId] = useState(null);   // Desk에서 책을 눌러 들어온 경우
+  const [openNoteId, setOpenNoteId] = useState(null);   // 그 책의 어느 챕터를 펼칠지
   const [bookFrom, setBookFrom] = useState(null);       // 닫으면 돌아갈 자리
   const [dragDx, setDragDx] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -6545,14 +6591,16 @@ function PageBook({data, setData, onLogout, user, profile, onSaveProfile, notes,
       case "chapters": return <HomePage     data={data} setData={setData} user={user}
                                 profile={profile} onNeedHandle={()=>setNeedHandle(true)}
                                 notes={notes} noteApi={noteApi}
-                                openBookId={openBookId} onOpenedBook={()=>setOpenBookId(null)}
+                                openBookId={openBookId} openNoteId={openNoteId}
+                                onOpenedBook={()=>{ setOpenBookId(null); setOpenNoteId(null); }}
                                 bookFrom={bookFrom}
                                 onReturn={()=>{ const k = bookFrom; setBookFrom(null);
                                   if (k) setPageIdx(PAGES.findIndex(x=>x.key===k)); }}/>;
       case "writing":  return <EpisodePage  data={data} setData={setData} user={user}
                                 profile={profile} onNeedHandle={()=>setNeedHandle(true)}
                                 notes={notes} noteApi={noteApi} notesLoaded={notesLoaded}
-                                goBook={(id)=>{ setOpenBookId(id); setBookFrom("writing");
+                                goBook={(id, noteId)=>{ setOpenBookId(id); setOpenNoteId(noteId || null);
+                                  setBookFrom("writing");
                                   setPageIdx(PAGES.findIndex(x=>x.key==="chapters")); }}/>;
       case "now":      return <HistoryPage  data={data} setData={setData} user={user}
                                 profile={profile} onNeedHandle={()=>setNeedHandle(true)}
@@ -6978,7 +7026,7 @@ function App() {
 
   // 책장에 내걸 숫자 — scashbook 문서는 본인만 읽을 수 있어서 남의 책장에선 못 본다.
   // 그래서 이미 공개로 열어 둔 users 문서에 이 셋만 따로 얹는다.
-  // 챕터 제목도 같이 — 방문자의 Story Book 목차가 내 목차와 같은 이름을 부르도록.
+  // 챕터 제목도 같이 — 방문자의 Scrap Book 목차가 내 목차와 같은 이름을 부르도록.
   // 지도(map)가 아니라 목록으로 두는 건 merge 저장이 맵 안의 키를 지우지 않기 때문이다
   // (제목을 지웠는데 남의 책장엔 옛 제목이 남는 일을 막는다).
   useEffect(() => {

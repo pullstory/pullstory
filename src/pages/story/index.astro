@@ -1,12 +1,12 @@
 ---
-// Story Book — /story/{handle}
+// Scrap Book — /story/{handle}
 // 앱의 Story 페이지(펼쳐진 책: 표제지 → 세 지표 → 목차 → 챕터)를 방문자용으로.
 // 방문자에게는 나눈 하루만 있다 — 챕터는 그달의 달력과 펼친 장으로 이루어진다.
 import Base from '../../layouts/Base.astro';
 import '../../styles/paper.css';
 ---
 
-<Base title="Story Book — PULLSTORY" description="누군가 나눈 하루가 모여 만든 책.">
+<Base title="Scrap Book — PULLSTORY" description="누군가 나눈 하루가 모여 만든 책.">
   <div id="story-root" class="paper">
     <p class="loading">책을 펴는 중…</p>
   </div>
@@ -256,11 +256,11 @@ import '../../styles/paper.css';
         var yi = state.years.indexOf(y);
 
         var html =
-          '<div class="bar"><a href="' + shelf + '">‹ ' + esc(pen) + '의 책장</a><span>스토리북</span></div>' +
+          '<div class="bar"><a href="' + shelf + '">‹ ' + esc(pen) + '의 책장</a><span>스크랩북</span></div>' +
           '<div class="book"><div class="leaf">' +
             '<div class="tp">' +
               '<div class="om">' + esc(pen) + '</div>' +
-              '<h2>Story Book</h2>' +
+              '<h2>Scrap Book</h2>' +
               '<div class="rule"></div>' +
               '<p>하루하루 채운 페이지가 모여 만든 한 권<br/>— 그중 펼쳐 보인 장이 여기에 있습니다</p>' +
             '</div>' +

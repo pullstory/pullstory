@@ -301,7 +301,7 @@ import Base from '../../layouts/Base.astro';
         return '<a class="bk story" href="/story/' + esc(handle) + '">' +
           '<span class="sp" style="background:#8a6a2a"></span>' +
           '<span class="in"><span class="fr"></span>' +
-            '<span class="ty">📖 스토리북</span>' +
+            '<span class="ty">📖 스크랩북</span>' +
             '<span class="tt">Story<br/>Book</span>' +
             '<span class="st">' + n + '장</span>' +
           '</span></a>';
@@ -330,8 +330,8 @@ import Base from '../../layouts/Base.astro';
 
       function render(profile, cards) {
         var books = cards.filter(function (c) { return c.kind === 'book'; });
-        // 다 채우지 못한 하루는 진열대에 오르지 않는다 — 스토리북 안에서만 읽힌다.
-        // 다만 스토리북 표지의 장수는 그 못다 채운 날까지 센다. 그 책에는 다 들어 있으니까.
+        // 다 채우지 못한 하루는 진열대에 오르지 않는다 — 스크랩북 안에서만 읽힌다.
+        // 다만 스크랩북 표지의 장수는 그 못다 채운 날까지 센다. 그 책에는 다 들어 있으니까.
         var allPages = cards.filter(function (c) { return c.kind === 'page'; });
         var pages = allPages.filter(function (c) { return c.pageDone !== false; });
         var notes = cards.filter(function (c) { return c.kind === 'note'; });
