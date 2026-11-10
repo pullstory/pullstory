@@ -911,8 +911,17 @@
   .blk-h{width:100%;box-sizing:border-box;border:none;border-left:3px solid #c9a85a;background:rgba(255,253,245,.6);
     padding:8px 10px;font-family:'Noto Serif KR',serif;font-size:14px;font-weight:700;color:#2f2109;outline:none}
   /* 글에 넣는 사진 — 폭을 꽉 채우면 한 장이 화면을 다 먹는다. 잘라내지 않고 줄인다 */
-  .blk-img{display:block;width:auto;height:auto;max-width:min(300px,100%);max-height:340px;
-    border:1px solid #d8c79a;border-radius:3px}
+  .blk-img{display:block;width:auto;height:auto;border:1px solid #d8c79a;border-radius:3px}
+  .blk-img.s{max-width:min(150px,100%);max-height:180px}
+  .blk-img.m{max-width:min(300px,100%);max-height:340px}
+  .blk-img.l{max-width:min(460px,100%);max-height:520px}
+  .blk-img.f{max-width:100%;max-height:none}
+  /* 사진 크기 고르는 줄 — 그 칸을 짚었을 때만 */
+  .blk-size{display:flex;gap:4px;margin-top:6px}
+  .blk-size button{padding:3px 9px;border-radius:5px;cursor:pointer;
+    border:1px solid rgba(120,90,40,.35);background:rgba(255,253,245,.9);
+    font-family:'Noto Serif KR',serif;font-size:9.5px;font-weight:700;color:#8a7556}
+  .blk-size button.on{border-color:#b8862f;background:rgba(212,168,81,.22);color:#8a5f14}
   .blk-cap{margin-top:5px;font-family:'Noto Serif KR',serif;font-size:9.5px;color:#9c8460;
     font-style:italic;letter-spacing:.01em}
   /* 칸과 칸 사이 — 새 칸이 들어갈 자리를 눈에 보이게 */
@@ -1790,7 +1799,7 @@ function resolvePostForPublic(book, post, records, span) {
     .filter(b => b.t !== "q" && b.t !== "seed")
     // from = 그날 겪은 일에서 가져온 사진이라는 표시. 읽는 쪽에 날짜로 적힌다
     .map(b => b.t === "img"
-      ? {t: "img", photoId: b.photoId || null, from: b.from || null}
+      ? {t: "img", photoId: b.photoId || null, from: b.from || null, w: b.w || null}
       : {t: (b.t === "h" || b.t === "bq") ? b.t : "p", v: String(b.v || "")})
     .filter(b => b.t === "img" ? b.photoId : b.v.trim());
   return {block: {id: post.id, title: post.title || "", blocks: resolved, ts: noteTs(post) || null}};
@@ -3385,8 +3394,18 @@ function BlockEditor({note, uid, onWrite, placeholder, renderQuote, textClass, c
         if (b.t === "img") return (
           <div className={cls} key={"i" + i} onClick={()=>setAct(i)}>
             {ctl}
-            <Photo src={b.src} id={b.photoId} from={b.from} className="blk-img"/>
+            <Photo src={b.src} id={b.photoId} from={b.from}
+              className={"blk-img " + (b.w || "m")}/>
             {b.from && <div className="blk-cap">{scrapDateLabel(b.from)}의 기록</div>}
+            {/* 사진 크기는 글마다 다르게 두고 싶다 — 고른 뒤에도 언제든 바꾼다 */}
+            {on && (
+              <div className="blk-size">
+                {[["s","작게"],["m","보통"],["l","크게"],["f","꽉"]].map(([k, label]) => (
+                  <button key={k} className={(b.w || "m") === k ? "on" : ""}
+                    onClick={(e)=>{ e.stopPropagation(); at(i, {w: k}); }}>{label}</button>
+                ))}
+              </div>
+            )}
           </div>
         );
         if (b.t === "bq") return (
@@ -4254,7 +4273,16 @@ function HomePage({data, setData, user, profile, onNeedHandle, notes, noteApi, o
     setNbText("");
   };
   const updateBook = (id, up) => setYearBooks(bs => bs.map(t => t.id===id ? up(t) : t));
-  const deleteBook = (id) => { setYearBooks(bs => bs.filter(t => t.id!==id)); setDetailId(null); };
+  // 지우기 전에 진열대에서 먼저 내린다 — 안 그러면 책은 없는데 표지만 남는다
+  const deleteBook = async (id) => {
+    const b = yearBooks.find(x => x.id === id);
+    if (b && b.published) {
+      try { await unpublishBook(user && user.uid, profile, b, data.pageRecords || {}, notes); }
+      catch (e) { console.warn("delete book unpublish:", e); }
+    }
+    setYearBooks(bs => bs.filter(t => t.id!==id));
+    setDetailId(null);
+  };
   const toggleStatus = (id) => updateBook(id, t => ({...t, status: t.status==="완료"?"진행중":"완료"}));
 
   const detail = yearBooks.find(b => b.id===detailId);
@@ -4617,15 +4645,26 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
 
   // 하루 분량을 마쳤다고 그 챕터가 끝난 건 아니다.
   // 책에서 가져온 계획 중 아직 닫지 않은 챕터를 찾아 이어 쓸 수 있게 한다
-  const openChapter = (bookId) => {
+  // 아직 닫지 않은 챕터를 모두 찾는다 — 가장 최근 것만 고를 수 있으면
+  // 며칠 전에 벌여 둔 챕터로는 돌아갈 길이 없다.
+  // 같은 글이 여러 날에 걸쳐 있으면 가장 최근 날 하나로 친다.
+  const openChapters = (bookId) => {
     const recs = data.pageRecords || {};
-    const days = Object.keys(recs).filter(d => d < todayKey).sort().reverse().slice(0, 90);
+    const days = Object.keys(recs).filter(d => d < todayKey).sort().reverse().slice(0, 180);
+    const seen = new Map();
     for (const d of days) {
-      const found = (recs[d].tasks || []).find(t =>
-        String(t.sourceTaskId) === String(bookId) && t.recId && !t.chapterDone);
-      if (found) return {date: d, note: found.note || "", recId: found.recId};
+      ((recs[d] || {}).tasks || []).forEach(t => {
+        if (String(t.sourceTaskId) !== String(bookId) || !t.recId || t.chapterDone) return;
+        const k = String(t.recId);
+        if (!seen.has(k)) seen.set(k, {date: d, note: t.note || "", recId: t.recId});
+      });
     }
-    return null;
+    return [...seen.values()];
+  };
+  // 챕터 이름은 그 글의 지금 제목으로 — 책에서 고쳤으면 고친 이름이 보여야 한다
+  const chapterLabel = (c) => {
+    const n = (notes || []).find(x => String(x.id) === String(c.recId));
+    return oneLine((n && n.title) || c.note) || "쓰던 챕터";
   };
 
   const addFromSource = (st, carry) => {
@@ -5202,7 +5241,7 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                     </div>
                     {items.map(st => {
                       const already = addedSourceIds.has(st.id);
-                      const cont = already ? null : openChapter(st.id);
+                      const conts = already ? [] : openChapters(st.id);
                       return (
                         <React.Fragment key={st.id}>
                         <button onClick={()=>!already && addFromSource(st)} disabled={already} style={{
@@ -5224,13 +5263,13 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                             <span style={{fontSize:"14px",color:"#d4a851",fontWeight:700,flexShrink:0}}>+</span>
                           )}
                         </button>
-                        {cont && (
-                          <button className="td-cont" onClick={()=>addFromSource(st, cont)}>
-                            <span className="k">이어서 쓰기</span>
-                            <span className="v">{String(cont.note).split("\n")[0].trim() || "쓰던 챕터"}</span>
-                            <span className="d">{cont.date.slice(5).replace("-", ".")}부터</span>
+                        {conts.map((c, ci) => (
+                          <button className="td-cont" key={c.recId} onClick={()=>addFromSource(st, c)}>
+                            <span className="k">{ci === 0 ? "이어서 쓰기" : "또는"}</span>
+                            <span className="v">{chapterLabel(c)}</span>
+                            <span className="d">{c.date.slice(5).replace("-", ".")}부터</span>
                           </button>
-                        )}
+                        ))}
                         </React.Fragment>
                       );
                     })}
@@ -6091,6 +6130,11 @@ function DeskPage({data, setData, user, profile, notes, noteApi, trash, onEditPe
   const toggleCollStatus = (id) =>
     updateColl(id, b => ({...b, status: b.status === "완료" ? "진행중" : "완료"}));
   const deleteColl = async (id) => {
+    const b = books.find(x => String(x.id) === String(id));
+    if (b && b.published) {
+      try { await unpublishBook(user && user.uid, profile, b, data.pageRecords || {}, notes); }
+      catch (e) { console.warn("delete coll unpublish:", e); }
+    }
     // 책만 없애고 글은 낱장으로 되돌린다 — 묶은 걸 푸는 것이지 지우는 게 아니다
     for (const n of notes.filter(x => String(x.bookId) === String(id))) {
       await noteApi.update(n.id, {bookId: null});
@@ -6992,7 +7036,27 @@ function App() {
         .filter(d => !alive.has(String(d.data().noteId)))
         .map(d => d.ref.delete().catch(e => console.warn("sweep note card:", e)))))
       .catch(e => console.warn("sweep note cards:", e));
-  }, [notesLoaded, notes, user, profile]);
+
+    // 주인 없는 책 표지도 거둔다 — 지운 책이 진열대에 그대로 남아 있던 것들
+    const chapters = (data && data.chapters) || {};
+    const liveBooks = new Set();
+    Object.keys(chapters).forEach(y => ((chapters[y] || {}).tasks || [])
+      .forEach(t => liveBooks.add(String(t.id))));
+    if (liveBooks.size) {
+      fbDb.collection("feed").where("handle", "==", handle).where("kind", "==", "book").get()
+        .then(snap => Promise.all(snap.docs
+          .filter(d => !liveBooks.has(String(d.data().bookId)))
+          .map(d => {
+            const pid = d.id;
+            return Promise.all([
+              d.ref.delete().catch(e => console.warn("sweep book card:", e)),
+              fbDb.collection("publicBooks").doc(pid).delete()
+                .catch(e => console.warn("sweep public book:", e)),
+            ]);
+          })))
+        .catch(e => console.warn("sweep book cards:", e));
+    }
+  }, [notesLoaded, notes, user, profile, data]);
 
   const noteApi = useMemo(() => {
     const uid = user && user.uid;

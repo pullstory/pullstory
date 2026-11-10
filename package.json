@@ -6,7 +6,7 @@
   "scripts": {
     "sync": "node scripts/sync-notion.mjs",
     "dev": "astro dev",
-    "build": "node scripts/sync-notion.mjs && astro build",
+    "build": "node scripts/check-inline-js.mjs && node scripts/sync-notion.mjs && astro build",
     "preview": "astro preview"
   },
   "dependencies": {
