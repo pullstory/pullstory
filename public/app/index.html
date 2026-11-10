@@ -299,6 +299,8 @@
   .td-cont .k{flex-shrink:0;font-family:'Noto Serif KR',serif;font-size:9px;font-weight:700;color:#8a5f14}
   .td-cont .v{flex:1;min-width:0;font-size:11px;color:#3a2818;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .td-cont .d{flex-shrink:0;font-family:Georgia,serif;font-size:9px;color:#a89066}
+  .td-cont.fold{background:none;border-style:solid;border-color:rgba(120,90,40,.2);justify-content:center}
+  .td-cont.fold .v{flex:0 0 auto;font-size:9.5px;color:#8a7556}
 
   /* 과정 기록 — 서랍엔 요약만, 쓰는 건 펼친 창에서 */
   .td-recsum{width:100%;display:block;text-align:left;border:1px solid rgba(120,90,40,.3);
@@ -1137,6 +1139,14 @@
     padding:2px 6px;flex-shrink:0;font-weight:700}
   .dk-tag.on{background:#5a8c4a;color:#fff8ea}
   .dk-tag.off{background:rgba(120,90,40,.14);color:#8a7556}
+  .dk-sweep{display:flex;align-items:center;gap:9px;margin-top:18px;padding-top:11px;
+    border-top:1px dashed rgba(120,90,40,.25)}
+  .dk-sweep span{flex:1;min-width:0;font-family:'Noto Serif KR',serif;font-size:9px;
+    color:#a89066;font-style:italic;line-height:1.7}
+  .dk-sweep button{flex-shrink:0;border:1px solid rgba(156,116,32,.45);border-radius:6px;
+    background:rgba(255,253,245,.9);padding:5px 10px;cursor:pointer;
+    font-family:'Noto Serif KR',serif;font-size:10px;font-weight:700;color:#8a5f14}
+  .dk-sweep button:disabled{opacity:.5;cursor:default}
   .dk-foot{text-align:center;font-family:'Noto Serif KR',serif;font-size:9.5px;color:#a89066;
     font-style:italic;margin-top:15px;line-height:1.75}
   .dk-empty{text-align:center;font-family:'Noto Serif KR',serif;font-size:11px;color:#b09a6e;
@@ -1927,6 +1937,34 @@ async function unpublishNote(uid, handle, noteId) {
   if (!FIREBASE_READY || !uid || uid === "local-user" || !handle) return;
   await fbDb.collection("feed").doc(handle + "_n" + noteId).delete()
     .catch(e => console.warn("unpublish note:", e));
+}
+
+// 진열대에 남은 주인 없는 카드를 거둔다 — 지운 글·책의 표지가 그대로 남던 것.
+// 왜 안 지워지는지(규칙에 막혔는지) 보이도록 센 수와 실패를 돌려준다.
+async function sweepStrays(uid, handle, notes, chapters) {
+  if (!FIREBASE_READY || !uid || uid === "local-user" || !handle) return {swept: 0, failed: 0};
+  const aliveNotes = new Set((notes || []).map(n => String(n.id)));
+  const aliveBooks = new Set();
+  Object.keys(chapters || {}).forEach(y =>
+    (((chapters || {})[y] || {}).tasks || []).forEach(t => aliveBooks.add(String(t.id))));
+
+  let swept = 0, failed = 0;
+  const kill = async (ref) => {
+    try { await ref.delete(); swept++; }
+    catch (e) { failed++; console.warn("sweep:", e); }
+  };
+  try {
+    const snap = await fbDb.collection("feed").where("handle", "==", handle).get();
+    for (const d of snap.docs) {
+      const x = d.data() || {};
+      if (x.kind === "note" && !aliveNotes.has(String(x.noteId))) await kill(d.ref);
+      else if (x.kind === "book" && aliveBooks.size && !aliveBooks.has(String(x.bookId))) {
+        await kill(d.ref);
+        await kill(fbDb.collection("publicBooks").doc(d.id));
+      }
+    }
+  } catch (e) { console.warn("sweep feed:", e); failed++; }
+  return {swept, failed};
 }
 
 // 새 책으로 시작할 때, 밖에 나가 있는 것까지 거둔다.
@@ -4428,6 +4466,7 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
   const [newCat, setNewCat] = useState("C");
   const [newText, setNewText] = useState("");
   const [showPicker, setShowPicker] = useState(false);
+  const [openCont, setOpenCont] = useState(null);   // 이어쓰기 목록을 펼친 책
 
   // 인증 모달 상태
   const [verifyId, setVerifyId] = useState(null);
@@ -4668,6 +4707,7 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
   };
 
   const addFromSource = (st, carry) => {
+    setOpenCont(null);
     // 습관일 경우 알람 시간을 source에서 자동 연동 (변경 가능)
     const srcAlarm = (st.habit && st.habit.alarmTime) || "";
     addToToday({
@@ -5263,11 +5303,24 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                             <span style={{fontSize:"14px",color:"#d4a851",fontWeight:700,flexShrink:0}}>+</span>
                           )}
                         </button>
-                        {conts.map((c, ci) => (
-                          <button className="td-cont" key={c.recId} onClick={()=>addFromSource(st, c)}>
-                            <span className="k">{ci === 0 ? "이어서 쓰기" : "또는"}</span>
-                            <span className="v">{chapterLabel(c)}</span>
-                            <span className="d">{c.date.slice(5).replace("-", ".")}부터</span>
+                        {conts.length > 0 && (openCont === st.id ? (
+                          <React.Fragment>
+                            {conts.map(c => (
+                              <button className="td-cont" key={c.recId} onClick={()=>addFromSource(st, c)}>
+                                <span className="k">이어서</span>
+                                <span className="v">{chapterLabel(c)}</span>
+                                <span className="d">{c.date.slice(5).replace("-", ".")}부터</span>
+                              </button>
+                            ))}
+                            <button className="td-cont fold" onClick={()=>setOpenCont(null)}>
+                              <span className="v">접기</span><span className="d">▴</span>
+                            </button>
+                          </React.Fragment>
+                        ) : (
+                          <button className="td-cont" onClick={()=>setOpenCont(st.id)}>
+                            <span className="k">이어서 쓰기</span>
+                            <span className="v">쓰던 챕터 {conts.length}개</span>
+                            <span className="d">▾</span>
                           </button>
                         ))}
                         </React.Fragment>
@@ -6003,6 +6056,8 @@ function DeskPage({data, setData, user, profile, notes, noteApi, trash, onEditPe
   const [view, setView] = useState("list");     // list | edit | bind
   const [editId, setEditId] = useState(null);
   const [picked, setPicked] = useState([]);
+  const [sweeping, setSweeping] = useState(false);
+  const [sweepMsg, setSweepMsg] = useState("");
   const [bindTitle, setBindTitle] = useState("");
   const [bindCat, setBindCat] = useState("C");
   const [busy, setBusy] = useState(false);
@@ -6578,6 +6633,19 @@ function DeskPage({data, setData, user, profile, notes, noteApi, trash, onEditPe
         </div>
       )}
 
+      {/* 지운 글·책의 표지가 밖에 남아 있을 때 — 손으로 한 번 더 거둔다 */}
+      <div className="dk-sweep">
+        <span>{sweepMsg || "지운 글·책이 홈페이지에 남아 있으면 여기서 거둡니다"}</span>
+        <button disabled={sweeping} onClick={async ()=>{
+          setSweeping(true);
+          const r = await sweepStrays(user && user.uid, handle, notes, (data || {}).chapters);
+          setSweeping(false);
+          setSweepMsg(r.failed
+            ? `${r.swept}개 거뒀고 ${r.failed}개는 막혔어요 — 다시 눌러 보세요`
+            : r.swept ? `✓ ${r.swept}개를 진열대에서 거뒀어요` : "거둘 것이 없어요");
+        }}>{sweeping ? "거두는 중…" : "진열대 청소"}</button>
+      </div>
+
       <div className="dk-foot">Books의 책은 각자의 자리에서 내보냅니다<br/>여기서는 글을 쓰고 묶습니다</div>
       </div>
       )}
@@ -7028,7 +7096,8 @@ function App() {
   useEffect(() => {
     const uid = user && user.uid;
     const handle = (profile && profile.handle) || "";
-    if (!notesLoaded || !handle || !uid || sweptRef.current) return;
+    // data까지 와야 책 목록을 알 수 있다 — 먼저 훑어 버리면 책 표지는 영영 못 거둔다
+    if (!notesLoaded || !handle || !uid || !data || sweptRef.current) return;
     sweptRef.current = true;
     const alive = new Set(notes.map(n => String(n.id)));
     fbDb.collection("feed").where("handle", "==", handle).where("kind", "==", "note").get()
