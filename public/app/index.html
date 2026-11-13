@@ -4687,23 +4687,41 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
   // 아직 닫지 않은 챕터를 모두 찾는다 — 가장 최근 것만 고를 수 있으면
   // 며칠 전에 벌여 둔 챕터로는 돌아갈 길이 없다.
   // 같은 글이 여러 날에 걸쳐 있으면 가장 최근 날 하나로 친다.
+  // 이어 쓸 수 있는 챕터 = 그 책에 들어 있는 글 전부.
+  // 예전엔 '지난 날의 할 일 기록'에서만 찾아서, Books에서 바로 만든 챕터는
+  // 하루 기록에 흔적이 없어 목록에 아예 뜨지 않았다. 책을 기준으로 센다.
   const openChapters = (bookId) => {
     const recs = data.pageRecords || {};
-    const days = Object.keys(recs).filter(d => d < todayKey).sort().reverse().slice(0, 180);
-    const seen = new Map();
-    for (const d of days) {
+    const closed = new Set();          // 다 썼다고 닫은 챕터
+    const lastDay = new Map();         // 마지막으로 손댄 날 (있으면 보여 준다)
+    Object.keys(recs).sort().forEach(d => {
       ((recs[d] || {}).tasks || []).forEach(t => {
-        if (String(t.sourceTaskId) !== String(bookId) || !t.recId || t.chapterDone) return;
+        if (String(t.sourceTaskId) !== String(bookId) || !t.recId) return;
         const k = String(t.recId);
-        if (!seen.has(k)) seen.set(k, {date: d, note: t.note || "", recId: t.recId});
+        lastDay.set(k, d);
+        if (t.chapterDone) closed.add(k); else closed.delete(k);
       });
-    }
-    return [...seen.values()];
+    });
+    const mine = new Set(tasks.filter(t => t.recId).map(t => String(t.recId)));   // 오늘 이미 가져온 것
+    return (notes || [])
+      .filter(n => String(n.bookId) === String(bookId) && !n.deletedAt
+                && !closed.has(String(n.id)) && !mine.has(String(n.id)))
+      .map(n => ({recId: n.id, note: n.title || "", date: lastDay.get(String(n.id)) || ""}))
+      .sort((a, b) => {
+        const av = a.date || dayOf(noteTouched((notes || []).find(n => String(n.id) === String(a.recId))));
+        const bv = b.date || dayOf(noteTouched((notes || []).find(n => String(n.id) === String(b.recId))));
+        return bv.localeCompare(av);
+      });
   };
   // 챕터 이름은 그 글의 지금 제목으로 — 책에서 고쳤으면 고친 이름이 보여야 한다
   const chapterLabel = (c) => {
     const n = (notes || []).find(x => String(x.id) === String(c.recId));
-    return oneLine((n && n.title) || c.note) || "쓰던 챕터";
+    return oneLine((n && n.title) || c.note) || "제목 없는 챕터";
+  };
+  // Books에서 바로 만든 챕터는 하루 기록에 없어 날짜가 비어 있다 — 그 글의 날짜로
+  const chapterWhen = (c) => {
+    const d = c.date || dayOf(noteTouched((notes || []).find(x => String(x.id) === String(c.recId))));
+    return d ? d.slice(5).replace("-", ".") + "부터" : "";
   };
 
   const addFromSource = (st, carry) => {
@@ -5309,7 +5327,7 @@ function EpisodePage({data, setData, user, profile, onNeedHandle, notes, noteApi
                               <button className="td-cont" key={c.recId} onClick={()=>addFromSource(st, c)}>
                                 <span className="k">이어서</span>
                                 <span className="v">{chapterLabel(c)}</span>
-                                <span className="d">{c.date.slice(5).replace("-", ".")}부터</span>
+                                <span className="d">{chapterWhen(c)}</span>
                               </button>
                             ))}
                             <button className="td-cont fold" onClick={()=>setOpenCont(null)}>
